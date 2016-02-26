@@ -3,7 +3,9 @@ from django.db import models
 
 
 class Address(models.Model):
-    """A simple geographical address."""
+    """
+    A simple geographical address.
+    """
     interior_number = models.CharField(max_length=5, blank=True)
     exterior_number = models.CharField(max_length=5, blank=True)
     street = models.CharField(max_length=20, blank=True)
@@ -30,7 +32,7 @@ class PersonProfile(models.Model):
     name = models.CharField(max_length=20)
     paternal_last_name = models.CharField(max_length=20)
     maternal_last_name = models.CharField(max_length=20)
-    gender = models.IntegerField(choices=GENDER_CHOICES)
+    gender = models.PositiveSmallIntegerField(choices=GENDER_CHOICES)
     phone = models.CharField(max_length=14, blank=True)
     email = models.EmailField(blank=True)
     picture = models.ImageField()
@@ -38,13 +40,17 @@ class PersonProfile(models.Model):
 
 
 class EmployeeRole(models.Model):
-    """Describes a role assigned to an employee."""
+    """
+    Describes a role assigned to an employee.
+    """
     name = models.CharField(max_length=20)
     description = models.CharField(max_length=50)
 
 
 class Employee(models.Model):
-    """An employee that works for the company."""
+    """
+    An employee that works for Acrilfrasa.
+    """
     number = models.CharField(max_length=45, primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     seniority = models.DateField()
@@ -53,7 +59,31 @@ class Employee(models.Model):
     profile = models.ForeignKey(PersonProfile, on_delete=models.PROTECT)
 
 
+class OrganizationProfile(models.Model):
+    """
+    Stores information about an organization or company.
+    """
+    contact = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
+    phone = models.CharField(max_length=14, blank=True)
+    website = models.URLField(max_length=45, blank=True)
+    email = models.EmailField(blank=True)
+    picture = models.ImageField()
+    address = models.ForeignKey(Address, on_delete=models.PROTECT)
+
+
 class Client(models.Model):
-    """One of Acrilfrasa's clients."""
+    """
+    One of Acrilfrasa's clients.
+    """
     name = models.CharField(max_length=45)
     contact_profile = models.ForeignKey(PersonProfile, on_delete=models.PROTECT)
+
+
+class BranchOffice(models.Model):
+    """
+    A location involved in the business activities of the firm.
+    """
+    name = models.CharField(max_length=45)
+    administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="administrated_branches")
+    address = models.ForeignKey(Address, on_delete=models.PROTECT)
+    employees = models.ManyToManyField(Employee)
