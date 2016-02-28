@@ -25,8 +25,6 @@ class ProductDefinition(models.Model):
     description = models.CharField(max_length=100, blank=True)
     short_description = models.CharField(max_length=50, blank=True)
     image = models.ImageField()
-    # fabrication_order = models.CharField(max_length=45)
-    # supervisor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
     color = models.CharField(max_length=10)
     length = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
@@ -34,19 +32,41 @@ class ProductDefinition(models.Model):
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     is_composite = models.BooleanField(default=False)
     unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
-    # client = models.ForeignKey(Client, on_delete=models.CASCADE, null=True)
-    # was_returned = models.BooleanField(default=False)
-    # return_date = models.DateField(blank=True)
+
+
+class WorkOrder(models.Model):
+    """
+    An order that authorizes the manufacture of a product.
+    """
+    number = models.CharField(max_length=50, primary_key=True)
+    product_definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE)
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+    authorization_datetime = models.DateTimeField()
 
 
 class Product(models.Model):
     """
     A concrete product manufactured by Acrilfrasa.
     """
+    IN_MANUFACTURING = 0
+    IN_WAREHOUSE = 1
+    SOLD = 2
+    RETURNED = 3
+    DESTROYED = 4
+    STATE_CHOICES = (
+        (IN_MANUFACTURING, "En producción"),
+        (IN_WAREHOUSE, "En almacén"),
+        (SOLD, "Vendido"),
+        (RETURNED, "Devuelto"),
+        (DESTROYED, "Destruido"),
+    )
+
+    state = models.PositiveSmallIntegerField(choices=STATE_CHOICES)
     number = models.CharField(max_length=50, primary_key=True)
     definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE)
     manufacture_date = models.DateField()
     manufacturer = models.ForeignKey(Employee, on_delete=models.PROTECT)
+    manufacture_order = models.ForeignKey("WorkOrder", on_delete=models.PROTECT)
 
 
 class MaterialDefinition(models.Model):
@@ -99,6 +119,18 @@ class Material(models.Model):
     Miscelaneous material used for individual sale or for
     the production of composite products.
     """
+    IN_WAREHOUSE = 0
+    USED_IN_PRODUCT = 1
+    RETURNED = 2
+    DESTROYED = 3
+    STATE_CHOICES = (
+        (IN_WAREHOUSE, "En producción"),
+        (USED_IN_PRODUCT, "En producto"),
+        (RETURNED, "Devuelto"),
+        (DESTROYED, "Destruido"),
+    )
+
+    state = models.PositiveSmallIntegerField(choices=STATE_CHOICES)
     number = models.CharField(max_length=50, primary_key=True)
     definition = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE)
     acquisition_date = models.DateField()
@@ -208,3 +240,35 @@ class DurableGoodsInventory(models.Model):
     items = models.ManyToManyField(DurableGoodInventoryItem)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+
+class Movement(models.Model):
+    """
+    The record of an asset's movement within the company.
+    """
+    CREATION = 0
+    EDITION = 1
+    DELETION = 2
+    TRANSFER = 3
+    TYPE_CHOICES = (
+        (CREATION, "Creación"),
+        (EDITION, "Edición"),
+        (DELETION, "Eliminación"),
+        (TRANSFER, "Transferencia"),
+    )
+
+    PRODUCT = 0
+    MATERIAL = 1
+    EMPLOYEE = 2
+    DURABLE_GOOD = 3
+    TARGET_CHOICES = (
+        (PRODUCT, "Producto"),
+        (MATERIAL, "Material"),
+        (EMPLOYEE, "Empleado"),
+        (EMPLOYEE, "Recurso"),
+    )
+
+    type = models.PositiveSmallIntegerField(choices=TYPE_CHOICES)
+    target = models.PositiveSmallIntegerField(choices=TARGET_CHOICES)
+    datetime = models.DateTimeField(auto_now_add=True)
+    made_by = models.ForeignKey(Employee, on_delete=models.PROTECT)

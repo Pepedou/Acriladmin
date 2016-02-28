@@ -1,6 +1,7 @@
-from back_office.models import Client
+from back_office.models import Client, Employee
 from django.db import models
-from inventories.models import Product
+from inventories.models import Product, Material
+from operations.models import Service
 
 
 class Order(models.Model):
@@ -53,19 +54,19 @@ class OrderServices(models.Model):
     An entry that relates a service with an order.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    # TODO: Add service model.
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
 
 
 class Invoice(models.Model):
     """
-    Commercial document issued by Acrilfrasa to a buyer relating to a sale transaction
+    Commercial document issued by Acrilfrasa to a buyer related to a sale transaction
     and indicating the products, quantities and agreed prices for products or services
     provided.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
 
 
-class InvoiceProducts(models.Model):
+class ProductInvoice(models.Model):
     """
     An entry that relates a concrete product with an invoice.
     """
@@ -73,9 +74,37 @@ class InvoiceProducts(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
 
 
-class InvoiceServices(models.Model):
+class ProductPrice(models.Model):
+    """
+    Determines the price of a product.
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+
+class MaterialCost(models.Model):
+    """
+    Specifies the monetary cost of a material.
+    """
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+
+class ServiceInvoice(models.Model):
     """
     An entry that relates a service with an invoice.
     """
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
-    # TODO: Add service model.
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+
+
+class Transaction(models.Model):
+    """
+    Details a monetary transaction.
+    """
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT)
+    payed_by = models.ForeignKey(Client, on_delete=models.PROTECT)
+    datetime = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
