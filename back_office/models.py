@@ -15,6 +15,9 @@ class Address(models.Model):
     country = models.CharField(max_length=20, blank=True)
     zip_code = models.PositiveSmallIntegerField(blank=True)
 
+    def __str__(self):
+        return "{0}, {1}, {2}".format(self.exterior_number, self.street, self.town)
+
 
 class PersonProfile(models.Model):
     """Stores personal information about a person."""
@@ -38,6 +41,9 @@ class PersonProfile(models.Model):
     picture = models.ImageField()
     address = models.ForeignKey(Address, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.full_name
+
 
 class EmployeeRole(models.Model):
     """
@@ -45,6 +51,9 @@ class EmployeeRole(models.Model):
     """
     name = models.CharField(max_length=20)
     description = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
 
 
 class Employee(models.Model):
@@ -58,11 +67,15 @@ class Employee(models.Model):
     role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT)
     profile = models.ForeignKey(PersonProfile, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.profile
+
 
 class OrganizationProfile(models.Model):
     """
     Stores information about an organization or company.
     """
+    name = models.CharField(max_length=45)
     contact = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
     phone = models.CharField(max_length=14, blank=True)
     website = models.URLField(max_length=45, blank=True)
@@ -70,20 +83,28 @@ class OrganizationProfile(models.Model):
     picture = models.ImageField()
     address = models.ForeignKey(Address, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.name
+
 
 class Client(models.Model):
     """
     One of Acrilfrasa's clients.
     """
-    name = models.CharField(max_length=45)
-    contact_profile = models.ForeignKey(PersonProfile, on_delete=models.PROTECT)
+    profile = models.ForeignKey(OrganizationProfile, on_delete=models.PROTECT)
+    client_since = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
 
 
 class BranchOffice(models.Model):
     """
     A location involved in the business activities of the firm.
     """
-    name = models.CharField(max_length=45)
+    profile = models.ForeignKey(OrganizationProfile, on_delete=models.PROTECT)
     administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="administrated_branches")
-    address = models.ForeignKey(Address, on_delete=models.PROTECT)
     employees = models.ManyToManyField(Employee)
+
+    def __str__(self):
+        return self.profile

@@ -1,3 +1,20 @@
 from django.contrib import admin
+import inventories.models as models
 
-# Register your models here.
+admin.site.register(models.ProductDefinition)
+admin.site.register(models.Product)
+admin.site.register(models.MaterialDefinition)
+admin.site.register(models.ProductComponent)
+admin.site.register(models.ProductInventoryItem)
+admin.site.register(models.ProductsInventory)
+admin.site.register(models.Material)
+admin.site.register(models.MaterialInventoryItem)
+admin.site.register(models.MaterialsInventory)
+admin.site.register(models.ConsumableDefinition)
+admin.site.register(models.Consumable)
+admin.site.register(models.ConsumableInventoryItem)
+admin.site.register(models.ConsumablesInventory)
+admin.site.register(models.DurableGoodDefinition)
+admin.site.register(models.DurableGoodInventoryItem)
+admin.site.register(models.DurableGoodsInventory)
+admin.site.register(models.Movement)

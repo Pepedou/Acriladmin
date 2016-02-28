@@ -40,6 +40,9 @@ class Order(models.Model):
     discount = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+        return self.number
+
 
 class OrderProducts(models.Model):
     """
@@ -47,6 +50,9 @@ class OrderProducts(models.Model):
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return "{0} - {1}".format(self.order, self.product)
 
 
 class OrderServices(models.Model):
@@ -56,6 +62,9 @@ class OrderServices(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return "{0} - {1}".format(self.order, self.service)
+
 
 class Invoice(models.Model):
     """
@@ -64,6 +73,10 @@ class Invoice(models.Model):
     provided.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    file = models.FileField()
+
+    def __str__(self):
+        return self.order
 
 
 class ProductInvoice(models.Model):
@@ -72,6 +85,9 @@ class ProductInvoice(models.Model):
     """
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return "{0} - {1}".format(self.invoice, self.product)
 
 
 class ProductPrice(models.Model):
@@ -82,6 +98,9 @@ class ProductPrice(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.price
+
 
 class MaterialCost(models.Model):
     """
@@ -91,6 +110,9 @@ class MaterialCost(models.Model):
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.cost
+
 
 class ServiceInvoice(models.Model):
     """
@@ -98,6 +120,9 @@ class ServiceInvoice(models.Model):
     """
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "{0} - {1}".format(self.invoice, self.service)
 
 
 class Transaction(models.Model):
@@ -108,3 +133,6 @@ class Transaction(models.Model):
     payed_by = models.ForeignKey(Client, on_delete=models.PROTECT)
     datetime = models.DateTimeField(auto_now_add=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return self.amount

@@ -33,6 +33,9 @@ class ProductDefinition(models.Model):
     is_composite = models.BooleanField(default=False)
     unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
 
+    def __str__(self):
+        return self.sku
+
 
 class WorkOrder(models.Model):
     """
@@ -42,6 +45,9 @@ class WorkOrder(models.Model):
     product_definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
     authorization_datetime = models.DateTimeField()
+
+    def __str__(self):
+        return self.number
 
 
 class Product(models.Model):
@@ -68,6 +74,9 @@ class Product(models.Model):
     manufacturer = models.ForeignKey(Employee, on_delete=models.PROTECT)
     manufacture_order = models.ForeignKey("WorkOrder", on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.state
+
 
 class MaterialDefinition(models.Model):
     """
@@ -84,6 +93,9 @@ class MaterialDefinition(models.Model):
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
 
+    def __str__(self):
+        return self.name
+
 
 class ProductComponent(models.Model):
     """
@@ -97,11 +109,17 @@ class ProductComponent(models.Model):
     required_units = models.PositiveSmallIntegerField(default=1)
     required_amount_per_unit = models.DecimalField(default=1.00, max_digits=5, decimal_places=2)
 
+    def __str__(self):
+        return self.name
+
 
 class ProductInventoryItem(models.Model):
     """An entry of a specific product in an inventory."""
     product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return "{0}: {1}".format(self.product, self.quantity)
 
 
 class ProductsInventory(models.Model):
@@ -112,6 +130,9 @@ class ProductsInventory(models.Model):
     items = models.ManyToManyField(ProductInventoryItem)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.name
 
 
 class Material(models.Model):
@@ -130,18 +151,24 @@ class Material(models.Model):
         (DESTROYED, "Destruido"),
     )
 
-    state = models.PositiveSmallIntegerField(choices=STATE_CHOICES)
     number = models.CharField(max_length=50, primary_key=True)
+    state = models.PositiveSmallIntegerField(choices=STATE_CHOICES)
     definition = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE)
     acquisition_date = models.DateField()
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_authorized")
+
+    def __str__(self):
+        return self.number
 
 
 class MaterialInventoryItem(models.Model):
     """An entry of a specific material in an inventory."""
     material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return "{0}: {1}".format(self.material, self.quantity)
 
 
 class MaterialsInventory(models.Model):
@@ -152,6 +179,9 @@ class MaterialsInventory(models.Model):
     items = models.ManyToManyField(MaterialInventoryItem)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.name
 
 
 class ConsumableDefinition(models.Model):
@@ -165,6 +195,9 @@ class ConsumableDefinition(models.Model):
     model = models.CharField(max_length=45)
     unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
 
+    def __str__(self):
+        return self.name
+
 
 class Consumable(models.Model):
     """
@@ -176,6 +209,9 @@ class Consumable(models.Model):
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="consumables_authorized")
 
+    def __str__(self):
+        return self.number
+
 
 class ConsumableInventoryItem(models.Model):
     """
@@ -183,6 +219,9 @@ class ConsumableInventoryItem(models.Model):
     """
     consumable = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return "{0}: {1}".format(self.consumable, self.quantity)
 
 
 class ConsumablesInventory(models.Model):
@@ -197,6 +236,9 @@ class ConsumablesInventory(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return self.name
+
 
 class DurableGoodDefinition(models.Model):
     """
@@ -209,6 +251,9 @@ class DurableGoodDefinition(models.Model):
     model = models.CharField(max_length=45)
     unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
 
+    def __str__(self):
+        return self.name
+
 
 class DurableGood(models.Model):
     """
@@ -220,6 +265,9 @@ class DurableGood(models.Model):
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="durable_goods_authorized")
 
+    def __str__(self):
+        return self.number
+
 
 class DurableGoodInventoryItem(models.Model):
     """
@@ -227,6 +275,9 @@ class DurableGoodInventoryItem(models.Model):
     """
     durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return "{0}: {1}".format(self.durable_good, self.quantity)
 
 
 class DurableGoodsInventory(models.Model):
@@ -240,6 +291,9 @@ class DurableGoodsInventory(models.Model):
     items = models.ManyToManyField(DurableGoodInventoryItem)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.name
 
 
 class Movement(models.Model):
@@ -272,3 +326,6 @@ class Movement(models.Model):
     target = models.PositiveSmallIntegerField(choices=TARGET_CHOICES)
     datetime = models.DateTimeField(auto_now_add=True)
     made_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return "{0}: {1}".format(self.type, self.target)

@@ -11,10 +11,10 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
@@ -23,10 +23,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'zus&*yei-pwy*ov%$(3i*0@)b@4*7&gsdv__k5w(w(j*c98^0u'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+IS_RUNNING_ON_HEROKU = os.environ.get('IS_RUNNING_ON_HEROKU', "False") == "True"
+DEBUG = not IS_RUNNING_ON_HEROKU
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -74,17 +74,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Acriladmin.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
-DATABASES = {
-    'default': {
+if IS_RUNNING_ON_HEROKU:
+    default_database = dj_database_url.config()
+else:
+    default_database = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
-}
 
+DATABASES = {
+    'default': default_database,
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -104,11 +107,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
 
-LANGUAGE_CODE = 'es-MX' 
+LANGUAGE_CODE = 'es-MX'
 
 TIME_ZONE = 'UTC'
 
@@ -117,7 +119,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
