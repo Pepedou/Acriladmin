@@ -2,17 +2,83 @@ from back_office.models import Employee, Client, BranchOffice
 from django.db import models
 
 
+class SI_PREFIX:
+    """
+    Prefixes for the International System of Units. The value
+    stored is the power of ten to which the prefix corresponds.
+    i.e. YOCTO = -24 because YOCTO = 10^-24.
+    """
+    NONE = 0
+    YOCTO = -24
+    ZEPTO = -21
+    ATTO = -18
+    FEMTO = -15
+    PICO = -12
+    NANO = -9
+    MICRO = -6
+    MILLI = -3
+    CENTI = -2
+    DECI = -1
+    DECA = 1
+    HECTO = 2
+    KILO = 3
+    MEGA = 6
+    GIGA = 9
+    TERA = 12
+    PETA = 15
+    EXA = 18
+    ZETTA = 21
+    YOTTA = 24
+    PREFIX_CHOICES = (
+        (NONE, "N/A"),
+        (YOCTO, "y"),
+        (ZEPTO, "z"),
+        (ATTO, "a"),
+        (FEMTO, "f"),
+        (PICO, "p"),
+        (NANO, "n"),
+        (MICRO, "μ"),
+        (MILLI, "m"),
+        (CENTI, "c"),
+        (DECI, "d"),
+        (DECA, "da"),
+        (HECTO, "h"),
+        (KILO, "k"),
+        (MEGA, "M"),
+        (GIGA, "G"),
+        (TERA, "T"),
+        (PETA, "P"),
+        (EXA, "E"),
+        (ZETTA, "Z"),
+        (YOTTA, "Y"),
+    )
+
+
 class UnitOfMeasurement:
-    """Magnitude of a physical quantity."""
-    METER = 0
-    KILOGRAM = 1
-    SECOND = 2
-    PIECE = 3
+    """
+    Magnitude of a physical quantity.
+    """
+    NONE = 0
+    METER = 1
+    INCH = 2
+    FOOT = 3
+    YARD = 4
+    MILE = 5
+    GRAM = 6
+    SECOND = 7
+    PIECE = 8
+    LITRE = 9
     UNIT_CHOICES = (
+        (NONE, "N/A"),
         (METER, "m"),
-        (KILOGRAM, "Kg"),
+        (INCH, "in"),
+        (FOOT, "ft"),
+        (YARD, "yd"),
+        (MILE, "mi"),
+        (GRAM, "g"),
         (SECOND, "s"),
         (PIECE, "pz"),
+        (LITRE, "l"),
     )
 
 
@@ -31,7 +97,8 @@ class ProductDefinition(models.Model):
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     is_composite = models.BooleanField(default=False)
-    unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
+    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
         return self.sku
@@ -91,7 +158,8 @@ class MaterialDefinition(models.Model):
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
-    unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
+    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
         return self.name
@@ -105,7 +173,8 @@ class ProductComponent(models.Model):
     name = models.CharField(max_length=45)
     product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE)
     material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE)
-    unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
+    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
     required_units = models.PositiveSmallIntegerField(default=1)
     required_amount_per_unit = models.DecimalField(default=1.00, max_digits=5, decimal_places=2)
 
@@ -127,7 +196,7 @@ class ProductsInventory(models.Model):
     name = models.CharField(max_length=45)
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="products_inventories_supervised")
     branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE)
-    items = models.ManyToManyField(ProductInventoryItem)
+    items = models.ManyToManyField(ProductInventoryItem, blank=True)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
@@ -145,8 +214,8 @@ class Material(models.Model):
     RETURNED = 2
     DESTROYED = 3
     STATE_CHOICES = (
-        (IN_WAREHOUSE, "En producción"),
-        (USED_IN_PRODUCT, "En producto"),
+        (IN_WAREHOUSE, "En almacén"),
+        (USED_IN_PRODUCT, "Parte de un producto"),
         (RETURNED, "Devuelto"),
         (DESTROYED, "Destruido"),
     )
@@ -176,7 +245,7 @@ class MaterialsInventory(models.Model):
     name = models.CharField(max_length=45)
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_inventories_supervised")
     branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE)
-    items = models.ManyToManyField(MaterialInventoryItem)
+    items = models.ManyToManyField(MaterialInventoryItem, blank=True)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
@@ -193,7 +262,8 @@ class ConsumableDefinition(models.Model):
     image = models.ImageField()
     brand = models.CharField(max_length=45)
     model = models.CharField(max_length=45)
-    unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
+    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
         return self.name
@@ -232,7 +302,7 @@ class ConsumablesInventory(models.Model):
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                    related_name="consumables_inventories_supervised")
     branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE)
-    items = models.ManyToManyField(ConsumableInventoryItem)
+    items = models.ManyToManyField(ConsumableInventoryItem, blank=True)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
@@ -249,7 +319,8 @@ class DurableGoodDefinition(models.Model):
     image = models.ImageField()
     brand = models.CharField(max_length=45)
     model = models.CharField(max_length=45)
-    unit = models.PositiveSmallIntegerField(choices=UnitOfMeasurement.UNIT_CHOICES)
+    prefix = models.SmallIntegerField(default=SI_PREFIX.NONE, choices=SI_PREFIX.PREFIX_CHOICES)
+    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
         return self.name
@@ -288,7 +359,7 @@ class DurableGoodsInventory(models.Model):
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                    related_name="durable_goods_inventories_supervised")
     branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE)
-    items = models.ManyToManyField(DurableGoodInventoryItem)
+    items = models.ManyToManyField(DurableGoodInventoryItem, blank=True)
     last_update = models.DateTimeField(auto_now=True)
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
@@ -314,18 +385,24 @@ class Movement(models.Model):
     PRODUCT = 0
     MATERIAL = 1
     EMPLOYEE = 2
-    DURABLE_GOOD = 3
+    CONSUMABLE = 3
+    DURABLE_GOOD = 4
     TARGET_CHOICES = (
         (PRODUCT, "Producto"),
         (MATERIAL, "Material"),
         (EMPLOYEE, "Empleado"),
-        (EMPLOYEE, "Recurso"),
+        (CONSUMABLE, "Consumible"),
+        (DURABLE_GOOD, "Recurso"),
     )
 
     type = models.PositiveSmallIntegerField(choices=TYPE_CHOICES)
     target = models.PositiveSmallIntegerField(choices=TARGET_CHOICES)
     datetime = models.DateTimeField(auto_now_add=True)
     made_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, null=True, blank=True)
+    consumable = models.ForeignKey(Consumable, on_delete=models.CASCADE, null=True, blank=True)
+    durable_good = models.ForeignKey(DurableGood, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return "{0}: {1}".format(self.type, self.target)

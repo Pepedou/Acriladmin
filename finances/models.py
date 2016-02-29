@@ -1,7 +1,7 @@
 from back_office.models import Client, Employee
 from django.db import models
 from inventories.models import Product, Material
-from operations.models import Service
+from operations.models import Service, Repair
 
 
 class Order(models.Model):
@@ -76,7 +76,7 @@ class Invoice(models.Model):
     file = models.FileField()
 
     def __str__(self):
-        return self.order
+        return str(self.order)
 
 
 class ProductInvoice(models.Model):
@@ -94,7 +94,7 @@ class ProductPrice(models.Model):
     """
     Determines the price of a product.
     """
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.OneToOneField(Product, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
@@ -106,7 +106,7 @@ class MaterialCost(models.Model):
     """
     Specifies the monetary cost of a material.
     """
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material = models.OneToOneField(Material, on_delete=models.CASCADE)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
 
@@ -131,8 +131,16 @@ class Transaction(models.Model):
     """
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT)
     payed_by = models.ForeignKey(Client, on_delete=models.PROTECT)
-    datetime = models.DateTimeField(auto_now_add=True)
+    datetime = models.DateTimeField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return self.amount
+
+
+class RepairCost(models.Model):
+    """
+    The associated cost for a specific repair.
+    """
+    repair = models.ForeignKey(Repair, on_delete=models.PROTECT)
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
