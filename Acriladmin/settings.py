@@ -28,7 +28,11 @@ SECRET_KEY = 'zus&*yei-pwy*ov%$(3i*0@)b@4*7&gsdv__k5w(w(j*c98^0u'
 IS_RUNNING_ON_HEROKU = "IS_RUNNING_ON_HEROKU" in os.environ
 DEBUG = not IS_RUNNING_ON_HEROKU
 
-ALLOWED_HOSTS = []
+if DEBUG:
+    ALLOWED_HOSTS = []
+else:
+    ALLOWED_HOSTS = ['*']
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
@@ -113,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
 
-LANGUAGE_CODE = 'es-US'
+LANGUAGE_CODE = 'es-MX'
 
 TIME_ZONE = 'UTC'
 
