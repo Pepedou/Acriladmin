@@ -4,3 +4,4 @@ venv/
 *.bak
 *.*lock*
 __pycache__/
+.env

@@ -25,7 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'zus&*yei-pwy*ov%$(3i*0@)b@4*7&gsdv__k5w(w(j*c98^0u'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-IS_RUNNING_ON_HEROKU = os.environ.get('IS_RUNNING_ON_HEROKU', "False") == "True"
+IS_RUNNING_ON_HEROKU = "IS_RUNNING_ON_HEROKU" in os.environ
 DEBUG = not IS_RUNNING_ON_HEROKU
 
 ALLOWED_HOSTS = []
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'finances',
     'inventories',
     'operations',
+    'storages',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -112,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
 
-LANGUAGE_CODE = 'es-MX'
+LANGUAGE_CODE = 'es-US'
 
 TIME_ZONE = 'UTC'
 
@@ -122,11 +123,33 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.9/howto/static-files/
-
-STATIC_URL = '/static/'
-STATIC_ROOT = 'static'
-
-AdminSite.site_header = "Acriladmin - Administración de recursos empresariales"
+AdminSite.site_header = "Acriladmin - ERP"
 AdminSite.site_title = "Acriladmin"
+
+STATIC_ROOT = 'static'
+MEDIA_ROOT = 'media'
+
+if "AWS_ACCESS_KEY_ID" in os.environ and \
+                "AWS_SECRET_ACCESS_KEY" in os.environ and \
+                "AWS_STORAGE_BUCKET_NAME" in os.environ:
+    # AWS S3 - Tutorial for this section at:
+    # https://www.caktusgroup.com/blog/2014/11/10/Using-Amazon-S3-to-store-your-Django-sites-static-and-media-files/
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+
+    AWS_S3_CUSTOM_DOMAIN = '{0}.s3.amazonaws.com'.format(AWS_STORAGE_BUCKET_NAME)
+
+    AWS_HEADERS = {
+        'Expires': 'Thu, 15 Apr 2099 20:00:00 UTC',
+        'Cache-Control': 'max-age=94608000',
+    }
+
+    STATICFILES_LOCATION = STATIC_ROOT
+    STATICFILES_STORAGE = 'utils.custom_storages.StaticStorage'
+    STATIC_URL = "https://{0}/{1}/".format(AWS_S3_CUSTOM_DOMAIN, STATICFILES_LOCATION)
+
+    MEDIAFILES_LOCATION = MEDIA_ROOT
+    DEFAULT_FILE_STORAGE = 'utils.custom_storages.MediaStorage'
+else:
+    STATIC_URL = '/static/'
