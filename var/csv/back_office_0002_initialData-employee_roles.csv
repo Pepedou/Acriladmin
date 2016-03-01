@@ -2,7 +2,7 @@ name|description
 Administrador|Administrador de área.
 Ventas telefónicas|Encargado de realizar ventas por teléfono.
 Ventas en campo|Encargado de realizar ventas en el campo.
-Instalador|Encargado de realizar la instalación del producto en las obras.
-Chofer|Encargado de la conducción de los vehículos de transporte y carga.
+Instalador|Instalación del producto en las obras.
+Chofer|Conducción de vehículos.
 Productor de domos|Encargado de la manufactura de domos.
-Jefe de almacén|Encargado de la supervisión de uno o varios almacenes.
+Jefe de almacén|Supervisor de uno o varios almacenes.
