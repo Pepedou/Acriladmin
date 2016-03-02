@@ -7,8 +7,8 @@ class Address(models.Model):
     A simple geographical address.
     """
     interior_number = models.CharField(max_length=10, blank=True)
-    exterior_number = models.CharField(max_length=10, blank=True)
-    street = models.CharField(max_length=45, blank=True)
+    exterior_number = models.CharField(max_length=10)
+    street = models.CharField(max_length=45)
     town = models.CharField(max_length=45, blank=True)
     city = models.CharField(max_length=45, blank=True)
     state = models.CharField(max_length=45, blank=True)
