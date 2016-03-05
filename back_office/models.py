@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.core.validators import RegexValidator, EmailValidator
+from django.core.validators import EmailValidator, URLValidator
 from django.db import models
 from utils.validators import phone_regex_validator, zip_code_regex_validator
 
@@ -47,7 +47,7 @@ class PersonProfile(models.Model):
     email = models.EmailField(verbose_name='Correo electrónico', blank=True,
                               validators=[EmailValidator(message='Correo electrónico inválido.')])
     picture = models.ImageField(verbose_name='Imagen de perfil', blank=True)
-    address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True)
+    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='Dirección', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Perfil individual'
@@ -61,8 +61,12 @@ class EmployeeRole(models.Model):
     """
     Describes a role assigned to an employee.
     """
-    name = models.CharField(max_length=20)
-    description = models.CharField(max_length=50)
+    name = models.CharField(verbose_name='Nombre del rol', max_length=20)
+    description = models.CharField(verbose_name='Descripción del rol', max_length=50)
+
+    class Meta:
+        verbose_name = 'Rol'
+        verbose_name_plural = 'Roles'
 
     def __str__(self):
         return self.name
@@ -72,12 +76,16 @@ class Employee(models.Model):
     """
     An employee that works for Acrilfrasa.
     """
-    number = models.CharField(max_length=45, primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
-    seniority = models.DateField()
-    is_active = models.BooleanField(default=True)
-    role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT)
-    profile = models.OneToOneField(PersonProfile, on_delete=models.CASCADE)
+    number = models.CharField(verbose_name='Número', max_length=45, primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='Usuario', null=True, blank=True)
+    seniority = models.DateField(verbose_name='Antigüedad')
+    is_active = models.BooleanField(verbose_name='Activo', default=True)
+    role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT, verbose_name='Rol')
+    profile = models.OneToOneField(PersonProfile, verbose_name='Datos del empleado', on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'Empleado'
+        verbose_name_plural = 'Empleados'
 
     def __str__(self):
         return str(self.profile)
@@ -87,13 +95,20 @@ class OrganizationProfile(models.Model):
     """
     Stores information about an organization or company.
     """
-    name = models.CharField(max_length=45)
-    contact = models.ForeignKey(PersonProfile, on_delete=models.SET_NULL, null=True, blank=True)
-    phone = models.CharField(max_length=14, blank=True)
-    website = models.URLField(max_length=45, blank=True)
-    email = models.EmailField(blank=True)
-    picture = models.ImageField(blank=True)
-    address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True)
+    name = models.CharField(verbose_name='Name', max_length=45)
+    contact = models.ForeignKey(PersonProfile, on_delete=models.SET_NULL, verbose_name='Persona de contacto', null=True,
+                                blank=True)
+    phone = models.CharField(verbose_name='Tel.', max_length=14, blank=True, validators=[phone_regex_validator])
+    website = models.URLField(verbose_name='Sitio web', max_length=45, blank=True,
+                              validators=[URLValidator(message="URL inválida.")])
+    email = models.EmailField(verbose_name='Correo electrónico', blank=True,
+                              validators=[EmailValidator(message="Correo electrónico inválido.")])
+    picture = models.ImageField(verbose_name='Imagen', blank=True)
+    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='Dirección', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Perfil de la organización'
+        verbose_name_plural = 'Perfiles de las organizaciones'
 
     def __str__(self):
         return self.name
@@ -103,8 +118,12 @@ class Client(models.Model):
     """
     One of Acrilfrasa's clients.
     """
-    profile = models.OneToOneField(OrganizationProfile, on_delete=models.PROTECT)
-    client_since = models.DateField(auto_now_add=True)
+    profile = models.OneToOneField(OrganizationProfile, verbose_name='Datos del cliente', on_delete=models.PROTECT)
+    client_since = models.DateField(verbose_name='Antigüedad', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
 
     def __str__(self):
         return str(self.profile)
@@ -114,9 +133,14 @@ class BranchOffice(models.Model):
     """
     A location involved in the business activities of the firm.
     """
-    profile = models.OneToOneField(OrganizationProfile, on_delete=models.CASCADE)
-    administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="administrated_branches")
-    employees = models.ManyToManyField(Employee, blank=True)
+    profile = models.OneToOneField(OrganizationProfile, verbose_name='Datos de la sucursal', on_delete=models.CASCADE)
+    administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='Administrador de la sucursal',
+                                      related_name="administrated_branches")
+    employees = models.ManyToManyField(Employee, verbose_name='Empleados de la sucursal', blank=True)
+
+    class Meta:
+        verbose_name = 'Sucursal'
+        verbose_name_plural = 'Sucursales'
 
     def __str__(self):
         return str(self.profile)
