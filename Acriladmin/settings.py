@@ -10,11 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
-import os
 import dj_database_url
+import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from django.contrib.admin import AdminSite
+from django.contrib.auth.apps import AuthConfig
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -129,6 +130,8 @@ USE_TZ = True
 
 AdminSite.site_header = "Acriladmin - ERP"
 AdminSite.site_title = "Acriladmin"
+
+AuthConfig.verbose_name = "Autorización y autenticación"
 
 STATIC_ROOT = 'static'
 MEDIA_ROOT = 'media'
