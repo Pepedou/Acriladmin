@@ -29,37 +29,6 @@ class Address(models.Model):
         return "{0}, {1}, {2}".format(self.exterior_number, self.street, self.town)
 
 
-class PersonProfile(models.Model):
-    """Stores personal information about a person."""
-    MALE = 0
-    FEMALE = 1
-    GENDER_CHOICES = (
-        (MALE, "Masculino"),
-        (FEMALE, "Femenino")
-    )
-
-    @property
-    def full_name(self):
-        return "{0} {1} {2}".format(self.name, self.paternal_last_name, self.maternal_last_name).rstrip()
-
-    name = models.CharField(verbose_name='nombre(s)', max_length=20)
-    paternal_last_name = models.CharField(verbose_name='apellido paterno', max_length=20)
-    maternal_last_name = models.CharField(verbose_name='apellido materno', max_length=20)
-    gender = models.PositiveSmallIntegerField(verbose_name='género', choices=GENDER_CHOICES)
-    phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
-    email = models.EmailField(verbose_name='correo electrónico', blank=True,
-                              validators=[EmailValidator(message='Correo electrónico inválido.')])
-    picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
-    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
-
-    class Meta:
-        verbose_name = 'perfil individual'
-        verbose_name_plural = 'perfiles individuales'
-
-    def __str__(self):
-        return self.full_name
-
-
 class EmployeeRole(models.Model):
     """
     Describes a role assigned to an employee.
@@ -96,20 +65,40 @@ class Employee(models.Model):
     """
     An employee that works for Acrilfrasa.
     """
+    MALE = 0
+    FEMALE = 1
+    GENDER_CHOICES = (
+        (MALE, "Masculino"),
+        (FEMALE, "Femenino")
+    )
+
+    @property
+    def full_name(self):
+        return "{0} {1} {2}".format(self.name, self.paternal_last_name, self.maternal_last_name).rstrip()
+
+    name = models.CharField(verbose_name='nombre(s)', max_length=20)
+    paternal_last_name = models.CharField(verbose_name='apellido paterno', max_length=20)
+    maternal_last_name = models.CharField(verbose_name='apellido materno', max_length=20)
+    gender = models.PositiveSmallIntegerField(verbose_name='género', choices=GENDER_CHOICES)
+    phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
+    email = models.EmailField(verbose_name='correo electrónico', blank=True,
+                              validators=[EmailValidator(message='Correo electrónico inválido.')])
+    picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
+    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
+
     number = models.CharField(verbose_name='número', max_length=45, primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='usuario del sistema', null=True,
                                 blank=True)
     seniority = models.DateField(verbose_name='antigüedad', default=django.utils.timezone.now)
     is_active = models.BooleanField(verbose_name='activo', default=True)
     role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT, verbose_name='rol')
-    profile = models.OneToOneField(PersonProfile, verbose_name='datos del empleado', on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'empleado'
         verbose_name_plural = 'empleados'
 
     def __str__(self):
-        return str(self.profile)
+        return self.full_name
 
 
 class Client(models.Model):
@@ -132,7 +121,7 @@ class Client(models.Model):
         verbose_name_plural = 'clientes'
 
     def __str__(self):
-        return str(self.profile)
+            return self.name
 
 
 class BranchOffice(models.Model):
@@ -160,4 +149,4 @@ class BranchOffice(models.Model):
         verbose_name_plural = 'sucursales'
 
     def __str__(self):
-        return str(self.profile)
+        return self.name
