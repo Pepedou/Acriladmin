@@ -25,6 +25,9 @@ class OrderAdmin(admin.ModelAdmin):
         OrderProductsInLine,
         OrderServicesInLine
     ]
+    readonly_fields = [
+        'total'
+    ]
 
 
 # noinspection PyMethodMayBeStatic

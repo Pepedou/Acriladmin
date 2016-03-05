@@ -1,3 +1,5 @@
+import django
+
 from back_office.models import Client, Employee
 from django.db import models
 from inventories.models import Product, Material
@@ -30,15 +32,18 @@ class Order(models.Model):
         (PRODUCTS_AND_SERVICES, "Productos y servicios"),
     )
 
-    number = models.CharField(max_length=50, primary_key=True)
-    status = models.PositiveSmallIntegerField(choices=STATUS_CHOICES)
-    target = models.PositiveSmallIntegerField(choices=TARGET_CHOICES)
-    client = models.ForeignKey(Client, on_delete=models.PROTECT)
-    date = models.DateField()
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
-    shipping_and_handling = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=10, decimal_places=2)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
+    @property
+    def total(self):
+        return self.subtotal + self.shipping_and_handling - self.discount
+
+    number = models.CharField(verbose_name='número', max_length=50, primary_key=True)
+    status = models.PositiveSmallIntegerField(verbose_name='estado', choices=STATUS_CHOICES)
+    target = models.PositiveSmallIntegerField(verbose_name='objeto', choices=TARGET_CHOICES)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
+    date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    shipping_and_handling = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return self.number
