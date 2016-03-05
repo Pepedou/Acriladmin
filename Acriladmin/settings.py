@@ -43,10 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'back_office',
-    'finances',
-    'inventories',
-    'operations',
+    'back_office.apps.BackOfficeConfig',
+    'finances.apps.FinancesConfig',
+    'inventories.apps.InventoriesConfig',
+    'operations.apps.OperationsConfig',
     'storages',
 ]
 

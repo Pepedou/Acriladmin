@@ -152,7 +152,7 @@ class MaterialDefinition(models.Model):
     """
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=50)
-    image = models.ImageField()
+    image = models.FileField(blank=True)
     color = models.CharField(max_length=10)
     length = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
