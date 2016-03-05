@@ -11,6 +11,7 @@ class InventoryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.ProductDefinition)
+admin.site.register(models.WorkOrder)
 admin.site.register(models.Product)
 admin.site.register(models.ProductComponent)
 admin.site.register(models.ProductsInventory, InventoryAdmin)

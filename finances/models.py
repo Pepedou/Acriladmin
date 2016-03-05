@@ -73,7 +73,7 @@ class Invoice(models.Model):
     provided.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    file = models.FileField()
+    file = models.FileField(blank=True)
 
     def __str__(self):
         return str(self.order)

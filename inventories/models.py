@@ -114,7 +114,7 @@ class WorkOrder(models.Model):
     authorization_datetime = models.DateTimeField()
 
     def __str__(self):
-        return self.number
+        return str(self.number)
 
 
 class Product(models.Model):
@@ -142,7 +142,7 @@ class Product(models.Model):
     manufacture_order = models.ForeignKey("WorkOrder", on_delete=models.PROTECT)
 
     def __str__(self):
-        return self.state
+        return str(self.state)
 
 
 class MaterialDefinition(models.Model):
