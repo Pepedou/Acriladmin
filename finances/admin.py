@@ -1,5 +1,5 @@
-from django.contrib import admin
 import finances.models as models
+from django.contrib import admin
 
 
 class OrderProductsInLine(admin.TabularInline):
@@ -34,8 +34,8 @@ class InvoiceAdmin(admin.ModelAdmin):
     in regard to the Invoice entity.
     """
     list_display = ('id', 'get_order_client', 'get_order_client_address',)
-    search_fields = ('id', 'order__client__profile__name', 'order__client__profile__address__street')
-    list_filter = ('order__client__profile__name',)
+    search_fields = ('id', 'order__client__name', 'order__client__address__street')
+    list_filter = ('order__client__name',)
 
     def get_order_client(self, obj):
         return obj.order.client
@@ -43,7 +43,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     get_order_client.short_description = 'Cliente'
 
     def get_order_client_address(self, obj):
-        return obj.order.client.profile.address
+        return obj.order.client.address
 
     get_order_client_address.short_description = 'Dirección'
 
