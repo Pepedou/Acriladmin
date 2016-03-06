@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'inventories.apps.InventoriesConfig',
     'operations.apps.OperationsConfig',
     'storages',
+    'reversion',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -138,7 +139,8 @@ MEDIA_ROOT = 'media'
 
 if "AWS_ACCESS_KEY_ID" in os.environ and \
                 "AWS_SECRET_ACCESS_KEY" in os.environ and \
-                "AWS_STORAGE_BUCKET_NAME" in os.environ:
+                "AWS_STORAGE_BUCKET_NAME" in os.environ and \
+        not DEBUG:
     # AWS S3 - Tutorial for this section at:
     # https://www.caktusgroup.com/blog/2014/11/10/Using-Amazon-S3-to-store-your-Django-sites-static-and-media-files/
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -160,3 +162,4 @@ if "AWS_ACCESS_KEY_ID" in os.environ and \
     DEFAULT_FILE_STORAGE = 'utils.custom_storages.MediaStorage'
 else:
     STATIC_URL = '/static/'
+    MEDIA_URL = '/media/'
