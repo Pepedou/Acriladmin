@@ -161,5 +161,5 @@ if "AWS_ACCESS_KEY_ID" in os.environ and \
     MEDIAFILES_LOCATION = MEDIA_ROOT
     DEFAULT_FILE_STORAGE = 'utils.custom_storages.MediaStorage'
 else:
-    STATIC_URL = '/static/'
-    MEDIA_URL = '/media/'
+    STATIC_URL = '/{0}/'.format(STATIC_ROOT)
+    MEDIA_URL = '/{0}/'.format(MEDIA_ROOT)

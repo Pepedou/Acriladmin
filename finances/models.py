@@ -2,7 +2,7 @@ import django
 
 from back_office.models import Client, Employee
 from django.db import models
-from inventories.models import Product, Material
+from inventories.models import Product, Material, ProductDefinition
 from operations.models import Service, Repair
 
 
@@ -41,9 +41,14 @@ class Order(models.Model):
     target = models.PositiveSmallIntegerField(verbose_name='objeto', choices=TARGET_CHOICES)
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    shipping_and_handling = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
+    shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
+                                                default=0.00)
+    discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
+
+    class Meta:
+        verbose_name = 'Orden'
+        verbose_name_plural = 'Órdenes'
 
     def __str__(self):
         return self.number
@@ -51,10 +56,11 @@ class Order(models.Model):
 
 class OrderProducts(models.Model):
     """
-    An entry that relates a concrete product with an order.
+    An entry that relates a quantity of a certain product with an order.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
+    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveIntegerField(verbose_name='cantidad', default=1)
 
     def __str__(self):
         return "{0} - {1}".format(self.order, self.product)

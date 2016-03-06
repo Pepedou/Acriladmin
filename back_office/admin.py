@@ -1,8 +1,9 @@
 import back_office.models as models
 from django.contrib import admin
+from reversion.admin import VersionAdmin
 
 
-class AddressAdmin(admin.ModelAdmin):
+class AddressAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the Address entity.
@@ -18,7 +19,7 @@ class AddressAdmin(admin.ModelAdmin):
     list_filter = ('country', 'state', 'city', 'town')
 
 
-class EmployeeAdmin(admin.ModelAdmin):
+class EmployeeAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the Employee entity.
@@ -36,7 +37,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     )
 
 
-class BranchOfficeAdmin(admin.ModelAdmin):
+class BranchOfficeAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the OfficeBranch entity.
@@ -45,7 +46,7 @@ class BranchOfficeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.Address, AddressAdmin)
-admin.site.register(models.EmployeeRole)
+admin.site.register(models.EmployeeRole, VersionAdmin)
 admin.site.register(models.Employee, EmployeeAdmin)
-admin.site.register(models.Client)
+admin.site.register(models.Client, VersionAdmin)
 admin.site.register(models.BranchOffice, BranchOfficeAdmin)

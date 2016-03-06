@@ -1,5 +1,6 @@
 import finances.models as models
 from django.contrib import admin
+from finances.forms.order_forms import AddOrChangeOrderForm
 
 
 class OrderProductsInLine(admin.TabularInline):
@@ -21,6 +22,7 @@ class OrderAdmin(admin.ModelAdmin):
     Contains the details for the admin app
     in regard to the Order entity.
     """
+    form = AddOrChangeOrderForm
     inlines = [
         OrderProductsInLine,
         OrderServicesInLine
