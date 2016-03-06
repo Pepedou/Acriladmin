@@ -1,6 +1,6 @@
 boto==2.39.0
 dj-config-url==0.1.1
-Django==1.9.2
+django-reversion==1.10.1
 django-storages==1.4
 gunicorn==19.4.5
 pbr==1.8.1
