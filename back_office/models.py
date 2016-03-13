@@ -93,7 +93,7 @@ class Employee(models.Model):
                                 blank=True)
     seniority = models.DateField(verbose_name='antigüedad', default=django.utils.timezone.now)
     is_active = models.BooleanField(verbose_name='activo', default=True)
-    role = models.ManyToManyField(EmployeeRole, verbose_name='roles')
+    roles = models.ManyToManyField(EmployeeRole, verbose_name='roles')
 
     class Meta:
         verbose_name = 'empleado'
@@ -142,7 +142,7 @@ class BranchOffice(models.Model):
                                       related_name="administrated_branches",
                                       limit_choices_to=
                                       {
-                                          'role__name': EmployeeRole.ADMINISTRATOR
+                                          'roles__name': EmployeeRole.ADMINISTRATOR
                                       })
     employees = models.ManyToManyField(Employee, verbose_name='empleados de la sucursal', blank=True)
 

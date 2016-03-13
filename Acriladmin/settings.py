@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'operations.apps.OperationsConfig',
     'storages',
     'reversion',
+    'geoposition'
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -163,3 +164,12 @@ if "AWS_ACCESS_KEY_ID" in os.environ and \
 else:
     STATIC_URL = '/{0}/'.format(STATIC_ROOT)
     MEDIA_URL = '/{0}/'.format(MEDIA_ROOT)
+
+GEOPOSITION_MAP_OPTIONS = {
+    'minZoom': 3,
+    'maxZoom': 15,
+}
+
+GEOPOSITION_MARKER_OPTIONS = {
+    'cursor': 'move'
+}
