@@ -15,13 +15,11 @@ class InvoiceTestCase(TestCase):
         invoice = Invoice.objects.create(total=100.00)
         invoice.save()
 
-        transactions = Transaction.objects.bulk_create[
+        Transaction.objects.bulk_create([
             Transaction(invoice=invoice, amount=10.00),
             Transaction(invoice=invoice, amount=20.00),
             Transaction(invoice=invoice, amount=30.00),
-            Transaction(invoice=invoice, amount=40.00),
-        ]
-
-        transactions.save()
+            Transaction(invoice=invoice, amount=40.00)
+        ])
 
         self.assertTrue(invoice.has_been_paid(), "Method should state invoice has been paid.")
