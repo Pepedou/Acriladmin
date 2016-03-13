@@ -36,6 +36,7 @@ class EmployeeRole(models.Model):
     ADMINISTRATOR = "Administrador"
     TELEPHONE_SALES = "Ventas telefónicas"
     FIELD_SALES = "Ventas en campo"
+    SALES_AGENT = "Agente de ventas"
     INSTALLER = "Instalador"
     DRIVER = "Chofer"
     DOME_PRODUCER = "Productor de domos"
@@ -44,6 +45,7 @@ class EmployeeRole(models.Model):
         (ADMINISTRATOR, ADMINISTRATOR),
         (TELEPHONE_SALES, TELEPHONE_SALES),
         (FIELD_SALES, FIELD_SALES),
+        (SALES_AGENT, SALES_AGENT),
         (INSTALLER, INSTALLER),
         (DRIVER, DRIVER),
         (DOME_PRODUCER, DOME_PRODUCER),
