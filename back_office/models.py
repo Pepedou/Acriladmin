@@ -91,7 +91,7 @@ class Employee(models.Model):
                                 blank=True)
     seniority = models.DateField(verbose_name='antigüedad', default=django.utils.timezone.now)
     is_active = models.BooleanField(verbose_name='activo', default=True)
-    role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT, verbose_name='rol')
+    role = models.ManyToManyField(EmployeeRole, verbose_name='roles')
 
     class Meta:
         verbose_name = 'empleado'
