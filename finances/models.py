@@ -2,6 +2,8 @@ import django
 
 from back_office.models import Client, Employee
 from django.db import models
+from django.db.models import Sum, F
+from django.forms import FloatField
 from inventories.models import Product, Material, ProductDefinition
 from operations.models import Service, Repair
 
@@ -13,12 +15,14 @@ class Order(models.Model):
     PLACED = 0
     IN_PROGRESS = 1
     COMPLETE = 2
-    CANCELLED = 3
-    RETURNED = 4
+    DELIVERED = 3
+    CANCELLED = 4
+    RETURNED = 5
     STATUS_CHOICES = (
         (PLACED, "Solicitada"),
         (IN_PROGRESS, "En progreso"),
         (COMPLETE, "Completa"),
+        (DELIVERED, "Entregada"),
         (CANCELLED, "Cancelada"),
         (RETURNED, "Devuelta"),
     )
@@ -47,8 +51,8 @@ class Order(models.Model):
     discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
 
     class Meta:
-        verbose_name = 'Orden'
-        verbose_name_plural = 'Órdenes'
+        verbose_name = 'orden'
+        verbose_name_plural = 'órdenes'
 
     def __str__(self):
         return self.number
@@ -83,19 +87,38 @@ class Invoice(models.Model):
     and indicating the products, quantities and agreed prices for products or services
     provided.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    file = models.FileField(blank=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="orden")
+    file = models.FileField(blank=True, verbose_name="archivo")
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    is_closed = models.BooleanField(default=False, verbose_name="cerrada")
+
+    class Meta:
+        verbose_name = "factura"
+        verbose_name_plural = "facturas"
 
     def __str__(self):
         return str(self.order)
+
+    def has_been_paid(self):
+        """
+        Specifies if the invoice has been paid by the sum of all of the related transactions.
+        :return: bool True if it has been paid, False otherwise.
+        """
+        amount_paid = Transaction.objects.filter(invoice_id=self.id).aggregate(sum=Sum(F('amount')))
+
+        return amount_paid['sum'] >= self.total
 
 
 class ProductInvoice(models.Model):
     """
     An entry that relates a concrete product with an invoice.
     """
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name="factura")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="producto")
+
+    class Meta:
+        verbose_name = "factura de producto"
+        verbose_name_plural = "facturas de producto"
 
     def __str__(self):
         return "{0} - {1}".format(self.invoice, self.product)
@@ -142,7 +165,7 @@ class Transaction(models.Model):
     """
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT)
     payed_by = models.ForeignKey(Client, on_delete=models.PROTECT)
-    datetime = models.DateTimeField()
+    datetime = models.DateTimeField(default=django.utils.timezone.now)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
