@@ -32,7 +32,7 @@ class EmployeeAdmin(VersionAdmin):
             )
         },),
         ('Datos de empleado', {
-            'fields': ('number', 'user', 'seniority', 'is_active', 'role')
+            'fields': ('number', 'user', 'seniority', 'is_active', 'roles')
         })
     )
 

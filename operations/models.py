@@ -118,7 +118,7 @@ class SalesVisit(models.Model):
     """
     sales_agent = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='agente de ventas',
                                     limit_choices_to={
-                                        'roles_name': EmployeeRole.SALES_AGENT
+                                        'roles__name': EmployeeRole.SALES_AGENT
                                     })
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección')
