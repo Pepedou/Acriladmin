@@ -46,6 +46,7 @@ class Project(models.Model):
     materials_used = models.ManyToManyField(MaterialDefinition, verbose_name='materiales utilizados')
     products_used = models.ManyToManyField(ProductDefinition, verbose_name='productos utilizados')
     vehicle = models.ForeignKey(DurableGoodDefinition, null=True, blank=True, verbose_name='vehículo utilizado')
+    has_been_paid = models.BooleanField(default=False, verbose_name='cobrado')
 
     class Meta:
         verbose_name = 'proyecto'
