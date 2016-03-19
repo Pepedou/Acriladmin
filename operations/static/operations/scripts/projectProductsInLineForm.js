@@ -23,7 +23,7 @@ function addListeners() {
             select: select,
             quantity_input: quantity_input,
             costInput: costInput,
-            deleteCheckbox: deleteCheckbox,
+            deleteCheckbox: deleteCheckbox
         };
 
         select.on("change", params, onRowDataChanged);

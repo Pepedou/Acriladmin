@@ -2,7 +2,7 @@ from back_office.models import Employee, Client, BranchOffice
 from django.db import models
 
 
-class SI_PREFIX:
+class SIPrefix:
     """
     Prefixes for the International System of Units. The value
     stored is the power of ten to which the prefix corresponds.
@@ -97,7 +97,7 @@ class ProductDefinition(models.Model):
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     is_composite = models.BooleanField(default=False)
-    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True)
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
@@ -158,7 +158,7 @@ class MaterialDefinition(models.Model):
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01)
-    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True)
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
@@ -173,7 +173,7 @@ class ProductComponent(models.Model):
     name = models.CharField(max_length=45)
     product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE)
     material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE)
-    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True)
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
     required_units = models.PositiveSmallIntegerField(default=1)
     required_amount_per_unit = models.DecimalField(default=1.00, max_digits=5, decimal_places=2)
@@ -262,7 +262,7 @@ class ConsumableDefinition(models.Model):
     image = models.ImageField()
     brand = models.CharField(max_length=45)
     model = models.CharField(max_length=45)
-    prefix = models.SmallIntegerField(choices=SI_PREFIX.PREFIX_CHOICES, default=SI_PREFIX.NONE, blank=True)
+    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True)
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):
@@ -319,7 +319,7 @@ class DurableGoodDefinition(models.Model):
     image = models.ImageField()
     brand = models.CharField(max_length=45)
     model = models.CharField(max_length=45)
-    prefix = models.SmallIntegerField(default=SI_PREFIX.NONE, choices=SI_PREFIX.PREFIX_CHOICES)
+    prefix = models.SmallIntegerField(default=SIPrefix.NONE, choices=SIPrefix.PREFIX_CHOICES)
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES)
 
     def __str__(self):

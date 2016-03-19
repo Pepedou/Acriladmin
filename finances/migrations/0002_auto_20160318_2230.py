@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('finances', '0001_initial'),
     ]
@@ -20,7 +19,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='productprice',
             name='authorized_by',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='back_office.Employee', verbose_name='autorizado por'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='back_office.Employee',
+                                    verbose_name='autorizado por'),
         ),
         migrations.AlterField(
             model_name='productprice',
@@ -30,6 +30,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='productprice',
             name='product',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='inventories.Product', verbose_name='producto'),
+            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='inventories.Product',
+                                       verbose_name='producto'),
         ),
     ]

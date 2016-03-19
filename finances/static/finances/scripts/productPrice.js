@@ -7,10 +7,10 @@ var APP_DOMAIN;
 
 function ProductPrice() {
     var self = this;
-    this.productId = 0;
-    this.price = 0.0;
-    this.authorized_by_id = 0;
-    this.successCallback = null;
+    self.productId = 0;
+    self.price = 0.0;
+    self.authorized_by_id = 0;
+    self.successCallback = null;
 
     this.getProductPriceByProductId = function (productId, successCallback) {
         var url = APP_DOMAIN + "/api/finances/productprice/" + productId;
@@ -22,9 +22,9 @@ function ProductPrice() {
         this.successCallback = successCallback;
 
         $.ajax(url, ajaxParams);
-    }
+    };
 
-    this.onAjaxSuccess = function (data, textStatus, jqXHR) {
+    this.onAjaxSuccess = function (data, textStatus) {
         if (textStatus !== "success") {
             alert("No se pudo obtener el precio individual de los productos.");
             return;
@@ -32,15 +32,16 @@ function ProductPrice() {
 
         self.productId = data.product;
         self.price = data.price;
+        //noinspection JSUnresolvedVariable
         self.authorized_by_id = data.authorized_by;
 
         if (self.successCallback) {
             self.successCallback(data);
         }
-    }
+    };
 
-    this.onAjaxError = function (jqXHR, textStatus, errorThrown) {
+    this.onAjaxError = function () {
         alert("No se pudo actualizar el precio del producto.");
-    }
+    };
 }
 
