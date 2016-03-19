@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class FinancesConfig(AppConfig):
     name = 'finances'
-    verbose_name = 'Finanzas'
+    verbose_name = 'finanzas'

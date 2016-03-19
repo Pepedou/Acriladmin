@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'operations.apps.OperationsConfig',
     'storages',
     'reversion',
-    'geoposition'
+    'geoposition',
+    'rest_framework',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -173,3 +174,8 @@ GEOPOSITION_MAP_OPTIONS = {
 GEOPOSITION_MARKER_OPTIONS = {
     'cursor': 'move'
 }
+
+if DEBUG:
+    JQUERY_LIB = 'http://code.jquery.com/jquery-1.12.1.js'
+else:
+    JQUERY_LIB = 'http://code.jquery.com/jquery-1.12.1.min.js'

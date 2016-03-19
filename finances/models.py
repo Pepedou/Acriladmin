@@ -3,7 +3,6 @@ import django
 from back_office.models import Client, Employee
 from django.db import models
 from django.db.models import Sum, F
-from django.forms import FloatField
 from inventories.models import Product, Material, ProductDefinition
 from operations.models import Service, Repair
 
@@ -128,12 +127,16 @@ class ProductPrice(models.Model):
     """
     Determines the price of a product.
     """
-    product = models.OneToOneField(Product, on_delete=models.CASCADE)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, verbose_name='producto')
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='precio')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por')
+
+    class Meta:
+        verbose_name = 'precio de producto'
+        verbose_name_plural = 'precios de productos'
 
     def __str__(self):
-        return self.price
+        return str(self.price)
 
 
 class MaterialCost(models.Model):

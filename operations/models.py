@@ -43,10 +43,8 @@ class Project(models.Model):
                                     verbose_name='agente de ventas')
     start_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de inicio')
     end_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de finalización')
-    materials_used = models.ManyToManyField(MaterialDefinition, verbose_name='materiales utilizados')
-    products_used = models.ManyToManyField(ProductDefinition, verbose_name='productos utilizados')
     vehicle = models.ForeignKey(DurableGoodDefinition, null=True, blank=True, verbose_name='vehículo utilizado')
-    has_been_paid = models.BooleanField(default=False, verbose_name='cobrado')
+    has_been_paid = models.BooleanField(default=False, verbose_name='fue cobrado')
 
     class Meta:
         verbose_name = 'proyecto'
@@ -54,6 +52,40 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProjectProductsEntry(models.Model):
+    """
+    The quantity of a specific product needed for a
+    project.
+    """
+    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='proyecto')
+
+    class Meta:
+        verbose_name = 'producto'
+        verbose_name_plural = 'productos'
+
+    def __str__(self):
+        return "{0}: {1}".format(self.product.name, self.quantity)
+
+
+class ProjectMaterialsEntry(models.Model):
+    """
+    The quantity of a specific material needed for a
+    project.
+    """
+    material = models.ForeignKey(MaterialDefinition, on_delete=models.PROTECT, verbose_name='material')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='proyecto')
+
+    class Meta:
+        verbose_name = 'material'
+        verbose_name_plural = 'materiales'
+
+    def __str__(self):
+        return "{0}: {1}".format(self.material.name, self.quantity)
 
 
 class ProjectEstimation(models.Model):
@@ -71,7 +103,7 @@ class ProjectEstimation(models.Model):
 
 class ProjectEstimationProductsEntry(models.Model):
     """
-    The quantity of a specific product needed for a
+    The quantity of a specific product estimated for a
     project.
     """
     product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT)
@@ -84,7 +116,7 @@ class ProjectEstimationProductsEntry(models.Model):
 
 class ProjectEstimationMaterialsEntry(models.Model):
     """
-    The quantity of a specific material needed for a
+    The quantity of a specific material estimated for a
     project.
     """
     material = models.ForeignKey(MaterialDefinition, on_delete=models.PROTECT)

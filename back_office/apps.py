@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class BackOfficeConfig(AppConfig):
     name = 'back_office'
-    verbose_name = 'Administración'
+    verbose_name = 'administración'

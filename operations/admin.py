@@ -1,5 +1,32 @@
-from django.contrib import admin
 import operations.models as models
+from django.contrib import admin
+from operations.forms.project_products_inline_forms import ProjectProductsInLineForm
+
+
+class ProjectProductsInLine(admin.TabularInline):
+    model = models.ProjectProductsEntry
+    form = ProjectProductsInLineForm
+
+
+class ProjectMaterialsInLine(admin.TabularInline):
+    model = models.ProjectMaterialsEntry
+
+
+class ProjectAdmin(admin.ModelAdmin):
+    # form = AddOrChangeProjectForm
+    fieldsets = (
+        ("Datos administrativos", {
+            'fields': ('name', 'description', 'supervisor', 'client', 'sales_agent',
+                       'start_date', 'end_date')
+        }),
+        ("Datos operativos", {
+            'fields': ('vehicle', 'has_been_paid',)
+        }),
+    )
+    inlines = [
+        ProjectProductsInLine,
+        ProjectMaterialsInLine
+    ]
 
 
 class ProjectEstimationProductsInLine(admin.TabularInline):
@@ -19,7 +46,7 @@ class ProjectEstimationAdmin(admin.ModelAdmin):
 
 admin.site.register(models.Service)
 admin.site.register(models.Repair)
-admin.site.register(models.Project)
+admin.site.register(models.Project, ProjectAdmin)
 admin.site.register(models.ProjectEstimation, ProjectEstimationAdmin)
 admin.site.register(models.ProjectVisit)
 admin.site.register(models.SalesVisit)
