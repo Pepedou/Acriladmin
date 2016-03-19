@@ -13,21 +13,19 @@ class ProjectMaterialsInLine(admin.TabularInline):
 
 
 class ProjectAdmin(admin.ModelAdmin):
-    # form = AddOrChangeProjectForm
     fieldsets = (
         ("Datos administrativos", {
             'fields': ('name', 'description', 'supervisor', 'client', 'sales_agent',
                        'start_date', 'end_date')
         }),
         ("Datos operativos", {
-            'fields': ('vehicle', 'has_been_paid',)
+            'fields': ('vehicle', 'has_been_paid', 'cost',)
         }),
     )
     inlines = [
         ProjectProductsInLine,
         ProjectMaterialsInLine
     ]
-
 
 class ProjectEstimationProductsInLine(admin.TabularInline):
     model = models.ProjectEstimationProductsEntry

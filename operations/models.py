@@ -45,6 +45,7 @@ class Project(models.Model):
     end_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de finalización')
     vehicle = models.ForeignKey(DurableGoodDefinition, null=True, blank=True, verbose_name='vehículo utilizado')
     has_been_paid = models.BooleanField(default=False, verbose_name='fue cobrado')
+    cost = models.DecimalField(default=0.00, max_digits=10, decimal_places=2, blank=True, verbose_name='costo')
 
     class Meta:
         verbose_name = 'proyecto'
