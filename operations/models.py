@@ -9,8 +9,12 @@ class Service(models.Model):
     """
     A service provided by Acrilfrasa to a customer.
     """
-    name = models.CharField(max_length=45)
-    description = models.CharField(max_length=100, blank=True)
+    name = models.CharField(max_length=45, verbose_name='nombre')
+    description = models.CharField(max_length=100, blank=True, verbose_name='descripción')
+
+    class Meta:
+        verbose_name = 'servicio'
+        verbose_name_plural = 'servicios'
 
     def __str__(self):
         return self.name
@@ -20,11 +24,17 @@ class Repair(models.Model):
     """
     A repair made on a durable good.
     """
-    durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE)
-    date = models.DateField()
-    reason = models.TextField(max_length=300)
-    requested_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='requested_repairs')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='authorized_repairs')
+    durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='objeto')
+    date = models.DateField(verbose_name='fecha efectuada')
+    reason = models.TextField(max_length=300, verbose_name='motivo')
+    requested_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='requested_repairs',
+                                     verbose_name='solicitada por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='authorized_repairs',
+                                      verbose_name='autorizada por')
+
+    class Meta:
+        verbose_name = 'reparación'
+        verbose_name_plural = 'reparaciones'
 
     def __str__(self):
         return str(self.durable_good)
@@ -94,9 +104,14 @@ class ProjectEstimation(models.Model):
     An estimation made by an employee of the materials and cost
     for a project.
     """
-    project = models.OneToOneField(Project, on_delete=models.CASCADE)
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, verbose_name='proyecto')
+    author = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='autor')
+    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
+    is_approved_by_client = models.BooleanField(default=False, verbose_name='aceptada por cliente')
+
+    class Meta:
+        verbose_name = 'estimación de proyecto'
+        verbose_name_plural = 'estimaciones de proyectos'
 
     def __str__(self):
         return str(self.project)
@@ -107,9 +122,13 @@ class ProjectEstimationProductsEntry(models.Model):
     The quantity of a specific product estimated for a
     project.
     """
-    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT)
-    quantity = models.PositiveSmallIntegerField(default=0)
-    project_estimation = models.ForeignKey(ProjectEstimation, on_delete=models.CASCADE)
+    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=0, verbose_name='cantidad')
+    project_estimation = models.ForeignKey(ProjectEstimation, on_delete=models.CASCADE, verbose_name='estimación')
+
+    class Meta:
+        verbose_name = 'producto'
+        verbose_name_plural = 'productos'
 
     def __str__(self):
         return "{0}: {1}".format(self.product.name, self.quantity)
@@ -120,9 +139,13 @@ class ProjectEstimationMaterialsEntry(models.Model):
     The quantity of a specific material estimated for a
     project.
     """
-    material = models.ForeignKey(MaterialDefinition, on_delete=models.PROTECT)
-    quantity = models.PositiveSmallIntegerField(default=0)
-    project_estimation = models.ForeignKey(ProjectEstimation, on_delete=models.CASCADE)
+    material = models.ForeignKey(MaterialDefinition, on_delete=models.PROTECT, verbose_name='material')
+    quantity = models.PositiveSmallIntegerField(default=0, verbose_name='cantidad')
+    project_estimation = models.ForeignKey(ProjectEstimation, on_delete=models.CASCADE, verbose_name='estimación')
+
+    class Meta:
+        verbose_name = 'material'
+        verbose_name_plural = 'materiales'
 
     def __str__(self):
         return "{0}: {1}".format(self.material.name, self.quantity)
