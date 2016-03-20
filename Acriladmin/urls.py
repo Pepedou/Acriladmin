@@ -21,6 +21,7 @@ from rest_framework import routers
 
 router = routers.DefaultRouter()
 router.register(r'finances/productprice', views.ProductPriceViewSet)
+router.register(r'finances/materialcost', views.MaterialCostViewSet)
 
 urlpatterns = [
     url(r'^$', RedirectView.as_view(url='/admin/', permanent=False)),

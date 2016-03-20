@@ -1,5 +1,7 @@
 import operations.models as models
 from django.contrib import admin
+from operations.forms.project_forms import AddOrChangeProjectForm
+from operations.forms.project_materials_inline_forms import ProjectMaterialsInLineForm
 from operations.forms.project_products_inline_forms import ProjectProductsInLineForm
 
 
@@ -10,9 +12,11 @@ class ProjectProductsInLine(admin.TabularInline):
 
 class ProjectMaterialsInLine(admin.TabularInline):
     model = models.ProjectMaterialsEntry
+    form = ProjectMaterialsInLineForm
 
 
 class ProjectAdmin(admin.ModelAdmin):
+    form = AddOrChangeProjectForm
     fieldsets = (
         ("Datos administrativos", {
             'fields': ('name', 'description', 'supervisor', 'client', 'sales_agent',
@@ -26,6 +30,7 @@ class ProjectAdmin(admin.ModelAdmin):
         ProjectProductsInLine,
         ProjectMaterialsInLine
     ]
+
 
 class ProjectEstimationProductsInLine(admin.TabularInline):
     model = models.ProjectEstimationProductsEntry

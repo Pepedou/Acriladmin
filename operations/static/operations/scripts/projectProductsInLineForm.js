@@ -5,13 +5,12 @@
 var projectProductsRows;
 
 $(document).ready(function () {
-    $("#projectproductsentry_set-group").on("DOMNodeInserted DOMNodeRemoved", addListeners);
-    $("#id_cost").attr("readonly", "readonly");
-    addListeners();
+    $("#projectproductsentry_set-group").on("DOMNodeInserted DOMNodeRemoved", addListenersToProductEntries);
+    addListenersToProductEntries();
 });
 
 /** Adds the event listeners to the select and input elements in the project's products rows. */
-function addListeners() {
+function addListenersToProductEntries() {
     projectProductsRows = $("tr[id^='projectproductsentry_set']");
     $(projectProductsRows).each(function () {
         var select = $(this).find("td div select");
@@ -26,9 +25,9 @@ function addListeners() {
             deleteCheckbox: deleteCheckbox
         };
 
-        select.on("change", params, onRowDataChanged);
-        deleteCheckbox.on("change", params, onRowDataChanged);
-        quantity_input.on("change", params, onRowDataChanged);
+        select.on("change", params, onProductDataChanged);
+        deleteCheckbox.on("change", params, onProductDataChanged);
+        quantity_input.on("change", params, onProductDataChanged);
 
         /* TODO: Check if this event could be triggered in an onload or similar. */
         select.change();
@@ -36,7 +35,7 @@ function addListeners() {
 }
 
 /** Updates the subtotal cost per product when the product or the quantity in the row changes. */
-function onRowDataChanged(params) {
+function onProductDataChanged(params) {
     var selectedProductPrice = new ProductPrice();
     var selectedProductId = parseInt(params.data.select.val());
 
@@ -58,19 +57,3 @@ function onRowDataChanged(params) {
     });
 }
 
-/** Updates the project's total cost by adding up all the products' prices. */
-function updateTotalCost() {
-    var totalCost = 0.0;
-    var productsCostsSet = $(projectProductsRows).find("td input[name*='product_price']");
-    var totalCostInput = $("#id_cost");
-
-    $(productsCostsSet).each(function () {
-        var product_subtotal = parseFloat($(this).val());
-
-        if (!isNaN(product_subtotal)) {
-            totalCost += product_subtotal;
-        }
-    });
-
-    totalCostInput.val(totalCost.toFixed(2));
-}
