@@ -47,10 +47,18 @@ class Project(models.Model):
     name = models.CharField(max_length=45, verbose_name='nombre')
     description = models.CharField(max_length=100, blank=True, verbose_name='descripción')
     supervisor = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='projects_supervised',
-                                   verbose_name='supervisor')
+                                   verbose_name='supervisor',
+                                   limit_choices_to=
+                                   {
+                                       'roles__name': EmployeeRole.ADMINISTRATOR
+                                   })
     client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='cliente')
     sales_agent = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='projects_as_sales_agent',
-                                    verbose_name='agente de ventas')
+                                    verbose_name='agente de ventas',
+                                    limit_choices_to=
+                                    {
+                                        'roles__name': EmployeeRole.SALES_AGENT
+                                    })
     start_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de inicio')
     end_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de finalización')
     vehicle = models.ForeignKey(DurableGoodDefinition, null=True, blank=True, verbose_name='vehículo utilizado')
@@ -107,7 +115,7 @@ class ProjectEstimation(models.Model):
     project = models.OneToOneField(Project, on_delete=models.CASCADE, verbose_name='proyecto')
     author = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='autor')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
-    is_approved_by_client = models.BooleanField(default=False, verbose_name='aceptada por cliente')
+    is_approved_by_client = models.BooleanField(default=False, verbose_name='aceptada por el cliente')
 
     class Meta:
         verbose_name = 'estimación de proyecto'
