@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class OperationsConfig(AppConfig):
     name = 'operations'
-    verbose_name = 'operaciones'
+    verbose_name = 'Operaciones'
