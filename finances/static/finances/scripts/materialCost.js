@@ -41,8 +41,17 @@ function MaterialCost() {
         }
     };
 
-    this.onAjaxError = function () {
-        alert("No se pudo actualizar el costo del material.");
+    this.onAjaxError = function (jqXHR) {
+        var errorMessage;
+
+        if (jqXHR.status === 404) {
+            errorMessage = "El costo del material seleccionado no se ha dado de alta.";
+        }
+        else {
+            alert("No se pudo actualizar el costo del material.");
+        }
+
+        alert(errorMessage);
     };
 }
 

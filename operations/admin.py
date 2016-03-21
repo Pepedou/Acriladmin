@@ -23,12 +23,12 @@ class ProjectAdmin(admin.ModelAdmin):
                        'start_date', 'end_date')
         }),
         ("Datos operativos", {
-            'fields': ('vehicle', 'has_been_paid', 'cost',)
+            'fields': ('vehicle', 'has_been_paid', 'cost', 'amount_paid', 'transactions',)
         }),
     )
     inlines = [
         ProjectProductsInLine,
-        ProjectMaterialsInLine
+        ProjectMaterialsInLine,
     ]
 
 

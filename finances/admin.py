@@ -1,6 +1,7 @@
 import finances.models as models
 from django.contrib import admin
 from finances.forms.order_forms import AddOrChangeOrderForm
+from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 
 
 class OrderProductsInLine(admin.TabularInline):
@@ -35,8 +36,7 @@ class OrderAdmin(admin.ModelAdmin):
 # noinspection PyMethodMayBeStatic
 class InvoiceAdmin(admin.ModelAdmin):
     """
-    Contains the details for the admin app
-    in regard to the Invoice entity.
+    Contains the details for the admin app in regard to the Invoice entity.
     """
     list_display = ('id', 'get_order_client', 'get_order_client_address',)
     search_fields = ('id', 'order__client__name', 'order__client__address__street')
@@ -53,9 +53,16 @@ class InvoiceAdmin(admin.ModelAdmin):
     get_order_client_address.short_description = 'Dirección'
 
 
+class ProductPriceAdmin(admin.ModelAdmin):
+    """
+    Contains the details for the admin app in regard to the ProductPrice entity.
+    """
+    form = AddOrChangeProductPriceForm
+
+
 admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
-admin.site.register(models.ProductPrice)
+admin.site.register(models.ProductPrice, ProductPriceAdmin)
 admin.site.register(models.MaterialCost)
 admin.site.register(models.Transaction)
 admin.site.register(models.RepairCost)

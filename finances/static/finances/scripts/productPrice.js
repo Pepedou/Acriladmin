@@ -40,8 +40,17 @@ function ProductPrice() {
         }
     };
 
-    this.onAjaxError = function () {
-        alert("No se pudo actualizar el precio del producto.");
+    this.onAjaxError = function (jqXHR) {
+        var errorMessage;
+
+        if (jqXHR.status === 404) {
+            errorMessage = "El precio del producto seleccionado no se ha dado de alta.";
+        }
+        else {
+            alert("No se pudo actualizar el costo del producto.");
+        }
+
+        alert(errorMessage);
     };
 }
 

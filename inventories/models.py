@@ -110,6 +110,14 @@ class ProductDefinition(models.Model):
     def __str__(self):
         return self.sku
 
+    @staticmethod
+    def get_products_without_price():
+        """
+        Returns all the products which do not yet have a price assigned to them.
+        :return: Queryset with the products that match the condition.
+        """
+        return ProductDefinition.objects.filter(productprice__isnull=True)
+
 
 class WorkOrder(models.Model):
     """

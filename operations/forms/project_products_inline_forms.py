@@ -8,7 +8,7 @@ class ProjectProductsInLineForm(ModelForm):
     """
     Custom form for inlining products for a project.
     """
-    product_price = forms.DecimalField(max_digits=10, decimal_places=2, label="Costo", required=False,
+    product_price = forms.DecimalField(max_digits=10, decimal_places=2, label="Costo", initial=0.0,
                                        widget=forms.NumberInput(attrs={'readonly': 'readonly'}))
 
     class Meta:

@@ -8,7 +8,7 @@ class AddOrChangeOrderForm(ModelForm):
     """
     Custom form for adding or changing an order.
     """
-    discount_percentage = forms.IntegerField(label='Porcentaje de descuento')
+    discount_percentage = forms.IntegerField(label='Porcentaje de descuento', initial=0)
 
     class Meta:
         model = Order
