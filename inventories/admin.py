@@ -1,5 +1,5 @@
-from django.contrib import admin
 import inventories.models as models
+from django.contrib import admin
 
 
 class InventoryAdmin(admin.ModelAdmin):
@@ -23,4 +23,3 @@ admin.site.register(models.Consumable)
 admin.site.register(models.ConsumablesInventory, InventoryAdmin)
 admin.site.register(models.DurableGoodDefinition)
 admin.site.register(models.DurableGoodsInventory, InventoryAdmin)
-admin.site.register(models.Movement)

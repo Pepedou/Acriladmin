@@ -65,6 +65,10 @@ class OrderProducts(models.Model):
     product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveIntegerField(verbose_name='cantidad', default=1)
 
+    class Meta:
+        verbose_name = 'productos de una orden'
+        verbose_name_plural = 'productos de órdenes'
+
     def __str__(self):
         return "{0} - {1}".format(self.order, self.product)
 
@@ -73,8 +77,12 @@ class OrderServices(models.Model):
     """
     An entry that relates a service with an order.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name='servicio')
+
+    class Meta:
+        verbose_name = 'servicios de una orden'
+        verbose_name_plural = 'servicios de órdenes'
 
     def __str__(self):
         return "{0} - {1}".format(self.order, self.service)
@@ -88,7 +96,7 @@ class Invoice(models.Model):
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="orden")
     file = models.FileField(blank=True, verbose_name="archivo")
-    total = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='total')
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
 
     class Meta:
@@ -143,9 +151,13 @@ class MaterialCost(models.Model):
     """
     Specifies the monetary cost of a material.
     """
-    material = models.OneToOneField(Material, on_delete=models.CASCADE)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT)
+    material = models.OneToOneField(Material, on_delete=models.CASCADE, verbose_name='material')
+    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por')
+
+    class Meta:
+        verbose_name = 'costo de un material'
+        verbose_name_plural = 'costos de materiales'
 
     def __str__(self):
         return self.cost
@@ -155,8 +167,12 @@ class ServiceInvoice(models.Model):
     """
     An entry that relates a service with an invoice.
     """
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name='factura')
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name='servicio')
+
+    class Meta:
+        verbose_name = 'servicio de una factura'
+        verbose_name_plural = 'servicios de facturas'
 
     def __str__(self):
         return "{0} - {1}".format(self.invoice, self.service)
@@ -166,10 +182,14 @@ class Transaction(models.Model):
     """
     Details a monetary transaction.
     """
-    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT)
-    payed_by = models.ForeignKey(Client, on_delete=models.PROTECT)
-    datetime = models.DateTimeField(default=django.utils.timezone.now)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, verbose_name='factura')
+    payed_by = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='pagado por')
+    datetime = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha y hora')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='cantidad')
+
+    class Meta:
+        verbose_name = 'transacción'
+        verbose_name_plural = 'transacciones'
 
     def __str__(self):
         return self.amount
@@ -179,5 +199,9 @@ class RepairCost(models.Model):
     """
     The associated cost for a specific repair.
     """
-    repair = models.ForeignKey(Repair, on_delete=models.PROTECT)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    repair = models.ForeignKey(Repair, on_delete=models.PROTECT, verbose_name='reparación')
+    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
+
+    class Meta:
+        verbose_name = 'costo de una reparación'
+        verbose_name_plural = 'costos de reparaciones'

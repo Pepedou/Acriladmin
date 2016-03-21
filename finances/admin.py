@@ -55,9 +55,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
-admin.site.register(models.ProductInvoice)
 admin.site.register(models.ProductPrice)
 admin.site.register(models.MaterialCost)
-admin.site.register(models.ServiceInvoice)
 admin.site.register(models.Transaction)
 admin.site.register(models.RepairCost)
