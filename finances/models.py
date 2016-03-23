@@ -192,7 +192,7 @@ class Transaction(models.Model):
         verbose_name_plural = 'transacciones'
 
     def __str__(self):
-        return "{0}: {1}".format(self.datetime, self.amount)
+        return "{0}: ${1}".format(self.datetime.date(), self.amount)
 
 
 class RepairCost(models.Model):

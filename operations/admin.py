@@ -26,6 +26,7 @@ class ProjectAdmin(admin.ModelAdmin):
             'fields': ('vehicle', 'has_been_paid', 'cost', 'amount_paid', 'transactions',)
         }),
     )
+    filter_horizontal = ('transactions',)
     inlines = [
         ProjectProductsInLine,
         ProjectMaterialsInLine,
