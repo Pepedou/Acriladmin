@@ -42,6 +42,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_order_client', 'get_order_client_address',)
     search_fields = ('id', 'order__client__name', 'order__client__address__street')
     list_filter = ('order__client__name',)
+    readonly_fields = ('is_closed',)
 
     def get_order_client(self, obj):
         return obj.order.client
@@ -52,6 +53,22 @@ class InvoiceAdmin(admin.ModelAdmin):
         return obj.order.client.address
 
     get_order_client_address.short_description = 'Dirección'
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the Invoice model. After each invoice is saved,
+        it'll be marked as closed if the amount covered by all related transactions
+        is equal or higher than the invoice's total amount.
+        """
+        related_transactions_sum = models.Transaction.objects.filter(invoice_id=obj.id).aggregate(
+            sum=Sum(F('amount')))['sum']
+
+        if related_transactions_sum >= obj.total:
+            obj.is_closed = True
+        else:
+            obj.is_closed = False
+
+        obj.save()
 
 
 class ProductPriceAdmin(admin.ModelAdmin):
@@ -81,7 +98,11 @@ class TransactionAdmin(admin.ModelAdmin):
 
         if related_transactions_sum >= invoice.total:
             invoice.is_closed = True
-            invoice.save()
+        else:
+            invoice.is_closed = False
+
+        invoice.save()
+
 
 admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
