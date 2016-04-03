@@ -90,19 +90,19 @@ class ProductDefinition(models.Model):
     """
     sku = models.CharField(max_length=45, primary_key=True, verbose_name='SKU')
     name = models.CharField(max_length=45, verbose_name='nombre')
-    description = models.CharField(max_length=100, blank=True, verbose_name='descripción')
     short_description = models.CharField(max_length=50, blank=True, verbose_name='descripción corta')
+    description = models.TextField(blank=True, verbose_name='descripción')
     image = models.ImageField(blank=True, verbose_name='imagen')
     color = models.CharField(blank=True, max_length=10, verbose_name='color')
     length = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='longitud')
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='anchura')
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='grosor')
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='peso')
-    is_composite = models.BooleanField(default=False, verbose_name='es compuesto')
     prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True,
                                       verbose_name='prefijo de unidad')
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES,
                                             verbose_name='unidad')
+    is_composite = models.BooleanField(default=False, verbose_name='es compuesto')
 
     class Meta:
         verbose_name = 'producto'
@@ -125,11 +125,8 @@ class WorkOrder(models.Model):
     An order that authorizes the manufacture of a product.
     """
     product_definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por',
-                                      limit_choices_to=
-                                      {
-                                          'roles__name': EmployeeRole.ADMINISTRATOR
-                                      })
+    amount = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='autorizado por', )
     authorization_datetime = models.DateTimeField(default=django.utils.timezone.now,
                                                   verbose_name='fecha de autorización')
 
@@ -138,7 +135,7 @@ class WorkOrder(models.Model):
         verbose_name_plural = 'órdenes de trabajo'
 
     def __str__(self):
-        return str(self.number)
+        return str(self.id).zfill(9)
 
 
 class Product(models.Model):
@@ -210,13 +207,9 @@ class ProductComponent(models.Model):
                                     'is_composite': True
                                 })
     material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
-    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE,
-                                      verbose_name='prefijo de unidad')
-    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES,
-                                            verbose_name='unidad')
     required_units = models.PositiveSmallIntegerField(default=1, verbose_name='unidades requeridas del componente')
     required_amount_per_unit = models.DecimalField(default=1.00, max_digits=5, decimal_places=2,
-                                                   verbose_name='cantidad por unidad')
+                                                   verbose_name='cantidad requerida por unidad')
 
     class Meta:
         verbose_name = 'componente de un producto'
