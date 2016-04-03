@@ -1,5 +1,6 @@
 import django
 from back_office.models import Employee, Client, BranchOffice, EmployeeRole
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -281,7 +282,7 @@ class Material(models.Model):
     definition = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='definición')
     acquisition_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de adquisición')
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_authorized",
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="materials_authorized", blank=True,
                                       verbose_name='autorizado por')
 
     class Meta:
@@ -289,7 +290,7 @@ class Material(models.Model):
         verbose_name_plural = 'materiales concretos'
 
     def __str__(self):
-        return self.number
+        return str(self.number)
 
 
 class MaterialInventoryItem(models.Model):
@@ -353,7 +354,7 @@ class Consumable(models.Model):
     definition = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE, verbose_name='definición')
     acquisition_date = models.DateField(verbose_name='fecha de adquisición')
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="consumables_authorized",
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="consumables_authorized", blank=True,
                                       verbose_name='autorizado por')
 
     class Meta:
@@ -410,7 +411,7 @@ class DurableGoodDefinition(models.Model):
     """
     name = models.CharField(max_length=45, verbose_name='nombre')
     description = models.CharField(max_length=50, verbose_name='descripción')
-    image = models.ImageField(verbose_name='imagen')
+    image = models.ImageField(blank=True, verbose_name='imagen')
     brand = models.CharField(max_length=45, verbose_name='marca')
     model = models.CharField(max_length=45, verbose_name='modelo')
     prefix = models.SmallIntegerField(default=SIPrefix.NONE, choices=SIPrefix.PREFIX_CHOICES,

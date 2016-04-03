@@ -1,6 +1,7 @@
 import django
 
 from back_office.models import Client, Employee
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Sum, F
 from inventories.models import Product, Material, ProductDefinition, MaterialDefinition
@@ -26,35 +27,39 @@ class Order(models.Model):
         (RETURNED, "Devuelta"),
     )
 
-    PRODUCTS = 0
-    SERVICES = 1
-    PRODUCTS_AND_SERVICES = 2
+    PROJECT = 0
+    PRODUCTS = 1
+    SERVICES = 2
+    PRODUCTS_AND_SERVICES = 3
+    ALL = 4
     TARGET_CHOICES = (
+        (PROJECT, "Proyecto"),
         (PRODUCTS, "Productos"),
         (SERVICES, "Servicios"),
         (PRODUCTS_AND_SERVICES, "Productos y servicios"),
+        (ALL, "Todos"),
     )
 
     @property
     def total(self):
         return self.subtotal + self.shipping_and_handling - self.discount
 
-    number = models.CharField(verbose_name='número', max_length=50, primary_key=True)
-    status = models.PositiveSmallIntegerField(verbose_name='estado', choices=STATUS_CHOICES)
-    target = models.PositiveSmallIntegerField(verbose_name='objeto', choices=TARGET_CHOICES)
+    status = models.PositiveSmallIntegerField(verbose_name='estado', default=PLACED, choices=STATUS_CHOICES)
+    target = models.PositiveSmallIntegerField(verbose_name='entregable', choices=TARGET_CHOICES)
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
     subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
     shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
                                                 default=0.00)
     discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, verbose_name='proyecto')
 
     class Meta:
         verbose_name = 'orden'
         verbose_name_plural = 'órdenes'
 
     def __str__(self):
-        return self.number
+        return str(self.id).zfill(9)
 
 
 class OrderProducts(models.Model):
@@ -104,7 +109,7 @@ class Invoice(models.Model):
         verbose_name_plural = "facturas"
 
     def __str__(self):
-        return str(self.order)
+        return str(self.id).zfill(9)
 
     def has_been_paid(self):
         """
@@ -137,7 +142,7 @@ class ProductPrice(models.Model):
     """
     product = models.OneToOneField(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='precio')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
     class Meta:
         verbose_name = 'precio de producto'
@@ -153,14 +158,14 @@ class MaterialCost(models.Model):
     """
     material = models.OneToOneField(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
     class Meta:
         verbose_name = 'costo de un material'
         verbose_name_plural = 'costos de materiales'
 
     def __str__(self):
-        return self.cost
+        return str(self.cost)
 
 
 class ServiceInvoice(models.Model):
@@ -201,7 +206,11 @@ class RepairCost(models.Model):
     """
     repair = models.ForeignKey(Repair, on_delete=models.PROTECT, verbose_name='reparación')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
     class Meta:
         verbose_name = 'costo de una reparación'
         verbose_name_plural = 'costos de reparaciones'
+
+    def __str__(self):
+        return "{0}: ${1}".format(self.repair, self.cost)

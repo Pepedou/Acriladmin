@@ -1,5 +1,6 @@
 import django
 from back_office.models import Client, Employee, EmployeeRole, Address
+from django.contrib.auth.models import User
 from django.db import models
 from geoposition.fields import GeopositionField
 from inventories.models import ProductDefinition, Material, DurableGoodDefinition, MaterialDefinition
@@ -25,12 +26,10 @@ class Repair(models.Model):
     A repair made on a durable good.
     """
     durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='objeto')
-    date = models.DateField(verbose_name='fecha efectuada')
-    reason = models.TextField(max_length=300, verbose_name='motivo')
+    date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha efectuada')
+    reason = models.TextField(max_length=300, blank=True, verbose_name='motivo')
     requested_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='requested_repairs',
                                      verbose_name='solicitada por')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='authorized_repairs',
-                                      verbose_name='autorizada por')
 
     class Meta:
         verbose_name = 'reparación'

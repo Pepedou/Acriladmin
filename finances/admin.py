@@ -32,9 +32,21 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = [
         'total'
     ]
+    fieldsets = (
+        ("Datos administrativos", {
+            'fields': ('status', 'target', 'client', 'date',)
+        }),
+        ("Cotización", {
+            'fields': ('subtotal', 'shipping_and_handling', 'discount', 'total',)
+        }),
+        ("Otros", {
+            'fields': ('project',)
+        })
+    )
+
+    # noinspection PyMethodMayBeStatic
 
 
-# noinspection PyMethodMayBeStatic
 class InvoiceAdmin(admin.ModelAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
@@ -76,6 +88,30 @@ class ProductPriceAdmin(admin.ModelAdmin):
     Contains the details for the admin app in regard to the ProductPrice entity.
     """
     form = AddOrChangeProductPriceForm
+    readonly_fields = ('authorized_by',)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the ProductPrice model. After each ProductPrice is saved,
+        the authorized_by field is filled with the current user.
+        """
+        obj.authorized_by = request.user
+        obj.save()
+
+
+class MaterialCostAdmin(admin.ModelAdmin):
+    """
+    Contains the details for the admin app in regard to the MaterialCost entity.
+    """
+    readonly_fields = ('authorized_by',)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the MaterialCost model. After each MaterialCost is saved,
+        the authorized_by field is filled with the current user.
+        """
+        obj.authorized_by = request.user
+        obj.save()
 
 
 class TransactionAdmin(admin.ModelAdmin):
@@ -104,9 +140,24 @@ class TransactionAdmin(admin.ModelAdmin):
         invoice.save()
 
 
+class RepairCostAdmin(admin.ModelAdmin):
+    """
+    Contains the details for the admin app in regard to the RepairCost entity.
+    """
+    readonly_fields = ('authorized_by',)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the RepairCost model. After each RepairCost is saved,
+        the authorized_by field is filled with the current user.
+        """
+        obj.authorized_by = request.user
+        obj.save()
+
+
 admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
 admin.site.register(models.ProductPrice, ProductPriceAdmin)
-admin.site.register(models.MaterialCost)
+admin.site.register(models.MaterialCost, MaterialCostAdmin)
 admin.site.register(models.Transaction, TransactionAdmin)
-admin.site.register(models.RepairCost)
+admin.site.register(models.RepairCost, RepairCostAdmin)
