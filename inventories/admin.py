@@ -31,22 +31,6 @@ class ProductDefinitionAdmin(admin.ModelAdmin):
             models.ProductComponent.objects.filter(product_id=obj.sku).delete()
 
 
-class WorkOrderAdmin(admin.ModelAdmin):
-    """
-    Specifies the details for the admin app in regard
-    to the WorkOrder entity.
-    """
-    readonly_fields = ('authorized_by',)
-
-    def save_model(self, request, obj, form, change):
-        """
-        Overrides the default save method for the WorkOrder model.
-        It sets the authorized_by field to the requesting user.
-        """
-        obj.authorized_by = request.user
-        obj.save()
-
-
 class InventoryAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
@@ -56,7 +40,6 @@ class InventoryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.ProductDefinition, ProductDefinitionAdmin)
-admin.site.register(models.WorkOrder, WorkOrderAdmin)
 admin.site.register(models.ProductComponent)
 admin.site.register(models.ProductsInventory, InventoryAdmin)
 admin.site.register(models.MaterialDefinition)

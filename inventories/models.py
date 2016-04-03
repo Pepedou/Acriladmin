@@ -120,24 +120,6 @@ class ProductDefinition(models.Model):
         return ProductDefinition.objects.filter(productprice__isnull=True)
 
 
-class WorkOrder(models.Model):
-    """
-    An order that authorizes the manufacture of a product.
-    """
-    product_definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
-    amount = models.PositiveIntegerField(default=1, verbose_name='cantidad')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='autorizado por', )
-    authorization_datetime = models.DateTimeField(default=django.utils.timezone.now,
-                                                  verbose_name='fecha de autorización')
-
-    class Meta:
-        verbose_name = 'orden de trabajo'
-        verbose_name_plural = 'órdenes de trabajo'
-
-    def __str__(self):
-        return str(self.id).zfill(9)
-
-
 class Product(models.Model):
     """
     A concrete product manufactured by Acrilfrasa.
@@ -313,6 +295,10 @@ class MaterialsInventory(models.Model):
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                      verbose_name='autor de la última actualización')
+
+    class Meta:
+        verbose_name = 'inventario de materiales'
+        verbose_name_plural = 'inventarios de materiales'
 
     def __str__(self):
         return self.name
