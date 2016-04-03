@@ -1,5 +1,6 @@
 import finances.models as models
 from django.contrib import admin
+from django.db.models import Sum, F
 from finances.forms.order_forms import AddOrChangeOrderForm
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 
@@ -60,9 +61,31 @@ class ProductPriceAdmin(admin.ModelAdmin):
     form = AddOrChangeProductPriceForm
 
 
+class TransactionAdmin(admin.ModelAdmin):
+    """
+    Contains the details for the admin app in regard to the Transaction entity.
+    """
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the Transaction model. After each transaction is saved,
+        its associated invoice will be marked as closed if the amount covered by all related transactions
+        is equal or higher than the invoice's total amount.
+        """
+        obj.save()
+
+        invoice = obj.invoice
+
+        related_transactions_sum = models.Transaction.objects.filter(invoice_id=invoice.id).aggregate(
+            sum=Sum(F('amount')))['sum']
+
+        if related_transactions_sum >= invoice.total:
+            invoice.is_closed = True
+            invoice.save()
+
 admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
 admin.site.register(models.ProductPrice, ProductPriceAdmin)
 admin.site.register(models.MaterialCost)
-admin.site.register(models.Transaction)
+admin.site.register(models.Transaction, TransactionAdmin)
 admin.site.register(models.RepairCost)
