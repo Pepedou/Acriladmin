@@ -1,3 +1,4 @@
+/media
 .idea/
 venv/
 *.sqlite3
