@@ -40,11 +40,13 @@ class InventoryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.ProductDefinition, ProductDefinitionAdmin)
-admin.site.register(models.ProductComponent)
+admin.site.register(models.ProductInventoryItem)
 admin.site.register(models.ProductsInventory, InventoryAdmin)
 admin.site.register(models.MaterialDefinition)
+admin.site.register(models.MaterialInventoryItem)
 admin.site.register(models.MaterialsInventory, InventoryAdmin)
 admin.site.register(models.ConsumableDefinition)
+admin.site.register(models.ConsumableInventoryItem)
 admin.site.register(models.ConsumablesInventory, InventoryAdmin)
 admin.site.register(models.DurableGoodDefinition)
 admin.site.register(models.DurableGoodsInventory, InventoryAdmin)

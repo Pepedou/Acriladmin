@@ -309,11 +309,11 @@ class ConsumableDefinition(models.Model):
     Definition for any good that may be destroyed, dissipated, wasted or spent.
     """
     name = models.CharField(max_length=45, verbose_name='nombre')
-    description = models.CharField(max_length=50, verbose_name='descripción')
-    image = models.ImageField(verbose_name='imagen')
+    description = models.CharField(max_length=50, blank=True, verbose_name='descripción')
+    image = models.ImageField(blank=True, verbose_name='imagen')
     brand = models.CharField(max_length=45, verbose_name='marca')
     model = models.CharField(max_length=45, verbose_name='modelo')
-    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True,
+    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE,
                                       verbose_name='prefijo de unidad')
     unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES,
                                             verbose_name='unidad')
