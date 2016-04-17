@@ -1,0 +1,16 @@
+table#inventoryTable {
+    text-align: center;
+}
+
+td {
+    vertical-align: middle;
+}
+
+img.productImage {
+    height: 30px;
+    width: 30px;
+}
+
+tr:hover {
+    background-color: #f5f5f5
+}

@@ -109,7 +109,7 @@ class ProductDefinition(models.Model):
         verbose_name_plural = 'productos'
 
     def __str__(self):
-        return self.sku
+        return self.name
 
     @staticmethod
     def get_products_without_price():

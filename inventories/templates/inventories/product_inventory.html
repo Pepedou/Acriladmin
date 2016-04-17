@@ -1,0 +1,39 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n admin_urls admin_static admin_list %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "inventories/css/product_inventory.css" %}"/>
+{% endblock %}
+
+{% block content %}
+    <div id="content-main">
+        <table id="inventoryTable">
+            <thead>
+            <th>Imagen</th>
+            <th>SKU</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            </thead>
+            <tbody>
+            {% for item in product_inventory_items %}
+                <tr>
+                    <td>
+                        <img src="https://cdn4.iconfinder.com/data/icons/documents-letters-and-stationery/400/doc-14-128.png"
+                             class="productImage"/>
+                    </td>
+                    <td>
+                        {{ item.product.sku }}
+                    </td>
+                    <td>
+                        {{ item.product.name }}
+                    </td>
+                    <td>
+                        {{ item.quantity }}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
