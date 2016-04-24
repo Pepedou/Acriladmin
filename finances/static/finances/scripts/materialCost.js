@@ -33,6 +33,7 @@ function MaterialCost() {
 
         self.materialId = data.material;
         self.cost = data.cost;
+
         //noinspection JSUnresolvedVariable
         self.authorized_by_id = data.authorized_by;
 

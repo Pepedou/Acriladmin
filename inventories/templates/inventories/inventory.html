@@ -3,43 +3,34 @@
 
 {% block extrastyle %}
     {{ block.super }}
-    <link rel="stylesheet" type="text/css" href="{% static "inventories/css/product_inventory.css" %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static "inventories/css/inventory.css" %}"/>
     <link rel="stylesheet" type="text/css"
           href="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.css"/>
 
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.12.1.min.js"></script>
-    <script type="text/javascript" src="{% static "inventories/scripts/productInventory.js" %}"></script>
+    <script type="text/javascript" src="{% static "inventories/scripts/inventory.js" %}"></script>
     <script type="text/javascript"
             src="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.js"></script>
-
-
 {% endblock %}
 
 {% block content %}
     <div id="content-main">
         <table id="inventoryTable" class="display" cellspacing="0" width="100%">
             <thead>
-            <th>Imagen</th>
-            <th>SKU</th>
-            <th>Producto</th>
-            <th>Cantidad</th>
+            {% for header in table_headers %}
+                <th>{{ header }}</th>
+            {% endfor %}
             </thead>
             <tbody>
-            {% for item in product_inventory_items %}
+            {% for item_array in inventory_items %}
                 <tr>
                     <td>
                         <img src="https://cdn4.iconfinder.com/data/icons/documents-letters-and-stationery/400/doc-14-128.png"
-                             class="productImage"/>
+                             class="itemImage"/>
                     </td>
-                    <td>
-                        {{ item.product.sku }}
-                    </td>
-                    <td>
-                        {{ item.product.name }}
-                    </td>
-                    <td>
-                        {{ item.quantity }}
-                    </td>
+                    {% for attribute in item_array %}
+                        <td>{{ attribute }}</td>
+                    {% endfor %}
                 </tr>
             {% endfor %}
             </tbody>
