@@ -1,5 +1,7 @@
 import inventories.models as models
 from django.contrib import admin
+from django.core.urlresolvers import reverse
+from django.utils.html import format_html
 from inventories.forms.product_definition_forms import AddOrChangeProductDefinitionForm
 
 
@@ -37,6 +39,28 @@ class InventoryAdmin(admin.ModelAdmin):
     to the inventory entities.
     """
     filter_horizontal = ["items"]
+
+    list_display = ('name', 'branch', 'supervisor', 'detail_page')
+
+    def detail_page(self, obj):
+        """
+
+        :param obj:
+        :return:
+        """
+        url = None
+        if isinstance(obj, models.ProductsInventory):
+            url = reverse('products_inventory', args=(obj.id,))
+        elif isinstance(obj, models.MaterialsInventory):
+            url = reverse('materials_inventory', args=(obj.id,))
+        elif isinstance(obj, models.ConsumablesInventory):
+            url = reverse('consumables_inventory', args=(obj.id,))
+        elif isinstance(obj, models.DurableGoodsInventory):
+            url = reverse('durable_goods_inventory', args=(obj.id,))
+
+        return format_html('<a href="{}">Mostrar detalle</a>', url)
+
+    detail_page.short_description = "Detalle"
 
 
 admin.site.register(models.ProductDefinition, ProductDefinitionAdmin)

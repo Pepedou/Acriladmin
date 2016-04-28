@@ -1,6 +1,6 @@
-from django.conf import settings
 from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory
@@ -49,6 +49,8 @@ class ProductInventoryView(ListView):
         context['table_headers'] = ['Imagen', 'SKU', 'Producto', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
+        context['app_list'] = reverse('admin:app_list', args=('inventories',))
+        context['inventory_list_url'] = reverse('admin:inventories_productsinventory_changelist')
 
         return context
 
@@ -97,6 +99,8 @@ class MaterialInventoryView(ListView):
         context['table_headers'] = ['Imagen', 'Nombre', 'Descripción', 'Color', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
+        context['app_list'] = reverse('admin:app_list', args=('inventories',))
+        context['inventory_list_url'] = reverse('admin:inventories_materialsinventory_changelist')
 
         return context
 
@@ -146,6 +150,8 @@ class ConsumableInventoryView(ListView):
         context['table_headers'] = ['Imagen', 'Nombre', 'Descripción', 'Marca', 'Modelo', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
+        context['app_list'] = reverse('admin:app_list', args=('inventories',))
+        context['inventory_list_url'] = reverse('admin:inventories_consumablesinventory_changelist')
 
         return context
 
@@ -195,5 +201,7 @@ class DurableGoodInventoryView(ListView):
         context['table_headers'] = ['Imagen', 'Nombre', 'Descripción', 'Marca', 'Modelo', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
+        context['app_list'] = reverse('admin:app_list', args=('inventories',))
+        context['inventory_list_url'] = reverse('admin:inventories_durablegoodsinventory_changelist')
 
         return context

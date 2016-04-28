@@ -1,6 +1,17 @@
 {% extends 'admin/base_site.html' %}
 {% load i18n admin_urls admin_static admin_list %}
 
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+        &rsaquo;
+        <a href="{{ app_list }}">Inventarios</a>
+        &rsaquo;
+        <a href="{{ inventory_list_url }}">Lista de inventarios</a>
+        &rsaquo; Detalle
+    </div>
+{% endblock %}
+
 {% block extrastyle %}
     {{ block.super }}
     <link rel="stylesheet" type="text/css" href="{% static "inventories/css/inventory.css" %}"/>
