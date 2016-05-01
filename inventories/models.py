@@ -207,8 +207,8 @@ class ProductInventoryItem(models.Model):
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
 
     class Meta:
-        verbose_name = 'elemento de inventario'
-        verbose_name_plural = 'elementos de inventarios'
+        verbose_name = 'elemento de inventario de productos'
+        verbose_name_plural = 'elementos de inventario de productos'
 
     def __str__(self):
         return "{0}: {1}".format(self.product, self.quantity)
@@ -274,8 +274,8 @@ class MaterialInventoryItem(models.Model):
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
 
     class Meta:
-        verbose_name = 'elemento de inventario'
-        verbose_name_plural = 'elementos de inventario'
+        verbose_name = 'elemento de inventario de materiales'
+        verbose_name_plural = 'elementos de inventario de materiales'
 
     def __str__(self):
         return "{0}: {1}".format(self.material, self.quantity)
@@ -352,8 +352,8 @@ class ConsumableInventoryItem(models.Model):
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
 
     class Meta:
-        verbose_name = 'elemento de inventario'
-        verbose_name_plural = 'elementos de inventario'
+        verbose_name = 'elemento de inventario de consumibles'
+        verbose_name_plural = 'elementos de inventario de consumibles'
 
     def __str__(self):
         return "{0}: {1}".format(self.consumable, self.quantity)
@@ -436,8 +436,8 @@ class DurableGoodInventoryItem(models.Model):
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
 
     class Meta:
-        verbose_name = 'elemento de inventario'
-        verbose_name_plural = 'elementos de inventarios'
+        verbose_name = 'elemento de inventario de activos'
+        verbose_name_plural = 'elementos de inventarios de activos'
 
     def __str__(self):
         return "{0}: {1}".format(self.durable_good, self.quantity)

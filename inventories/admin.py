@@ -33,6 +33,23 @@ class ProductDefinitionAdmin(admin.ModelAdmin):
             models.ProductComponent.objects.filter(product_id=obj.sku).delete()
 
 
+class InventoryItemAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductInventoryItem, MaterialInventoryItem,
+    ConsumableInventoryItem and DurableGoodInventoryItem
+    entities. It's main purpose is to override the
+    'get_model_perms' method to hide those entities
+    in the index view.
+    """
+
+    def get_model_perms(self, request):
+        """
+        Return empty perms dict thus hiding the model from admin index.
+        """
+        return {}
+
+
 class InventoryAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
@@ -64,13 +81,14 @@ class InventoryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.ProductDefinition, ProductDefinitionAdmin)
-admin.site.register(models.ProductInventoryItem)
+admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, InventoryAdmin)
 admin.site.register(models.MaterialDefinition)
-admin.site.register(models.MaterialInventoryItem)
+admin.site.register(models.MaterialInventoryItem, InventoryItemAdmin)
 admin.site.register(models.MaterialsInventory, InventoryAdmin)
 admin.site.register(models.ConsumableDefinition)
-admin.site.register(models.ConsumableInventoryItem)
+admin.site.register(models.ConsumableInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ConsumablesInventory, InventoryAdmin)
 admin.site.register(models.DurableGoodDefinition)
+admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
 admin.site.register(models.DurableGoodsInventory, InventoryAdmin)

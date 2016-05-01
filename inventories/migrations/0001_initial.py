@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'verbose_name': 'elemento de inventario',
-                'verbose_name_plural': 'elementos de inventarios',
+                'verbose_name_plural': 'elementos de inventario',
             },
         ),
         migrations.CreateModel(
