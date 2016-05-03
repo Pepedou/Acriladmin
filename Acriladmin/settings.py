@@ -38,6 +38,8 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    'dal',
+    'dal_select2',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,6 +54,7 @@ INSTALLED_APPS = [
     'reversion',
     'geoposition',
     'rest_framework',
+    'django_select2',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -176,6 +179,6 @@ GEOPOSITION_MARKER_OPTIONS = {
 }
 
 if DEBUG:
-    JQUERY_LIB = 'http://code.jquery.com/jquery-1.12.1.js'
+    JQUERY_LIB = 'https://code.jquery.com/jquery-2.2.3.js'
 else:
-    JQUERY_LIB = 'http://code.jquery.com/jquery-1.12.1.min.js'
+    JQUERY_LIB = 'https://code.jquery.com/jquery-2.2.3.min.js'

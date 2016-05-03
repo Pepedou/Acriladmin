@@ -1,9 +1,11 @@
+from dal import autocomplete
 from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
-from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory
+from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
+    ProductDefinition
 
 
 class ProductInventoryView(ListView):
@@ -205,3 +207,22 @@ class DurableGoodInventoryView(ListView):
         context['inventory_list_url'] = reverse('admin:inventories_durablegoodsinventory_changelist')
 
         return context
+
+
+class ProductAutocomplete(autocomplete.Select2QuerySetView):
+    """
+    Select2 framework's autocomplete for the ProductDefinition entity.
+    It's used to generate an autocomplete text input in the ProductTransfer
+    Add or Change form.
+    """
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return ProductDefinition.objects.none()
+
+        query_set = ProductDefinition.objects.all()
+
+        if self.q:
+            query_set = query_set.filter(name__istartswith=self.q)
+
+        return query_set

@@ -1,7 +1,8 @@
 import django
 from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 
 
 class SIPrefix:
@@ -201,19 +202,6 @@ class ProductComponent(models.Model):
         return self.name
 
 
-class ProductInventoryItem(models.Model):
-    """An entry of a specific product in an inventory."""
-    product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
-    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
-
-    class Meta:
-        verbose_name = 'elemento de inventario de productos'
-        verbose_name_plural = 'elementos de inventario de productos'
-
-    def __str__(self):
-        return "{0}: {1}".format(self.product, self.quantity)
-
-
 class ProductsInventory(models.Model):
     """An inventory of various products."""
     name = models.CharField(max_length=45, verbose_name='nombre')
@@ -224,7 +212,6 @@ class ProductsInventory(models.Model):
                                        'roles__name': EmployeeRole.WAREHOUSE_CHIEF
                                    })
     branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
-    items = models.ManyToManyField(ProductInventoryItem, blank=True, verbose_name='productos')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                      verbose_name='autor de la última actualización')
@@ -235,6 +222,20 @@ class ProductsInventory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductInventoryItem(models.Model):
+    """An entry of a specific product in an inventory."""
+    product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.CASCADE, verbose_name='inventario')
+
+    class Meta:
+        verbose_name = 'elemento de inventario de productos'
+        verbose_name_plural = 'elementos de inventario de productos'
+
+    def __str__(self):
+        return "{0}: {1}".format(self.product, self.quantity)
 
 
 class Material(models.Model):
@@ -282,7 +283,7 @@ class MaterialInventoryItem(models.Model):
 
 
 class MaterialsInventory(models.Model):
-    """An inventory of various material."""
+    """An inventory of various materials."""
     name = models.CharField(max_length=45, verbose_name='nombre')
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_inventories_supervised",
                                    verbose_name='supervisor',
@@ -466,3 +467,105 @@ class DurableGoodsInventory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductTransfer(models.Model):
+    """
+    A transfer between two branches of a product.
+    """
+
+    product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
+    source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                      related_name='product_transfers_as_source_branch',
+                                      verbose_name='sucursal de origen')
+    target_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                      related_name='product_transfers_as_target_branch',
+                                      verbose_name='sucursal de destino')
+    quantity = models.PositiveIntegerField(verbose_name='cantidad')
+    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+
+    class Meta:
+        verbose_name = 'transferencia de producto'
+        verbose_name_plural = 'transferencias de producto'
+
+    def __str__(self):
+        return "{0}: {1}".format(str(self.product), str(self.quantity))
+
+    def clean(self):
+        source_inventories = self.source_branch.productsinventory_set.all()
+        target_inventories = self.target_branch.productsinventory_set.all()
+
+        if len(source_inventories) == 0:
+            raise ValidationError({
+                'source_branch': 'La sucursal de origen no cuenta con un inventario de productos.'
+            })
+
+        if len(target_inventories) == 0:
+            raise ValidationError({
+                'target_branch': 'La sucursal de destino no cuenta con un inventario de productos.'
+            })
+
+        product_inventory = source_inventories[0]
+        filtered_items = product_inventory.productinventoryitem_set.all()  # filter(product__sku=self.product.sku)
+
+        if len(filtered_items) == 0:
+            raise ValidationError({
+                'product': 'El inventario de la sucursal de origen no cuenta con ese producto.'
+            })
+
+        inventory_item = filtered_items[0]
+
+        if inventory_item.quantity < self.quantity:
+            raise ValidationError({
+                'quantity': 'El inventario de la sucursal de origen cuenta {0} unidades del {1}.'.format(
+                    inventory_item.quantity,
+                    str(inventory_item.product))
+            })
+
+    def save(self, *args, **kwargs):
+        source_inventory = self.source_branch.productsinventory_set.all()[0]
+        target_inventory = self.target_branch.productsinventory_set.all()[0]
+
+        source_inventory_item = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
+        target_inventory_items = target_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
+
+        source_inventory_item.quantity -= self.quantity
+
+        if len(target_inventory_items) == 0:
+            target_inventory_item = ProductInventoryItem()
+            target_inventory_item.product = self.product
+            target_inventory_item.inventory = target_inventory
+        else:
+            target_inventory_item = target_inventory_items[0]
+
+        target_inventory_item.quantity += self.quantity
+
+        with transaction.atomic():
+            target_inventory_item.save()
+            source_inventory_item.save()
+
+        super(ProductTransfer, self).save(*args, **kwargs)
+
+    def delete(self, using=None, keep_parents=False):
+        source_inventory = self.source_branch.productsinventory_set.all()[0]
+        target_inventory = self.target_branch.productsinventory_set.all()[0]
+
+        source_inventory_items = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
+        target_inventory_item = target_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
+
+        if len(source_inventory_items) == 0:
+            source_inventory_item = ProductInventoryItem()
+            source_inventory_item.product = self.product
+            source_inventory_item.inventory = source_inventory
+        else:
+            source_inventory_item = source_inventory_items[0]
+
+        source_inventory_item.quantity += self.quantity
+
+        target_inventory_item.quantity -= self.quantity
+
+        with transaction.atomic():
+            target_inventory_item.save()
+            source_inventory_item.save()
+
+        super(ProductTransfer, self).delete(using, keep_parents)
