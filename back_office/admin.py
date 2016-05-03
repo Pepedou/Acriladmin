@@ -4,21 +4,6 @@ from django.contrib.auth.admin import UserAdmin
 from reversion.admin import VersionAdmin
 
 
-# class EmployeeInLine(admin.StackedInline):
-#     """
-#
-#     """
-#     model = models.Employee
-#
-#
-# class UserAdmin(BaseUserAdmin):
-#     """
-#     Specifies the details for the admin app in regard
-#     to the User entity.
-#     """
-#     inlines = (EmployeeInLine,)
-
-
 class AddressAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard

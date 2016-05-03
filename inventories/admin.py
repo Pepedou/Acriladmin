@@ -116,14 +116,19 @@ class ProductTransferAdmin(admin.ModelAdmin):
     to the ProductTransfer entity.
     """
     form = AddOrChangeProductTransferForm
+    list_display = ('source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed',)
 
     readonly_fields = ("product", "source_branch", "target_branch", "quantity",)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
-            return super(ProductTransferAdmin, self).get_readonly_fields(request, obj)
+            if request.user == obj.target_branch.productsinventory.supervisor or request.user.is_superuser \
+                    and obj.is_confirmed is False:
+                return super(ProductTransferAdmin, self).get_readonly_fields(request, obj)
+            else:
+                return super(ProductTransferAdmin, self).get_readonly_fields(request, obj) + ('is_confirmed',)
         else:
-            return tuple()
+            return 'is_confirmed',
 
 
 admin.site.register(models.ProductDefinition, ProductDefinitionAdmin)

@@ -211,7 +211,7 @@ class ProductsInventory(models.Model):
                                    {
                                        'roles__name': EmployeeRole.WAREHOUSE_CHIEF
                                    })
-    branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
+    branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                      verbose_name='autor de la última actualización')
@@ -494,21 +494,26 @@ class ProductTransfer(models.Model):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
 
     def clean(self):
-        source_inventories = self.source_branch.productsinventory_set.all()
-        target_inventories = self.target_branch.productsinventory_set.all()
+        super(ProductTransfer, self).clean()
 
-        if len(source_inventories) == 0:
+        if self.id is not None:
+            return
+
+        source_inventory = self.source_branch.productsinventory
+        target_inventory = self.target_branch.productsinventory
+
+        if source_inventory is None:
             raise ValidationError({
                 'source_branch': 'La sucursal de origen no cuenta con un inventario de productos.'
             })
 
-        if len(target_inventories) == 0:
+        if target_inventory is None:
             raise ValidationError({
                 'target_branch': 'La sucursal de destino no cuenta con un inventario de productos.'
             })
 
-        product_inventory = source_inventories[0]
-        filtered_items = product_inventory.productinventoryitem_set.all()  # filter(product__sku=self.product.sku)
+        # TODO: Check this
+        filtered_items = source_inventory.productinventoryitem_set.all()  # filter(product__sku=self.product.sku)
 
         if len(filtered_items) == 0:
             raise ValidationError({
@@ -519,14 +524,18 @@ class ProductTransfer(models.Model):
 
         if inventory_item.quantity < self.quantity:
             raise ValidationError({
-                'quantity': 'El inventario de la sucursal de origen cuenta {0} unidades del {1}.'.format(
+                'quantity': 'El inventario de la sucursal de origen cuenta con {0} unidades de {1}.'.format(
                     inventory_item.quantity,
                     str(inventory_item.product))
             })
 
     def save(self, *args, **kwargs):
-        source_inventory = self.source_branch.productsinventory_set.all()[0]
-        target_inventory = self.target_branch.productsinventory_set.all()[0]
+        if self.id is not None:
+            super(ProductTransfer, self).save(*args, **kwargs)
+            return
+
+        source_inventory = self.source_branch.productsinventory
+        target_inventory = self.target_branch.productsinventory
 
         source_inventory_item = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
         target_inventory_items = target_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
@@ -549,8 +558,8 @@ class ProductTransfer(models.Model):
         super(ProductTransfer, self).save(*args, **kwargs)
 
     def delete(self, using=None, keep_parents=False):
-        source_inventory = self.source_branch.productsinventory_set.all()[0]
-        target_inventory = self.target_branch.productsinventory_set.all()[0]
+        source_inventory = self.source_branch.productsinventory[0]
+        target_inventory = self.target_branch.productsinventory[0]
 
         source_inventory_items = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
         target_inventory_item = target_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
