@@ -258,7 +258,8 @@ class Material(models.Model):
     definition = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='definición')
     acquisition_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de adquisición')
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="materials_authorized", blank=True,
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_authorized",
+                                      blank=True,
                                       verbose_name='autorizado por')
 
     class Meta:
@@ -334,7 +335,8 @@ class Consumable(models.Model):
     definition = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE, verbose_name='definición')
     acquisition_date = models.DateField(verbose_name='fecha de adquisición')
     buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="consumables_authorized", blank=True,
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="consumables_authorized",
+                                      blank=True,
                                       verbose_name='autorizado por')
 
     class Meta:

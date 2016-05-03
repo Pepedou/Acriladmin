@@ -1,6 +1,22 @@
 import back_office.models as models
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from reversion.admin import VersionAdmin
+
+
+# class EmployeeInLine(admin.StackedInline):
+#     """
+#
+#     """
+#     model = models.Employee
+#
+#
+# class UserAdmin(BaseUserAdmin):
+#     """
+#     Specifies the details for the admin app in regard
+#     to the User entity.
+#     """
+#     inlines = (EmployeeInLine,)
 
 
 class AddressAdmin(VersionAdmin):
@@ -19,21 +35,17 @@ class AddressAdmin(VersionAdmin):
     list_filter = ('country', 'state', 'city', 'town')
 
 
-class EmployeeAdmin(VersionAdmin):
+class EmployeeAdmin(VersionAdmin, UserAdmin):
     """
     Specifies the details for the admin app in regard
     to the Employee entity.
     """
-    fieldsets = (
-        ("Datos personales", {
+    fieldsets = UserAdmin.fieldsets + (
+        ("Datos administrativos", {
             'fields': (
-                'name', 'paternal_last_name', 'maternal_last_name',
-                'gender', 'phone', 'email', 'picture', 'address'
+                'gender', 'phone', 'picture', 'address', 'roles',
             )
         },),
-        ('Datos de empleado', {
-            'fields': ('number', 'user', 'seniority', 'is_active', 'roles')
-        })
     )
 
 

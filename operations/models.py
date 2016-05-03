@@ -12,7 +12,7 @@ class WorkOrder(models.Model):
     """
     product_definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
     amount = models.PositiveIntegerField(default=1, verbose_name='cantidad')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='autorizado por', )
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por', )
     authorization_datetime = models.DateTimeField(default=django.utils.timezone.now,
                                                   verbose_name='fecha de autorización')
 

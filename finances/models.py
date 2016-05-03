@@ -142,7 +142,7 @@ class ProductPrice(models.Model):
     """
     product = models.OneToOneField(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='precio')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
     class Meta:
         verbose_name = 'precio de producto'
@@ -158,7 +158,7 @@ class MaterialCost(models.Model):
     """
     material = models.OneToOneField(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
     class Meta:
         verbose_name = 'costo de un material'
@@ -206,7 +206,7 @@ class RepairCost(models.Model):
     """
     repair = models.ForeignKey(Repair, on_delete=models.PROTECT, verbose_name='reparación')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
-    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
     class Meta:
         verbose_name = 'costo de una reparación'

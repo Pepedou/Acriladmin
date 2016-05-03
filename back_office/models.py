@@ -1,9 +1,6 @@
-import django
-
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AbstractUser
 from django.core.validators import EmailValidator, URLValidator
 from django.db import models
-from django.utils.datetime_safe import date
 from utils.validators import phone_regex_validator, zip_code_regex_validator
 
 
@@ -63,7 +60,7 @@ class EmployeeRole(models.Model):
         return self.name
 
 
-class Employee(models.Model):
+class Employee(AbstractUser):
     """
     An employee that works for Acrilfrasa.
     """
@@ -74,33 +71,21 @@ class Employee(models.Model):
         (FEMALE, "Femenino")
     )
 
-    @property
-    def full_name(self):
-        return "{0} {1} {2}".format(self.name, self.paternal_last_name, self.maternal_last_name).rstrip()
-
-    name = models.CharField(verbose_name='nombre(s)', max_length=20)
-    paternal_last_name = models.CharField(verbose_name='apellido paterno', max_length=20)
-    maternal_last_name = models.CharField(verbose_name='apellido materno', max_length=20)
-    gender = models.PositiveSmallIntegerField(verbose_name='género', choices=GENDER_CHOICES)
+    gender = models.PositiveSmallIntegerField(default=MALE, verbose_name='género', choices=GENDER_CHOICES)
     phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
-    email = models.EmailField(verbose_name='correo electrónico', blank=True,
-                              validators=[EmailValidator(message='Correo electrónico inválido.')])
     picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
 
-    number = models.CharField(verbose_name='número', max_length=45, primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='usuario del sistema', null=True,
-                                blank=True)
-    seniority = models.DateField(verbose_name='antigüedad', default=django.utils.timezone.now)
-    is_active = models.BooleanField(verbose_name='activo', default=True)
     roles = models.ManyToManyField(EmployeeRole, verbose_name='roles')
+
+    REQUIRED_FIELDS = ["first_name", "last_name", "email"]
 
     class Meta:
         verbose_name = 'empleado'
         verbose_name_plural = 'empleados'
 
     def __str__(self):
-        return self.full_name
+        return self.get_full_name()
 
 
 class Client(models.Model):
@@ -123,7 +108,7 @@ class Client(models.Model):
         verbose_name_plural = 'clientes'
 
     def __str__(self):
-            return self.name
+        return self.name
 
 
 class BranchOffice(models.Model):

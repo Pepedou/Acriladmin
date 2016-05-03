@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     'django_select2',
 ]
 
+AUTH_USER_MODEL = 'back_office.Employee'
+
 MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
