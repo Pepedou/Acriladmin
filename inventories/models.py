@@ -225,7 +225,9 @@ class ProductsInventory(models.Model):
 
 
 class ProductInventoryItem(models.Model):
-    """An entry of a specific product in an inventory."""
+    """
+    An entry of a specific product in an inventory.
+    """
     product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.CASCADE, verbose_name='inventario')
@@ -270,19 +272,6 @@ class Material(models.Model):
         return str(self.number)
 
 
-class MaterialInventoryItem(models.Model):
-    """An entry of a specific material in an inventory."""
-    material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
-    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
-
-    class Meta:
-        verbose_name = 'elemento de inventario de materiales'
-        verbose_name_plural = 'elementos de inventario de materiales'
-
-    def __str__(self):
-        return "{0}: {1}".format(self.material, self.quantity)
-
-
 class MaterialsInventory(models.Model):
     """An inventory of various materials."""
     name = models.CharField(max_length=45, verbose_name='nombre')
@@ -292,8 +281,7 @@ class MaterialsInventory(models.Model):
                                    {
                                        'roles__name': EmployeeRole.ADMINISTRATOR
                                    })
-    branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
-    items = models.ManyToManyField(MaterialInventoryItem, blank=True, verbose_name='materiales')
+    branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                      verbose_name='autor de la última actualización')
@@ -304,6 +292,20 @@ class MaterialsInventory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class MaterialInventoryItem(models.Model):
+    """An entry of a specific material in an inventory."""
+    material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
+    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
+    inventory = models.ForeignKey(MaterialsInventory, on_delete=models.CASCADE, verbose_name='inventario')
+
+    class Meta:
+        verbose_name = 'elemento de inventario de materiales'
+        verbose_name_plural = 'elementos de inventario de materiales'
+
+    def __str__(self):
+        return "{0}: {1}".format(self.material, self.quantity)
 
 
 class ConsumableDefinition(models.Model):
@@ -347,21 +349,6 @@ class Consumable(models.Model):
         return self.number
 
 
-class ConsumableInventoryItem(models.Model):
-    """
-    An entry of a specific consumable in an inventory.
-    """
-    consumable = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE, verbose_name='consumible')
-    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
-
-    class Meta:
-        verbose_name = 'elemento de inventario de consumibles'
-        verbose_name_plural = 'elementos de inventario de consumibles'
-
-    def __str__(self):
-        return "{0}: {1}".format(self.consumable, self.quantity)
-
-
 class ConsumablesInventory(models.Model):
     """
     An inventory of various consumables.
@@ -373,8 +360,7 @@ class ConsumablesInventory(models.Model):
                                    {
                                        'roles__name': EmployeeRole.ADMINISTRATOR
                                    })
-    branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
-    items = models.ManyToManyField(ConsumableInventoryItem, blank=True, verbose_name='consumibles')
+    branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                      verbose_name='autor de la última actualización')
@@ -385,6 +371,22 @@ class ConsumablesInventory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ConsumableInventoryItem(models.Model):
+    """
+    An entry of a specific consumable in an inventory.
+    """
+    consumable = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE, verbose_name='consumible')
+    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
+    inventory = models.ForeignKey(ConsumablesInventory, on_delete=models.CASCADE, verbose_name='inventario')
+
+    class Meta:
+        verbose_name = 'elemento de inventario de consumibles'
+        verbose_name_plural = 'elementos de inventario de consumibles'
+
+    def __str__(self):
+        return "{0}: {1}".format(self.consumable, self.quantity)
 
 
 class DurableGoodDefinition(models.Model):
@@ -431,21 +433,6 @@ class DurableGood(models.Model):
         return self.number
 
 
-class DurableGoodInventoryItem(models.Model):
-    """
-    An entry of a specific durable good in an inventory.
-    """
-    durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='activo')
-    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
-
-    class Meta:
-        verbose_name = 'elemento de inventario de activos'
-        verbose_name_plural = 'elementos de inventarios de activos'
-
-    def __str__(self):
-        return "{0}: {1}".format(self.durable_good, self.quantity)
-
-
 class DurableGoodsInventory(models.Model):
     """
     An inventory of various durable goods.
@@ -457,8 +444,7 @@ class DurableGoodsInventory(models.Model):
                                    {
                                        'roles__name': EmployeeRole.ADMINISTRATOR
                                    })
-    branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
-    items = models.ManyToManyField(DurableGoodInventoryItem, blank=True, verbose_name='activos')
+    branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                      verbose_name='autor de la última actualización')
@@ -469,6 +455,22 @@ class DurableGoodsInventory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class DurableGoodInventoryItem(models.Model):
+    """
+    An entry of a specific durable good in an inventory.
+    """
+    durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='activo')
+    quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
+    inventory = models.ForeignKey(DurableGoodsInventory, on_delete=models.CASCADE, verbose_name='inventario')
+
+    class Meta:
+        verbose_name = 'elemento de inventario de activos'
+        verbose_name_plural = 'elementos de inventarios de activos'
+
+    def __str__(self):
+        return "{0}: {1}".format(self.durable_good, self.quantity)
 
 
 class ProductTransfer(models.Model):
@@ -512,8 +514,7 @@ class ProductTransfer(models.Model):
                 'target_branch': 'La sucursal de destino no cuenta con un inventario de productos.'
             })
 
-        # TODO: Check this
-        filtered_items = source_inventory.productinventoryitem_set.all()  # filter(product__sku=self.product.sku)
+        filtered_items = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
 
         if len(filtered_items) == 0:
             raise ValidationError({

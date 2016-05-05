@@ -2,8 +2,10 @@ import inventories.models as models
 from django.contrib import admin
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
+from inventories.forms.inventory_item_forms import TabularInLineProductInventoryItemForm, \
+    TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
+    TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_definition_forms import AddOrChangeProductDefinitionForm
-from inventories.forms.product_inventory_item_forms import TabularInLineProductInventoryItemForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 
 
@@ -52,34 +54,6 @@ class InventoryItemAdmin(admin.ModelAdmin):
         return {}
 
 
-class InventoryAdmin(admin.ModelAdmin):
-    """
-    Specifies the details for the admin app in regard
-    to the inventory entities.
-    """
-    list_display = ('name', 'branch', 'supervisor', 'detail_page')
-
-    def detail_page(self, obj):
-        """
-        Returns the HTML code for the inventory's detail page.
-        :param obj:The inventory.
-        :return: The HTML code.
-        """
-        url = None
-        if isinstance(obj, models.ProductsInventory):
-            url = reverse('products_inventory', args=(obj.id,))
-        elif isinstance(obj, models.MaterialsInventory):
-            url = reverse('materials_inventory', args=(obj.id,))
-        elif isinstance(obj, models.ConsumablesInventory):
-            url = reverse('consumables_inventory', args=(obj.id,))
-        elif isinstance(obj, models.DurableGoodsInventory):
-            url = reverse('durable_goods_inventory', args=(obj.id,))
-
-        return format_html('<a href="{}">Mostrar detalle</a>', url)
-
-    detail_page.short_description = "Detalle"
-
-
 class ProductInventoryItemInLine(admin.TabularInline):
     """
     Describes the inline render of a product inventory item
@@ -104,6 +78,96 @@ class ProductsInventoryAdmin(admin.ModelAdmin):
         :return: The HTML code.
         """
         url = reverse('products_inventory', args=(obj.id,))
+
+        return format_html('<a href="{}">Mostrar detalle</a>', url)
+
+    detail_page.short_description = "Detalle"
+
+
+class MaterialInventoryItemInLine(admin.TabularInline):
+    """
+    Describes the inline render of a product inventory item
+    for the MaterialInventoryItem's admin view.
+    """
+    form = TabularInLineMaterialInventoryItemForm
+    model = models.MaterialInventoryItem
+
+
+class MaterialInventoryAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the inventory entities.
+    """
+    list_display = ('name', 'branch', 'supervisor', 'detail_page')
+    inlines = (MaterialInventoryItemInLine,)
+
+    def detail_page(self, obj):
+        """
+        Returns the HTML code for the inventory's detail page.
+        :param obj:The inventory.
+        :return: The HTML code.
+        """
+        url = reverse('materials_inventory', args=(obj.id,))
+
+        return format_html('<a href="{}">Mostrar detalle</a>', url)
+
+    detail_page.short_description = "Detalle"
+
+
+class ConsumableInventoryItemInLine(admin.TabularInline):
+    """
+    Describes the inline render of a product inventory item
+    for the ConsumableInventoryItem's admin view.
+    """
+    form = TabularInLineConsumableInventoryItemForm
+    model = models.ConsumableInventoryItem
+
+
+class ConsumableInventoryAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the inventory entities.
+    """
+    list_display = ('name', 'branch', 'supervisor', 'detail_page')
+    inlines = (ConsumableInventoryItemInLine,)
+
+    def detail_page(self, obj):
+        """
+        Returns the HTML code for the inventory's detail page.
+        :param obj:The inventory.
+        :return: The HTML code.
+        """
+        url = reverse('consumables_inventory', args=(obj.id,))
+
+        return format_html('<a href="{}">Mostrar detalle</a>', url)
+
+    detail_page.short_description = "Detalle"
+
+
+class DurableGoodInventoryItemInLine(admin.TabularInline):
+    """
+    Describes the inline render of a product inventory item
+    for the ProductInventoryItem's admin view.
+    """
+    form = TabularInLineDurableGoodInventoryItemForm
+    model = models.DurableGoodInventoryItem
+
+
+class DurableGoodInventoryAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the inventory entities.
+    """
+    list_display = ('name', 'branch', 'supervisor', 'detail_page')
+    inlines = (DurableGoodInventoryItemInLine,)
+
+    def detail_page(self, obj):
+        """
+        Returns the HTML code for the inventory's detail page.
+        :param obj:The inventory.
+        :return: The HTML code.
+        """
+        url = reverse('durable_goods_inventory', args=(obj.id,))
 
         return format_html('<a href="{}">Mostrar detalle</a>', url)
 
@@ -136,11 +200,11 @@ admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
 admin.site.register(models.MaterialDefinition)
 admin.site.register(models.MaterialInventoryItem, InventoryItemAdmin)
-admin.site.register(models.MaterialsInventory, InventoryAdmin)
+admin.site.register(models.MaterialsInventory, MaterialInventoryAdmin)
 admin.site.register(models.ConsumableDefinition)
 admin.site.register(models.ConsumableInventoryItem, InventoryItemAdmin)
-admin.site.register(models.ConsumablesInventory, InventoryAdmin)
+admin.site.register(models.ConsumablesInventory, ConsumableInventoryAdmin)
 admin.site.register(models.DurableGoodDefinition)
 admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
-admin.site.register(models.DurableGoodsInventory, InventoryAdmin)
+admin.site.register(models.DurableGoodsInventory, DurableGoodInventoryAdmin)
 admin.site.register(models.ProductTransfer, ProductTransferAdmin)

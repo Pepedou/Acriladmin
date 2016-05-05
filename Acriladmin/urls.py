@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.views.generic import RedirectView
 from finances import views
 from inventories import urls as inventories_urls
-from inventories.views import ProductAutocomplete
+from inventories.views import ProductAutocomplete, MaterialAutocomplete, ConsumableAutocomplete, DurableGoodAutocomplete
 from rest_framework import routers
 
 router = routers.DefaultRouter()
@@ -32,4 +32,7 @@ urlpatterns = [
     url(r'^inventories/', include(inventories_urls)),
     url(r'^select2/', include('django_select2.urls')),
     url(r'^product-autocomplete/$', ProductAutocomplete.as_view(), name='product-autocomplete', ),
+    url(r'^material-autocomplete/$', MaterialAutocomplete.as_view(), name='material-autocomplete', ),
+    url(r'^consumable-autocomplete/$', ConsumableAutocomplete.as_view(), name='consumable-autocomplete', ),
+    url(r'^durablegood-autocomplete/$', DurableGoodAutocomplete.as_view(), name='durablegood-autocomplete', ),
 ]

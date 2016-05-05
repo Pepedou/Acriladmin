@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
-    ProductDefinition
+    ProductDefinition, MaterialDefinition, ConsumableDefinition, DurableGoodDefinition
 
 
 class ProductInventoryView(ListView):
@@ -221,6 +221,57 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
             return ProductDefinition.objects.none()
 
         query_set = ProductDefinition.objects.all()
+
+        if self.q:
+            query_set = query_set.filter(name__istartswith=self.q)
+
+        return query_set
+
+
+class MaterialAutocomplete(autocomplete.Select2QuerySetView):
+    """
+    Select2 framework's autocomplete for the MaterialDefinition entity.
+    """
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return MaterialDefinition.objects.none()
+
+        query_set = MaterialDefinition.objects.all()
+
+        if self.q:
+            query_set = query_set.filter(name__istartswith=self.q)
+
+        return query_set
+
+
+class ConsumableAutocomplete(autocomplete.Select2QuerySetView):
+    """
+    Select2 framework's autocomplete for the ConsumableDefinition entity.
+    """
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return ConsumableDefinition.objects.none()
+
+        query_set = ConsumableDefinition.objects.all()
+
+        if self.q:
+            query_set = query_set.filter(name__istartswith=self.q)
+
+        return query_set
+
+
+class DurableGoodAutocomplete(autocomplete.Select2QuerySetView):
+    """
+    Select2 framework's autocomplete for the DurableGoodDefinition entity.
+    """
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return DurableGoodDefinition.objects.none()
+
+        query_set = DurableGoodDefinition.objects.all()
 
         if self.q:
             query_set = query_set.filter(name__istartswith=self.q)
