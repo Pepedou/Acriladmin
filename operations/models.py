@@ -3,7 +3,7 @@ from back_office.models import Client, Employee, EmployeeRole, Address
 from django.contrib.auth.models import User
 from django.db import models
 from geoposition.fields import GeopositionField
-from inventories.models import ProductDefinition, Material, DurableGoodDefinition, MaterialDefinition
+from inventories.models import ProductDefinition, Material, DurableGoodDefinition, MaterialDefinition, ProductsInventory
 
 
 class WorkOrder(models.Model):

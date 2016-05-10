@@ -51,36 +51,8 @@ class InvoiceAdmin(admin.ModelAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
-    list_display = ('id', 'get_order_client', 'get_order_client_address',)
-    search_fields = ('id', 'order__client__name', 'order__client__address__street')
-    list_filter = ('order__client__name',)
+    list_display = ('id', 'is_closed',)
     readonly_fields = ('is_closed',)
-
-    def get_order_client(self, obj):
-        return obj.order.client
-
-    get_order_client.short_description = 'Cliente'
-
-    def get_order_client_address(self, obj):
-        return obj.order.client.address
-
-    get_order_client_address.short_description = 'Dirección'
-
-    def save_model(self, request, obj, form, change):
-        """
-        Overrides the default save function for the Invoice model. After each invoice is saved,
-        it'll be marked as closed if the amount covered by all related transactions
-        is equal or higher than the invoice's total amount.
-        """
-        related_transactions_sum = models.Transaction.objects.filter(invoice_id=obj.id).aggregate(
-            sum=Sum(F('amount')))['sum']
-
-        if related_transactions_sum >= obj.total:
-            obj.is_closed = True
-        else:
-            obj.is_closed = False
-
-        obj.save()
 
 
 class ProductPriceAdmin(admin.ModelAdmin):
@@ -155,9 +127,19 @@ class RepairCostAdmin(admin.ModelAdmin):
         obj.save()
 
 
+class SaleAdmin(admin.ModelAdmin):
+    """
+    Contains the details for the admin app in regard to the Sale entity.
+    """
+    list_display = ['invoice', 'client', 'product', 'quantity']
+    exclude = ['invoice']
+    list_display_links = list_display
+
+
 admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
 admin.site.register(models.ProductPrice, ProductPriceAdmin)
 admin.site.register(models.MaterialCost, MaterialCostAdmin)
 admin.site.register(models.Transaction, TransactionAdmin)
 admin.site.register(models.RepairCost, RepairCostAdmin)
+admin.site.register(models.Sale, SaleAdmin)

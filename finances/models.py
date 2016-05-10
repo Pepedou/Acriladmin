@@ -1,10 +1,11 @@
 import django
 
-from back_office.models import Client, Employee
+from back_office.models import Client, Employee, Address
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, F
-from inventories.models import Product, Material, ProductDefinition, MaterialDefinition
+from inventories.models import Product, Material, ProductDefinition, MaterialDefinition, ProductsInventory
 from operations.models import Service, Repair, Project
 
 
@@ -99,9 +100,9 @@ class Invoice(models.Model):
     and indicating the products, quantities and agreed prices for products or services
     provided.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="orden")
-    file = models.FileField(blank=True, verbose_name="archivo")
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='total')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name="orden")
+    file = models.FileField(blank=True, verbose_name="archivo")
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
 
     class Meta:
@@ -120,20 +121,17 @@ class Invoice(models.Model):
 
         return amount_paid['sum'] >= self.total
 
+    def save(self):
+        related_transactions_sum = Transaction.objects.filter(invoice_id=self.id).aggregate(
+            sum=Sum(F('amount')))['sum']
 
-class ProductInvoice(models.Model):
-    """
-    An entry that relates a concrete product with an invoice.
-    """
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name="factura")
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="producto")
+        if related_transactions_sum is not None:
+            if related_transactions_sum >= self.total:
+                self.is_closed = True
+            else:
+                self.is_closed = False
 
-    class Meta:
-        verbose_name = "factura de producto"
-        verbose_name_plural = "facturas de producto"
-
-    def __str__(self):
-        return "{0} - {1}".format(self.invoice, self.product)
+        super(Invoice, self).save()
 
 
 class ProductPrice(models.Model):
@@ -168,21 +166,6 @@ class MaterialCost(models.Model):
         return str(self.cost)
 
 
-class ServiceInvoice(models.Model):
-    """
-    An entry that relates a service with an invoice.
-    """
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name='factura')
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name='servicio')
-
-    class Meta:
-        verbose_name = 'servicio de una factura'
-        verbose_name_plural = 'servicios de facturas'
-
-    def __str__(self):
-        return "{0} - {1}".format(self.invoice, self.service)
-
-
 class Transaction(models.Model):
     """
     Details a monetary transaction.
@@ -214,3 +197,75 @@ class RepairCost(models.Model):
 
     def __str__(self):
         return "{0}: ${1}".format(self.repair, self.cost)
+
+
+class Sale(models.Model):
+    """
+    The sale of a branch's product.
+    """
+    COUNTER_TYPE = 0
+    SHIPPING_TYPE = 1
+    SALE_TYPES = (
+        (COUNTER_TYPE, "En mostrador"),
+        (SHIPPING_TYPE, "Con entrega"),
+    )
+
+    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='orden')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
+    shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
+                                         verbose_name='dirección de envío')
+    date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha de venta')
+    type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=COUNTER_TYPE)
+
+    class Meta:
+        verbose_name = 'venta'
+        verbose_name_plural = 'ventas'
+
+    def __str__(self):
+        return "{0} - {1} ({2})".format(self.date.strftime("%x"), str(self.product), str(self.quantity))
+
+    def clean(self):
+        super(Sale, self).clean()
+
+        if self.quantity == 0:
+            raise ValidationError({
+                'quantity': 'La cantidad debe ser mayor a 0.'
+            })
+
+        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
+        product_price_set = ProductPrice.objects.filter(product__sku=self.product.sku)
+
+        if len(product_inventory_item_set) == 0:
+            raise ValidationError({
+                'inventory': 'El inventario no cuenta con el producto elegido.'
+            })
+
+        product_inventory_item = product_inventory_item_set[0]
+
+        if product_inventory_item.quantity < self.quantity:
+            raise ValidationError({
+                'quantity': 'El inventario sólo cuenta con {0} unidades del producto elegido.'.format(
+                    product_inventory_item.quantity)
+            })
+
+        if len(product_price_set) == 0:
+            raise ValidationError({
+                'product': 'A este produto no se le ha asignado un precio. No se puede generar'
+                           ' la venta hasta que tenga un precio.'
+            })
+
+    def save(self):
+        product_inventory_item = self.inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
+
+        product_inventory_item.quantity -= self.quantity
+
+        product_price = ProductPrice.objects.filter(product__sku=self.product.sku)[0]
+
+        self.invoice = Invoice(total=product_price.price * self.quantity, is_closed=True)
+        self.invoice.save()
+
+        super(Sale, self).save()
