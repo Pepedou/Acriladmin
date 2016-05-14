@@ -1,4 +1,3 @@
-import django
 from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -85,24 +84,39 @@ class UnitOfMeasurement:
     )
 
 
-class ProductDefinition(models.Model):
+class Product(models.Model):
     """
     The definition of a product manufactured by Acrilfrasa.
     """
+    ACRYLIC = 0
+    POLYCARBONATE = 1
+    CELLULAR = 2
+    PLASTIC = 3
+    SHEET = 4
+    GRIDS = 5
+    DOMES = 6
+    SILICON = 7
+    NOT_LISTED = 8
+    LINE_TYPES = (
+        (ACRYLIC, "Acrílico"),
+        (POLYCARBONATE, "Policarbonato"),
+        (CELLULAR, "Celular"),
+        (PLASTIC, "Plástico"),
+        (SHEET, "Lámina"),
+        (GRIDS, "Rejillas"),
+        (DOMES, "Domos"),
+        (SILICON, "Silicones"),
+        (NOT_LISTED, "Otra")
+    )
+
     sku = models.CharField(max_length=45, primary_key=True, verbose_name='SKU')
-    name = models.CharField(max_length=45, verbose_name='nombre')
-    short_description = models.CharField(max_length=50, blank=True, verbose_name='descripción corta')
-    description = models.TextField(blank=True, verbose_name='descripción')
-    image = models.ImageField(blank=True, verbose_name='imagen')
+    description = models.CharField(max_length=100, verbose_name='descripción')
+    line = models.PositiveSmallIntegerField(verbose_name='línea', choices=LINE_TYPES, default=NOT_LISTED)
+    engraving = models.CharField(max_length=45, verbose_name='grabado', blank=True)
     color = models.CharField(blank=True, max_length=10, verbose_name='color')
-    length = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='longitud')
-    width = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='anchura')
-    thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='grosor')
-    weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.01, verbose_name='peso')
-    prefix = models.SmallIntegerField(choices=SIPrefix.PREFIX_CHOICES, default=SIPrefix.NONE, blank=True,
-                                      verbose_name='prefijo de unidad')
-    unit = models.PositiveSmallIntegerField(default=UnitOfMeasurement.NONE, choices=UnitOfMeasurement.UNIT_CHOICES,
-                                            verbose_name='unidad')
+    length = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='longitud (m)')
+    width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura (m)')
+    thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='espesor (mm)')
     is_composite = models.BooleanField(default=False, verbose_name='es compuesto')
 
     class Meta:
@@ -110,7 +124,7 @@ class ProductDefinition(models.Model):
         verbose_name_plural = 'productos'
 
     def __str__(self):
-        return self.name
+        return self.description
 
     @staticmethod
     def get_products_without_price():
@@ -118,41 +132,10 @@ class ProductDefinition(models.Model):
         Returns all the products which do not yet have a price assigned to them.
         :return: Queryset with the products that match the condition.
         """
-        return ProductDefinition.objects.filter(productprice__isnull=True)
+        return Product.objects.filter(productprice__isnull=True)
 
 
-class Product(models.Model):
-    """
-    A concrete product manufactured by Acrilfrasa.
-    """
-    IN_MANUFACTURING = 0
-    IN_WAREHOUSE = 1
-    SOLD = 2
-    RETURNED = 3
-    DESTROYED = 4
-    STATE_CHOICES = (
-        (IN_MANUFACTURING, "En producción"),
-        (IN_WAREHOUSE, "En almacén"),
-        (SOLD, "Vendido"),
-        (RETURNED, "Devuelto"),
-        (DESTROYED, "Destruido"),
-    )
-
-    state = models.PositiveSmallIntegerField(choices=STATE_CHOICES, verbose_name='estado')
-    definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='definición')
-    manufacture_date = models.DateField(null=True, blank=True, verbose_name='fecha de manufactura')
-    manufacturer = models.ForeignKey(Employee, on_delete=models.PROTECT, null=True, blank=True,
-                                     verbose_name='manufacturado por')
-
-    class Meta:
-        verbose_name = 'producto concreto'
-        verbose_name_plural = 'productos concretos'
-
-    def __str__(self):
-        return str(self.state)
-
-
-class MaterialDefinition(models.Model):
+class Material(models.Model):
     """
     Definition of a miscelaneous material used for individual sale or for
     the production of composite products.
@@ -184,12 +167,12 @@ class ProductComponent(models.Model):
     needed for a composite product.
     """
     name = models.CharField(max_length=45, verbose_name='nombre')
-    product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto',
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto',
                                 limit_choices_to=
                                 {
                                     'is_composite': True
                                 })
-    material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, verbose_name='material')
     required_units = models.PositiveSmallIntegerField(default=1, verbose_name='unidades requeridas del componente')
     required_amount_per_unit = models.DecimalField(default=1.00, max_digits=5, decimal_places=2,
                                                    verbose_name='cantidad requerida por unidad')
@@ -228,7 +211,7 @@ class ProductInventoryItem(models.Model):
     """
     An entry of a specific product in an inventory.
     """
-    product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.CASCADE, verbose_name='inventario')
 
@@ -238,38 +221,6 @@ class ProductInventoryItem(models.Model):
 
     def __str__(self):
         return "{0}: {1}".format(self.product, self.quantity)
-
-
-class Material(models.Model):
-    """
-    Miscelaneous material used for individual sale or for
-    the production of composite products.
-    """
-    IN_WAREHOUSE = 0
-    USED_IN_PRODUCT = 1
-    RETURNED = 2
-    DESTROYED = 3
-    STATE_CHOICES = (
-        (IN_WAREHOUSE, "En almacén"),
-        (USED_IN_PRODUCT, "Parte de un producto"),
-        (RETURNED, "Devuelto"),
-        (DESTROYED, "Destruido"),
-    )
-
-    state = models.PositiveSmallIntegerField(choices=STATE_CHOICES, verbose_name='estado')
-    definition = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='definición')
-    acquisition_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de adquisición')
-    buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_authorized",
-                                      blank=True,
-                                      verbose_name='autorizado por')
-
-    class Meta:
-        verbose_name = 'material concreto'
-        verbose_name_plural = 'materiales concretos'
-
-    def __str__(self):
-        return str(self.number)
 
 
 class MaterialsInventory(models.Model):
@@ -296,7 +247,7 @@ class MaterialsInventory(models.Model):
 
 class MaterialInventoryItem(models.Model):
     """An entry of a specific material in an inventory."""
-    material = models.ForeignKey(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, verbose_name='material')
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
     inventory = models.ForeignKey(MaterialsInventory, on_delete=models.CASCADE, verbose_name='inventario')
 
@@ -308,7 +259,7 @@ class MaterialInventoryItem(models.Model):
         return "{0}: {1}".format(self.material, self.quantity)
 
 
-class ConsumableDefinition(models.Model):
+class Consumable(models.Model):
     """
     Definition for any good that may be destroyed, dissipated, wasted or spent.
     """
@@ -328,25 +279,6 @@ class ConsumableDefinition(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class Consumable(models.Model):
-    """
-    Good that may be destroyed, dissipated, wasted or spent.
-    """
-    definition = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE, verbose_name='definición')
-    acquisition_date = models.DateField(verbose_name='fecha de adquisición')
-    buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="consumables_authorized",
-                                      blank=True,
-                                      verbose_name='autorizado por')
-
-    class Meta:
-        verbose_name = 'consumible concreto'
-        verbose_name_plural = 'consumibles concretos'
-
-    def __str__(self):
-        return self.number
 
 
 class ConsumablesInventory(models.Model):
@@ -377,7 +309,7 @@ class ConsumableInventoryItem(models.Model):
     """
     An entry of a specific consumable in an inventory.
     """
-    consumable = models.ForeignKey(ConsumableDefinition, on_delete=models.CASCADE, verbose_name='consumible')
+    consumable = models.ForeignKey(Consumable, on_delete=models.CASCADE, verbose_name='consumible')
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
     inventory = models.ForeignKey(ConsumablesInventory, on_delete=models.CASCADE, verbose_name='inventario')
 
@@ -389,7 +321,7 @@ class ConsumableInventoryItem(models.Model):
         return "{0}: {1}".format(self.consumable, self.quantity)
 
 
-class DurableGoodDefinition(models.Model):
+class DurableGood(models.Model):
     """
     Definition of a good that doesn't quickly wear out and yields utility over time.
     """
@@ -409,28 +341,6 @@ class DurableGoodDefinition(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class DurableGood(models.Model):
-    """
-    Good that doesn't quickly wear out and yields utility over time.
-    """
-    definition = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='definición')
-    acquisition_date = models.DateField(verbose_name='fecha de adquisición')
-    buyer = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='comprador')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="durable_goods_authorized",
-                                      verbose_name='autorizado por',
-                                      limit_choices_to=
-                                      {
-                                          'roles__name': EmployeeRole.ADMINISTRATOR
-                                      })
-
-    class Meta:
-        verbose_name = 'activo concreto'
-        verbose_name_plural = 'activos concretos'
-
-    def __str__(self):
-        return self.number
 
 
 class DurableGoodsInventory(models.Model):
@@ -461,7 +371,7 @@ class DurableGoodInventoryItem(models.Model):
     """
     An entry of a specific durable good in an inventory.
     """
-    durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='activo')
+    durable_good = models.ForeignKey(DurableGood, on_delete=models.CASCADE, verbose_name='activo')
     quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad')
     inventory = models.ForeignKey(DurableGoodsInventory, on_delete=models.CASCADE, verbose_name='inventario')
 
@@ -478,7 +388,7 @@ class ProductTransfer(models.Model):
     A transfer between two branches of a product.
     """
 
-    product = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
                                       related_name='product_transfers_as_source_branch',
                                       verbose_name='sucursal de origen')

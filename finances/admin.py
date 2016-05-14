@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.db.models import Sum, F
 from finances.forms.order_forms import AddOrChangeOrderForm
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
+from finances.forms.sale_forms import AddOrChangeSaleForm
 
 
 class OrderProductsInLine(admin.TabularInline):
@@ -134,6 +135,8 @@ class SaleAdmin(admin.ModelAdmin):
     list_display = ['invoice', 'client', 'product', 'quantity']
     exclude = ['invoice']
     list_display_links = list_display
+
+    form = AddOrChangeSaleForm
 
 
 admin.site.register(models.Order, OrderAdmin)

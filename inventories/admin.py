@@ -5,29 +5,33 @@ from django.utils.html import format_html
 from inventories.forms.inventory_item_forms import TabularInLineProductInventoryItemForm, \
     TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
-from inventories.forms.product_definition_forms import AddOrChangeProductDefinitionForm
+from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 
 
 class ProductComponentInLine(admin.TabularInline):
     """
     Describes the inline render of a product component for the
-    ProductDefinition's admin view.
+    Product's admin view.
     """
     model = models.ProductComponent
 
 
-class ProductDefinitionAdmin(admin.ModelAdmin):
+class ProductAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
-    to the ProductDefinition entity.
+    to the Product entity.
     """
-    form = AddOrChangeProductDefinitionForm
+    form = AddOrChangeProductForm
     inlines = [ProductComponentInLine]
+    list_display = ['sku', 'description', 'line', 'length', 'width', 'thickness']
+    list_display_links = ['sku', 'description']
+    list_filter = ['line', 'color', 'engraving', 'is_composite']
+    search_fields = ['sku', 'description']
 
     def save_model(self, request, obj, form, change):
         """
-        Overrides the save method for the ProductDefinition entity.
+        Overrides the save method for the Product entity.
         It checks if the is_composite field is not selected and, if so,
         deletes all previously inserted product components.
         """
@@ -195,16 +199,16 @@ class ProductTransferAdmin(admin.ModelAdmin):
             return 'is_confirmed',
 
 
-admin.site.register(models.ProductDefinition, ProductDefinitionAdmin)
+admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
-admin.site.register(models.MaterialDefinition)
+admin.site.register(models.Material)
 admin.site.register(models.MaterialInventoryItem, InventoryItemAdmin)
 admin.site.register(models.MaterialsInventory, MaterialInventoryAdmin)
-admin.site.register(models.ConsumableDefinition)
+admin.site.register(models.Consumable)
 admin.site.register(models.ConsumableInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ConsumablesInventory, ConsumableInventoryAdmin)
-admin.site.register(models.DurableGoodDefinition)
+admin.site.register(models.DurableGood)
 admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
 admin.site.register(models.DurableGoodsInventory, DurableGoodInventoryAdmin)
 admin.site.register(models.ProductTransfer, ProductTransferAdmin)

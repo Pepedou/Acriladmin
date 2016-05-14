@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, F
-from inventories.models import Product, Material, ProductDefinition, MaterialDefinition, ProductsInventory
+from inventories.models import Product, Material, Product, Material, ProductsInventory
 from operations.models import Service, Repair, Project
 
 
@@ -68,7 +68,7 @@ class OrderProducts(models.Model):
     An entry that relates a quantity of a certain product with an order.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
-    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveIntegerField(verbose_name='cantidad', default=1)
 
     class Meta:
@@ -138,7 +138,7 @@ class ProductPrice(models.Model):
     """
     Determines the price of a product.
     """
-    product = models.OneToOneField(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, verbose_name='producto')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='precio')
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
@@ -154,7 +154,7 @@ class MaterialCost(models.Model):
     """
     Specifies the monetary cost of a material.
     """
-    material = models.OneToOneField(MaterialDefinition, on_delete=models.CASCADE, verbose_name='material')
+    material = models.OneToOneField(Material, on_delete=models.CASCADE, verbose_name='material')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
 
@@ -210,7 +210,7 @@ class Sale(models.Model):
         (SHIPPING_TYPE, "Con entrega"),
     )
 
-    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
     order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='orden')

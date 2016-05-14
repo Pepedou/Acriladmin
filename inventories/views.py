@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
-    ProductDefinition, MaterialDefinition, ConsumableDefinition, DurableGoodDefinition
+    Product, Material, Consumable, DurableGood
 
 
 class ProductInventoryView(ListView):
@@ -37,7 +37,7 @@ class ProductInventoryView(ListView):
             for item in inventory_items:
                 queryset.append([
                     item.product.sku,
-                    item.product.name,
+                    item.product.description,
                     item.quantity
                 ])
 
@@ -211,33 +211,33 @@ class DurableGoodInventoryView(ListView):
 
 class ProductAutocomplete(autocomplete.Select2QuerySetView):
     """
-    Select2 framework's autocomplete for the ProductDefinition entity.
+    Select2 framework's autocomplete for the Product entity.
     It's used to generate an autocomplete text input in the ProductTransfer
     Add or Change form.
     """
 
     def get_queryset(self):
         if not self.request.user.is_authenticated():
-            return ProductDefinition.objects.none()
+            return Product.objects.none()
 
-        query_set = ProductDefinition.objects.all()
+        query_set = Product.objects.all()
 
         if self.q:
-            query_set = query_set.filter(name__istartswith=self.q)
+            query_set = query_set.filter(description__icontains=self.q)
 
         return query_set
 
 
 class MaterialAutocomplete(autocomplete.Select2QuerySetView):
     """
-    Select2 framework's autocomplete for the MaterialDefinition entity.
+    Select2 framework's autocomplete for the Material entity.
     """
 
     def get_queryset(self):
         if not self.request.user.is_authenticated():
-            return MaterialDefinition.objects.none()
+            return Material.objects.none()
 
-        query_set = MaterialDefinition.objects.all()
+        query_set = Material.objects.all()
 
         if self.q:
             query_set = query_set.filter(name__istartswith=self.q)
@@ -247,14 +247,14 @@ class MaterialAutocomplete(autocomplete.Select2QuerySetView):
 
 class ConsumableAutocomplete(autocomplete.Select2QuerySetView):
     """
-    Select2 framework's autocomplete for the ConsumableDefinition entity.
+    Select2 framework's autocomplete for the Consumable entity.
     """
 
     def get_queryset(self):
         if not self.request.user.is_authenticated():
-            return ConsumableDefinition.objects.none()
+            return Consumable.objects.none()
 
-        query_set = ConsumableDefinition.objects.all()
+        query_set = Consumable.objects.all()
 
         if self.q:
             query_set = query_set.filter(name__istartswith=self.q)
@@ -264,14 +264,14 @@ class ConsumableAutocomplete(autocomplete.Select2QuerySetView):
 
 class DurableGoodAutocomplete(autocomplete.Select2QuerySetView):
     """
-    Select2 framework's autocomplete for the DurableGoodDefinition entity.
+    Select2 framework's autocomplete for the DurableGood entity.
     """
 
     def get_queryset(self):
         if not self.request.user.is_authenticated():
-            return DurableGoodDefinition.objects.none()
+            return DurableGood.objects.none()
 
-        query_set = DurableGoodDefinition.objects.all()
+        query_set = DurableGood.objects.all()
 
         if self.q:
             query_set = query_set.filter(name__istartswith=self.q)

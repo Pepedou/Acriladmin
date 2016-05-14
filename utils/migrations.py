@@ -23,31 +23,40 @@ def load_employee_roles(apps, schema_editor):
     employee_role_class.objects.bulk_create(new_employee_roles)
 
 
-def load_product_inventory(apps, schema_editor):
+def load_products_inventory(apps, schema_editor):
     """
-    Loads the product_inventory.csv into the database.
+    Loads the product_inventory.csv file into the database.
     """
     new_products = []
-    product_definition_class = apps.get_model("inventories", "ProductDefinition")
+    product_definition_class = apps.get_model("inventories", "Product")
 
     del schema_editor
 
     with open(os.path.join(settings.BASE_DIR, "var/csv/product_inventory.csv")) as file:
         content = csv.DictReader(file, delimiter=',')
+        width = 0
+        length = 0
+        thickness = 0
 
         for row in content:
+            for string in row['descripcion'].split():
+                if '*' in string:
+                    try:
+                        width = float(string.split('*')[0])
+                        length = float(string.split('*')[1])
+                    except ValueError:
+                        continue
+                elif 'MM' in string:
+                    try:
+                        thickness = float(string.split('M')[0])
+                    except ValueError:
+                        continue
+
             new_product = product_definition_class(sku=row['clave'],
-                                                   name=row['descripcion'],
-                                                   short_description=row['descripcion_corta'],
                                                    description=row['descripcion'],
-                                                   image="",
-                                                   color=row['color'],
-                                                   length=0,
-                                                   width=0,
-                                                   thickness=0,
-                                                   weight=0,
-                                                   prefix=0,
-                                                   unit=0,
+                                                   width=width,
+                                                   length=length,
+                                                   thickness=thickness,
                                                    is_composite=False)
             new_products.append(new_product)
 

@@ -13,7 +13,7 @@ $(document).ready(function () {
 /**
  * Hides or shows the product's components fieldset depending on the checked attribute of the
  * isComositeCheckbox.
- * @param isCompositeCheckbox The checkbox used to mark if the product has comopnents.
+ * @param isCompositeCheckbox The checkbox used to mark if the product has components.
  * @param productComponentsFieldset The fieldset's div.
  */
 function setViewsInLinesVisibility(isCompositeCheckbox, productComponentsFieldset) {

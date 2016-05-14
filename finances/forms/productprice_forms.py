@@ -1,6 +1,6 @@
 from django.forms import ModelForm
 from finances.models import ProductPrice
-from inventories.models import ProductDefinition
+from inventories.models import Product
 
 
 class AddOrChangeProductPriceForm(ModelForm):
@@ -14,4 +14,4 @@ class AddOrChangeProductPriceForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(AddOrChangeProductPriceForm, self).__init__(*args, **kwargs)
-        self.fields['product'].queryset = ProductDefinition.get_products_without_price()
+        self.fields['product'].queryset = Product.get_products_without_price()

@@ -3,14 +3,14 @@ from back_office.models import Client, Employee, EmployeeRole, Address
 from django.contrib.auth.models import User
 from django.db import models
 from geoposition.fields import GeopositionField
-from inventories.models import ProductDefinition, Material, DurableGoodDefinition, MaterialDefinition, ProductsInventory
+from inventories.models import Product, Material, DurableGood, Material, ProductsInventory
 
 
 class WorkOrder(models.Model):
     """
     An order that authorizes the manufacture of a product.
     """
-    product_definition = models.ForeignKey(ProductDefinition, on_delete=models.CASCADE, verbose_name='producto')
+    product_definition = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     amount = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por', )
     authorization_datetime = models.DateTimeField(default=django.utils.timezone.now,
@@ -43,7 +43,7 @@ class Repair(models.Model):
     """
     A repair made on a durable good.
     """
-    durable_good = models.ForeignKey(DurableGoodDefinition, on_delete=models.CASCADE, verbose_name='objeto')
+    durable_good = models.ForeignKey(DurableGood, on_delete=models.CASCADE, verbose_name='objeto')
     date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha efectuada')
     reason = models.TextField(max_length=300, blank=True, verbose_name='motivo')
     requested_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='requested_repairs',
@@ -78,7 +78,7 @@ class Project(models.Model):
                                     })
     start_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de inicio')
     end_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de finalización')
-    vehicle = models.ForeignKey(DurableGoodDefinition, null=True, blank=True, verbose_name='vehículo utilizado')
+    vehicle = models.ForeignKey(DurableGood, null=True, blank=True, verbose_name='vehículo utilizado')
     has_been_paid = models.BooleanField(default=False, verbose_name='fue cobrado')
     cost = models.DecimalField(default=0.00, max_digits=10, decimal_places=2, verbose_name='costo')
     transactions = models.ManyToManyField('finances.Transaction', verbose_name='transacciones')
@@ -96,7 +96,7 @@ class ProjectProductsEntry(models.Model):
     The quantity of a specific product needed for a
     project.
     """
-    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='proyecto')
 
@@ -113,7 +113,7 @@ class ProjectMaterialsEntry(models.Model):
     The quantity of a specific material needed for a
     project.
     """
-    material = models.ForeignKey(MaterialDefinition, on_delete=models.PROTECT, verbose_name='material')
+    material = models.ForeignKey(Material, on_delete=models.PROTECT, verbose_name='material')
     quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='proyecto')
 
@@ -148,7 +148,7 @@ class ProjectEstimationProductsEntry(models.Model):
     The quantity of a specific product estimated for a
     project.
     """
-    product = models.ForeignKey(ProductDefinition, on_delete=models.PROTECT, verbose_name='producto')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveSmallIntegerField(default=0, verbose_name='cantidad')
     project_estimation = models.ForeignKey(ProjectEstimation, on_delete=models.CASCADE, verbose_name='estimación')
 
@@ -165,7 +165,7 @@ class ProjectEstimationMaterialsEntry(models.Model):
     The quantity of a specific material estimated for a
     project.
     """
-    material = models.ForeignKey(MaterialDefinition, on_delete=models.PROTECT, verbose_name='material')
+    material = models.ForeignKey(Material, on_delete=models.PROTECT, verbose_name='material')
     quantity = models.PositiveSmallIntegerField(default=0, verbose_name='cantidad')
     project_estimation = models.ForeignKey(ProjectEstimation, on_delete=models.CASCADE, verbose_name='estimación')
 
