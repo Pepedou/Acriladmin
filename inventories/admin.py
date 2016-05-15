@@ -6,6 +6,8 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
     TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
+from inventories.forms.product_reimbursement_inlines_forms import AddOrChangeExchangedProductForm, \
+    AddOrChangeReturnedProductForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 
 
@@ -199,6 +201,33 @@ class ProductTransferAdmin(admin.ModelAdmin):
             return 'is_confirmed',
 
 
+class ReturnedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a returned product for the
+    Product's admin view.
+    """
+    form = AddOrChangeReturnedProductForm
+    model = models.ReturnedProduct
+
+
+class ExchangedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a returned product for the
+    Product's admin view.
+    """
+    form = AddOrChangeExchangedProductForm
+    model = models.ExchangedProduct
+
+
+class ProductReimbursementAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductReimbursement entity.
+    """
+    inlines = [ReturnedProductInLine, ExchangedProductInLine]
+    readonly_fields = ('monetary_difference',)
+
+
 admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
@@ -212,3 +241,4 @@ admin.site.register(models.DurableGood)
 admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
 admin.site.register(models.DurableGoodsInventory, DurableGoodInventoryAdmin)
 admin.site.register(models.ProductTransfer, ProductTransferAdmin)
+admin.site.register(models.ProductReimbursement, ProductReimbursementAdmin)

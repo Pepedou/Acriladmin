@@ -1,3 +1,5 @@
+import django
+
 from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -491,3 +493,162 @@ class ProductTransfer(models.Model):
             source_inventory_item.save()
 
         super(ProductTransfer, self).delete(using, keep_parents)
+
+
+class ProductReimbursement(models.Model):
+    """
+    A product or material reimbursement.
+    """
+    monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
+    date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de devolución')
+    to_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                  related_name='product_reimbursement_as_to_branch', verbose_name='a la sucursal')
+    from_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, null=True, blank=True,
+                                    related_name='product_reimbursement_as_from_branch', verbose_name='de la sucursal')
+
+    class Meta:
+        verbose_name = 'devolución de productos'
+        verbose_name_plural = 'devoluciones de productos'
+
+    def __str__(self):
+        return self.id
+
+    def clean(self):
+        # TODO: Test this method
+        super(ProductReimbursement, self).clean()
+
+        if self.id is not None:
+            return
+
+        to_inventory = self.to_branch.productsinventory
+
+        if to_inventory is None:
+            raise ValidationError({
+                'to_branch': 'La sucursal de origen no cuenta con un inventario de productos.'
+            })
+
+        if self.from_branch is not None:
+            self._clean_exchange_target_branch()
+
+        elif len(self.exchangedproduct_set) != 0:
+            raise ValidationError({
+                'from_inventory': 'No se pueden elegir productos a intercambiar sin haber seleccionado '
+                                  'de qué sucursal se van a obtener.'
+            })
+
+    def _clean_exchange_target_branch(self):
+        """
+        Performs the necessary validations on the exchange's target branch.
+        """
+        from_inventory = self.from_branch.productsinventory
+
+        if from_inventory is None:
+            raise ValidationError({
+                'from_inventory': 'La sucursal de destino no cuenta con un inventario de productos.'
+            })
+
+        exchanged_products_skus = [item.product.sku for item in self.exchangedproduct_set.all()]
+        filtered_exchanged_products = from_inventory.productinventoryitem_set.filter(
+            product__sku__in=exchanged_products_skus)
+
+        if len(filtered_exchanged_products) < len(exchanged_products_skus):
+            ProductReimbursement._raise_missing_products_error(filtered_exchanged_products)
+
+        items_with_insufficient_stock = []
+
+        for exchanged_product in self.exchangedproduct_set.all():
+            for inventory_product in filtered_exchanged_products:
+                if exchanged_product.product.sku == inventory_product.product.sku \
+                        and exchanged_product.quantity > inventory_product.quantity:
+                    items_with_insufficient_stock.append(exchanged_product)
+                    break
+
+        if len(items_with_insufficient_stock) > 0:
+            self._raise_out_of_stock_error(items_with_insufficient_stock)
+
+    def _raise_missing_products_error(self, filtered_exchanged_products):
+        """
+        Raises a ValidationError because some products are missing from the exchange's
+        target branch.
+        :param filtered_exchanged_products: The products available in the inventory.
+        """
+        missing_products = [item.product for item in self.exchangedproduct_set.all() if
+                            item not in filtered_exchanged_products]
+        missing_products_names = ""
+        for item in missing_products:
+            missing_products_names = "{0}, ".format(str(item))
+        missing_products_names = missing_products_names[:len(missing_products_names) - 2]
+        error_message = 'El inventario de la sucursal no cuenta con los siguientes productos: {0}'.format(
+            missing_products_names)
+        raise ValidationError({
+            'from_branch': error_message
+        })
+
+    @staticmethod
+    def _raise_out_of_stock_error(items_with_insufficient_stock):
+        """
+        Raises a ValidationError because some products are out of stock in the exchange's
+        target branch.
+        :param items_with_insufficient_stock: The missing items.
+        """
+        product_names = ""
+
+        for item in items_with_insufficient_stock:
+            product_names = "del {0} cuenta con {1}, ".format(str(item.product), str(item.quantity))
+
+        product_names = product_names[:len(product_names) - 2]
+
+        error_message = 'El inventario de la sucursal no cuenta con ' \
+                        'la cantidad suficiente de los siguientes productos: {0}'.format(product_names)
+
+        raise ValidationError({
+            'from_branch': error_message
+        })
+
+    def save(self, *args, **kwargs):
+        # TODO: Missing implementation
+        pass
+
+    def delete(self, using=None, keep_parents=False):
+        # TODO: Missing implementation
+        pass
+
+
+class ReturnedProduct(models.Model):
+    """
+    Represents a tuple consisting of a Product and a quantity
+    of that product that were returned.
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    reimbursement = models.ForeignKey(ProductReimbursement, on_delete=models.CASCADE, verbose_name='devolución')
+
+    class Meta:
+        verbose_name = 'producto devuelto (entra)'
+        verbose_name_plural = 'productos devueltos (entran)'
+
+    def clean(self):
+        if self.quantity == 0:
+            raise ValidationError({
+                'quantity': 'La cantidad debe ser mayor a 0.'
+            })
+
+
+class ExchangedProduct(models.Model):
+    """
+    Represents a tuple consisting of a Product and a quantity
+    of that product that were asked in exchange for others.
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    reimbursement = models.ForeignKey(ProductReimbursement, on_delete=models.CASCADE, verbose_name='devolución')
+
+    class Meta:
+        verbose_name = 'producto intercambiado (sale)'
+        verbose_name_plural = 'productos intercambiados (salen)'
+
+    def clean(self):
+        if self.quantity == 0:
+            raise ValidationError({
+                'quantity': 'La cantidad debe ser mayor a 0.'
+            })
