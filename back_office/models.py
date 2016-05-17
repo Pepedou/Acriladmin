@@ -121,9 +121,9 @@ class BranchOffice(models.Model):
                               validators=[URLValidator(message="URL inválida.")])
     email = models.EmailField(verbose_name='correo electrónico', blank=True,
                               validators=[EmailValidator(message="Correo electrónico inválido.")])
-    picture = models.ImageField(verbose_name='imagen', blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
-    administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='administrador de la sucursal',
+    administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, null=True,
+                                      verbose_name='administrador de la sucursal',
                                       related_name="administrated_branches",
                                       limit_choices_to=
                                       {
