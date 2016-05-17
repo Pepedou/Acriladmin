@@ -31,7 +31,7 @@ class ProductInventoryView(ListView):
 
         if products_inventory is not None:
             self.inventory_name = products_inventory.name
-            inventory_items = products_inventory.items.all()
+            inventory_items = products_inventory.productinventoryitem_set.all()
             queryset = []
 
             for item in inventory_items:
@@ -48,7 +48,7 @@ class ProductInventoryView(ListView):
     def get_context_data(self, **kwargs):
         context = super(ProductInventoryView, self).get_context_data(**kwargs)
         context['title'] = self.inventory_name
-        context['table_headers'] = ['Imagen', 'SKU', 'Producto', 'Cantidad']
+        context['table_headers'] = ['SKU', 'Producto', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
         context['app_list'] = reverse('admin:app_list', args=('inventories',))
@@ -80,7 +80,7 @@ class MaterialInventoryView(ListView):
 
         if materials_inventory is not None:
             self.inventory_name = materials_inventory.name
-            inventory_items = materials_inventory.items.all()
+            inventory_items = materials_inventory.materialinventoryitem_set.all()
             queryset = []
 
             for item in inventory_items:
@@ -98,7 +98,7 @@ class MaterialInventoryView(ListView):
     def get_context_data(self, **kwargs):
         context = super(MaterialInventoryView, self).get_context_data(**kwargs)
         context['title'] = self.inventory_name
-        context['table_headers'] = ['Imagen', 'Nombre', 'Descripción', 'Color', 'Cantidad']
+        context['table_headers'] = ['Nombre', 'Descripción', 'Color', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
         context['app_list'] = reverse('admin:app_list', args=('inventories',))
@@ -130,7 +130,7 @@ class ConsumableInventoryView(ListView):
 
         if consumables_inventory is not None:
             self.inventory_name = consumables_inventory.name
-            inventory_items = consumables_inventory.items.all()
+            inventory_items = consumables_inventory.consumableinventoryitem_set.all()
             queryset = []
 
             for item in inventory_items:
@@ -149,7 +149,7 @@ class ConsumableInventoryView(ListView):
     def get_context_data(self, **kwargs):
         context = super(ConsumableInventoryView, self).get_context_data(**kwargs)
         context['title'] = self.inventory_name
-        context['table_headers'] = ['Imagen', 'Nombre', 'Descripción', 'Marca', 'Modelo', 'Cantidad']
+        context['table_headers'] = ['Nombre', 'Descripción', 'Marca', 'Modelo', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
         context['app_list'] = reverse('admin:app_list', args=('inventories',))
@@ -181,7 +181,7 @@ class DurableGoodInventoryView(ListView):
 
         if durable_goods_inventory is not None:
             self.inventory_name = durable_goods_inventory.name
-            inventory_items = durable_goods_inventory.items.all()
+            inventory_items = durable_goods_inventory.durablegoodinventoryitem_set.all()
             queryset = []
 
             for item in inventory_items:
@@ -200,7 +200,7 @@ class DurableGoodInventoryView(ListView):
     def get_context_data(self, **kwargs):
         context = super(DurableGoodInventoryView, self).get_context_data(**kwargs)
         context['title'] = self.inventory_name
-        context['table_headers'] = ['Imagen', 'Nombre', 'Descripción', 'Marca', 'Modelo', 'Cantidad']
+        context['table_headers'] = ['Nombre', 'Descripción', 'Marca', 'Modelo', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
         context['app_list'] = reverse('admin:app_list', args=('inventories',))

@@ -2,7 +2,7 @@ import django
 
 from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import models, transaction
 
 
@@ -511,107 +511,7 @@ class ProductReimbursement(models.Model):
         verbose_name_plural = 'devoluciones de productos'
 
     def __str__(self):
-        return self.id
-
-    def clean(self):
-        # TODO: Test this method
-        super(ProductReimbursement, self).clean()
-
-        if self.id is not None:
-            return
-
-        to_inventory = self.to_branch.productsinventory
-
-        if to_inventory is None:
-            raise ValidationError({
-                'to_branch': 'La sucursal de origen no cuenta con un inventario de productos.'
-            })
-
-        if self.from_branch is not None:
-            self._clean_exchange_target_branch()
-
-        elif len(self.exchangedproduct_set) != 0:
-            raise ValidationError({
-                'from_inventory': 'No se pueden elegir productos a intercambiar sin haber seleccionado '
-                                  'de qué sucursal se van a obtener.'
-            })
-
-    def _clean_exchange_target_branch(self):
-        """
-        Performs the necessary validations on the exchange's target branch.
-        """
-        from_inventory = self.from_branch.productsinventory
-
-        if from_inventory is None:
-            raise ValidationError({
-                'from_inventory': 'La sucursal de destino no cuenta con un inventario de productos.'
-            })
-
-        exchanged_products_skus = [item.product.sku for item in self.exchangedproduct_set.all()]
-        filtered_exchanged_products = from_inventory.productinventoryitem_set.filter(
-            product__sku__in=exchanged_products_skus)
-
-        if len(filtered_exchanged_products) < len(exchanged_products_skus):
-            ProductReimbursement._raise_missing_products_error(filtered_exchanged_products)
-
-        items_with_insufficient_stock = []
-
-        for exchanged_product in self.exchangedproduct_set.all():
-            for inventory_product in filtered_exchanged_products:
-                if exchanged_product.product.sku == inventory_product.product.sku \
-                        and exchanged_product.quantity > inventory_product.quantity:
-                    items_with_insufficient_stock.append(exchanged_product)
-                    break
-
-        if len(items_with_insufficient_stock) > 0:
-            self._raise_out_of_stock_error(items_with_insufficient_stock)
-
-    def _raise_missing_products_error(self, filtered_exchanged_products):
-        """
-        Raises a ValidationError because some products are missing from the exchange's
-        target branch.
-        :param filtered_exchanged_products: The products available in the inventory.
-        """
-        missing_products = [item.product for item in self.exchangedproduct_set.all() if
-                            item not in filtered_exchanged_products]
-        missing_products_names = ""
-        for item in missing_products:
-            missing_products_names = "{0}, ".format(str(item))
-        missing_products_names = missing_products_names[:len(missing_products_names) - 2]
-        error_message = 'El inventario de la sucursal no cuenta con los siguientes productos: {0}'.format(
-            missing_products_names)
-        raise ValidationError({
-            'from_branch': error_message
-        })
-
-    @staticmethod
-    def _raise_out_of_stock_error(items_with_insufficient_stock):
-        """
-        Raises a ValidationError because some products are out of stock in the exchange's
-        target branch.
-        :param items_with_insufficient_stock: The missing items.
-        """
-        product_names = ""
-
-        for item in items_with_insufficient_stock:
-            product_names = "del {0} cuenta con {1}, ".format(str(item.product), str(item.quantity))
-
-        product_names = product_names[:len(product_names) - 2]
-
-        error_message = 'El inventario de la sucursal no cuenta con ' \
-                        'la cantidad suficiente de los siguientes productos: {0}'.format(product_names)
-
-        raise ValidationError({
-            'from_branch': error_message
-        })
-
-    def save(self, *args, **kwargs):
-        # TODO: Missing implementation
-        pass
-
-    def delete(self, using=None, keep_parents=False):
-        # TODO: Missing implementation
-        pass
+        return str(self.id)
 
 
 class ReturnedProduct(models.Model):
@@ -628,10 +528,40 @@ class ReturnedProduct(models.Model):
         verbose_name_plural = 'productos devueltos (entran)'
 
     def clean(self):
+        if self.pk is not None:
+            super(ReturnedProduct, self).clean()
+            return
+
         if self.quantity == 0:
             raise ValidationError({
                 'quantity': 'La cantidad debe ser mayor a 0.'
             })
+
+        if self.reimbursement.to_branch.productsinventory is None:
+            raise ValidationError('La sucursal a la que se pretende devolver este producto no cuenta con un '
+                                  'inventario.')
+
+    def save(self):
+        if self.pk is not None:
+            super(ReturnedProduct, self).save()
+            return
+
+        to_inventory = self.reimbursement.to_branch.productsinventory
+
+        inventory_product_items = to_inventory.productinventoryitem_set.filter(product=self.product)
+
+        if inventory_product_items.count() == 0:
+            inventory_item = ProductInventoryItem()
+            inventory_item.product = self.product
+            inventory_item.inventory = to_inventory
+        else:
+            inventory_item = inventory_product_items[0]
+
+        inventory_item.quantity += self.quantity
+
+        with transaction.atomic():
+            inventory_item.save()
+            super(ReturnedProduct, self).save()
 
 
 class ExchangedProduct(models.Model):
@@ -648,7 +578,49 @@ class ExchangedProduct(models.Model):
         verbose_name_plural = 'productos intercambiados (salen)'
 
     def clean(self):
+        if self.pk is not None:
+            super(ExchangedProduct, self).clean()
+            return
+
         if self.quantity == 0:
             raise ValidationError({
                 'quantity': 'La cantidad debe ser mayor a 0.'
             })
+
+        if self.reimbursement.from_branch is None:
+            raise ValidationError('No se pueden elegir productos a intercambiar sin haber seleccionado '
+                                  'de qué sucursal se van a obtener.')
+
+        try:
+            from_inventory = self.reimbursement.from_branch.productsinventory
+        except ObjectDoesNotExist:
+            raise ValidationError('La sucursal de destino no cuenta con un inventario de productos.')
+
+        inventory_product_queryset = from_inventory.productinventoryitem_set.filter(
+            product__sku=self.product.sku)
+
+        if inventory_product_queryset.count() < 1:
+            raise ValidationError('El inventario de la sucursal no cuenta con este producto.')
+
+        inventory_product = inventory_product_queryset[0]
+
+        if inventory_product.quantity < self.quantity:
+            raise ValidationError('El inventario de la sucursal no cuenta con la cantidad suficiente de este producto. '
+                                  'Sólo cuenta con {0}.'.format(inventory_product.quantity))
+
+    def save(self):
+        if self.pk is not None:
+            super(ExchangedProduct, self).save()
+            return
+
+        from_inventory = self.reimbursement.from_branch.productsinventory
+
+        inventory_product_items = from_inventory.productinventoryitem_set.filter(product=self.product)
+
+        inventory_item = inventory_product_items[0]
+
+        inventory_item.quantity -= self.quantity
+
+        with transaction.atomic():
+            inventory_item.save()
+            super(ExchangedProduct, self).save()

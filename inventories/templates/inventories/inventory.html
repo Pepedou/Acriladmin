@@ -35,10 +35,6 @@
             <tbody>
             {% for item_array in inventory_items %}
                 <tr>
-                    <td>
-                        <img src="https://cdn4.iconfinder.com/data/icons/documents-letters-and-stationery/400/doc-14-128.png"
-                             class="itemImage"/>
-                    </td>
                     {% for attribute in item_array %}
                         <td>{{ attribute }}</td>
                     {% endfor %}

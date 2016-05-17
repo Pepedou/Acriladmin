@@ -209,6 +209,16 @@ class ReturnedProductInLine(admin.TabularInline):
     form = AddOrChangeReturnedProductForm
     model = models.ReturnedProduct
 
+    def get_extra(self, request, obj=None, **kwargs):
+        return 0 if obj is not None else 3
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ['product', 'quantity']
+
+    def has_delete_permission(self, request, obj=None):
+        return obj is None
+
 
 class ExchangedProductInLine(admin.TabularInline):
     """
@@ -218,6 +228,16 @@ class ExchangedProductInLine(admin.TabularInline):
     form = AddOrChangeExchangedProductForm
     model = models.ExchangedProduct
 
+    def get_extra(self, request, obj=None, **kwargs):
+        return 0 if obj is not None else 3
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ['product', 'quantity']
+
+    def has_delete_permission(self, request, obj=None):
+        return obj is None
+
 
 class ProductReimbursementAdmin(admin.ModelAdmin):
     """
@@ -226,6 +246,12 @@ class ProductReimbursementAdmin(admin.ModelAdmin):
     """
     inlines = [ReturnedProductInLine, ExchangedProductInLine]
     readonly_fields = ('monetary_difference',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            return self.readonly_fields
+        else:
+            return ['to_branch', 'from_branch', 'monetary_difference']
 
 
 admin.site.register(models.Product, ProductAdmin)
