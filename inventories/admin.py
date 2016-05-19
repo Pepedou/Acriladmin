@@ -215,6 +215,8 @@ class ReturnedProductInLine(admin.TabularInline):
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
             return ['product', 'quantity']
+        else:
+            return []
 
     def has_delete_permission(self, request, obj=None):
         return obj is None
@@ -234,6 +236,8 @@ class ExchangedProductInLine(admin.TabularInline):
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
             return ['product', 'quantity']
+        else:
+            return []
 
     def has_delete_permission(self, request, obj=None):
         return obj is None
