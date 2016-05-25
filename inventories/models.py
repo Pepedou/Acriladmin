@@ -537,6 +537,13 @@ class ReturnedProduct(models.Model):
                 'quantity': 'La cantidad debe ser mayor a 0.'
             })
 
+        if self.reimbursement.from_branch is not None and self.reimbursement.from_branch.productsinventory is None:
+            raise ValidationError('La sucursal de la que se pretende intercambiar el producto no cuenta con un '
+                                  'inventario.')
+
+        if self.reimbursement.to_branch is None:
+            return
+
         if self.reimbursement.to_branch.productsinventory is None:
             raise ValidationError('La sucursal a la que se pretende devolver este producto no cuenta con un '
                                   'inventario.')
