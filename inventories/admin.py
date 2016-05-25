@@ -6,7 +6,7 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
     TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
-from inventories.forms.product_reimbursement_inlines_forms import AddOrChangeExchangedProductForm, \
+from inventories.forms.product_reimbursement_and_related_fields_forms import AddOrChangeExchangedProductForm, \
     AddOrChangeReturnedProductForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 
