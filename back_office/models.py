@@ -12,7 +12,10 @@ class Country(AbstractCountry):
     Default implementation of abstract class AbstractCountry
     of the django-cities-light app.
     """
-    pass
+
+    class Meta:
+        verbose_name = 'país'
+        verbose_name_plural = 'paises'
 
 
 connect_default_signals(Country)
@@ -23,7 +26,10 @@ class Region(AbstractRegion):
     Default implementation of abstract class AbstractRegion
     of the django-cities-light app.
     """
-    pass
+
+    class Meta:
+        verbose_name = 'región'
+        verbose_name_plural = 'regiones'
 
 
 connect_default_signals(Region)
@@ -34,7 +40,10 @@ class City(AbstractCity):
     Default implementation of abstract class AbstractCity
     of the django-cities-light app.
     """
-    pass
+
+    class Meta:
+        verbose_name = 'ciudad'
+        verbose_name_plural = 'ciudades'
 
 
 connect_default_signals(City)

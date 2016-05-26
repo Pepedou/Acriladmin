@@ -111,7 +111,7 @@ class Product(models.Model):
         (NOT_LISTED, "Otra")
     )
 
-    sku = models.CharField(max_length=45, primary_key=True, verbose_name='SKU')
+    sku = models.CharField(max_length=45, unique=True, verbose_name='SKU')
     description = models.CharField(max_length=100, verbose_name='descripción')
     line = models.PositiveSmallIntegerField(verbose_name='línea', choices=LINE_TYPES, default=NOT_LISTED)
     engraving = models.CharField(max_length=45, verbose_name='grabado', blank=True)
@@ -426,7 +426,7 @@ class ProductTransfer(models.Model):
                 'target_branch': 'La sucursal de destino no cuenta con un inventario de productos.'
             })
 
-        filtered_items = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
+        filtered_items = source_inventory.productinventoryitem_set.filter(product=self.product)
 
         if len(filtered_items) == 0:
             raise ValidationError({
@@ -450,8 +450,8 @@ class ProductTransfer(models.Model):
         source_inventory = self.source_branch.productsinventory
         target_inventory = self.target_branch.productsinventory
 
-        source_inventory_item = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
-        target_inventory_items = target_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
+        source_inventory_item = source_inventory.productinventoryitem_set.filter(product=self.product)[0]
+        target_inventory_items = target_inventory.productinventoryitem_set.filter(product=self.product)
 
         source_inventory_item.quantity -= self.quantity
 
@@ -474,8 +474,8 @@ class ProductTransfer(models.Model):
         source_inventory = self.source_branch.productsinventory[0]
         target_inventory = self.target_branch.productsinventory[0]
 
-        source_inventory_items = source_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
-        target_inventory_item = target_inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
+        source_inventory_items = source_inventory.productinventoryitem_set.filter(product=self.product)
+        target_inventory_item = target_inventory.productinventoryitem_set.filter(product=self.product)[0]
 
         if len(source_inventory_items) == 0:
             source_inventory_item = ProductInventoryItem()

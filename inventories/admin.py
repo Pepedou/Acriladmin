@@ -38,7 +38,7 @@ class ProductAdmin(admin.ModelAdmin):
         obj.save()
 
         if not obj.is_composite:
-            models.ProductComponent.objects.filter(product_id=obj.sku).delete()
+            models.ProductComponent.objects.filter(product=obj).delete()
 
 
 class InventoryItemAdmin(admin.ModelAdmin):

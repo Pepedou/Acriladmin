@@ -236,8 +236,8 @@ class Sale(models.Model):
                 'quantity': 'La cantidad debe ser mayor a 0.'
             })
 
-        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(product__sku=self.product.sku)
-        product_price_set = ProductPrice.objects.filter(product__sku=self.product.sku)
+        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(product=self.product)
+        product_price_set = ProductPrice.objects.filter(product=self.product)
 
         if len(product_inventory_item_set) == 0:
             raise ValidationError({
@@ -259,11 +259,11 @@ class Sale(models.Model):
             })
 
     def save(self):
-        product_inventory_item = self.inventory.productinventoryitem_set.filter(product__sku=self.product.sku)[0]
+        product_inventory_item = self.inventory.productinventoryitem_set.filter(product=self.product)[0]
 
         product_inventory_item.quantity -= self.quantity
 
-        product_price = ProductPrice.objects.filter(product__sku=self.product.sku)[0]
+        product_price = ProductPrice.objects.filter(product=self.product)[0]
 
         self.invoice = Invoice(total=product_price.price * self.quantity, is_closed=True)
         self.invoice.save()
