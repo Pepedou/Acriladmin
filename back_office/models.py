@@ -70,7 +70,7 @@ class Address(models.Model):
         verbose_name_plural = 'direcciones'
 
     def __str__(self):
-        return "{0}, {1}, {2}".format(self.exterior_number, self.street, self.town)
+        return "{0}, {1}, {2}".format(self.exterior_number, self.street, self.state)
 
 
 class EmployeeRole(models.Model):

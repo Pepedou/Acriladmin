@@ -1,4 +1,5 @@
 import back_office.models as models
+from back_office.forms.employee_forms import AddOrChangeEmployeeForm
 from cities_light.admin import CountryAdmin, CityAdmin, RegionAdmin
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
@@ -26,6 +27,7 @@ class EmployeeAdmin(VersionAdmin, UserAdmin):
     Specifies the details for the admin app in regard
     to the Employee entity.
     """
+    form = AddOrChangeEmployeeForm
     fieldsets = UserAdmin.fieldsets + (
         ("Datos administrativos", {
             'fields': (
