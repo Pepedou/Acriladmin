@@ -1,7 +1,43 @@
+from cities_light.abstract_models import (AbstractCity, AbstractRegion,
+                                          AbstractCountry)
+from cities_light.receivers import connect_default_signals
 from django.contrib.auth.models import User, AbstractUser
 from django.core.validators import EmailValidator, URLValidator
 from django.db import models
 from utils.validators import phone_regex_validator, zip_code_regex_validator
+
+
+class Country(AbstractCountry):
+    """
+    Default implementation of abstract class AbstractCountry
+    of the django-cities-light app.
+    """
+    pass
+
+
+connect_default_signals(Country)
+
+
+class Region(AbstractRegion):
+    """
+    Default implementation of abstract class AbstractRegion
+    of the django-cities-light app.
+    """
+    pass
+
+
+connect_default_signals(Region)
+
+
+class City(AbstractCity):
+    """
+    Default implementation of abstract class AbstractCity
+    of the django-cities-light app.
+    """
+    pass
+
+
+connect_default_signals(City)
 
 
 class Address(models.Model):
@@ -12,10 +48,12 @@ class Address(models.Model):
     interior_number = models.CharField(verbose_name='número interior', max_length=10, blank=True)
     exterior_number = models.CharField(verbose_name='número exterior', max_length=10)
     street = models.CharField(verbose_name='calle', max_length=45)
-    town = models.CharField(verbose_name='municipio', max_length=45, blank=True)
-    city = models.CharField(verbose_name='ciudad', max_length=45, blank=True)
-    state = models.CharField(verbose_name='estado', max_length=45, blank=True)
-    country = models.CharField(verbose_name='país', max_length=45, blank=True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name='ciudad', related_name='acriladmin_city',
+                             max_length=45, blank=True)
+    state = models.ForeignKey(Region, on_delete=models.CASCADE, verbose_name='estado', related_name='acriladmin_state',
+                              max_length=45, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, verbose_name='país',
+                                related_name='acriladmin_country', max_length=45, blank=True)
     zip_code = models.CharField(verbose_name='CP', max_length=5, blank=True, validators=[zip_code_regex_validator])
 
     class Meta:
@@ -29,7 +67,7 @@ class Address(models.Model):
 class EmployeeRole(models.Model):
     """
     Describes a role assigned to an employee.
-    """
+    """,
     ADMINISTRATOR = "Administrador"
     TELEPHONE_SALES = "Ventas telefónicas"
     FIELD_SALES = "Ventas en campo"

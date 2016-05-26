@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cities_light',
     'back_office.apps.BackOfficeConfig',
     'finances.apps.FinancesConfig',
     'inventories.apps.InventoriesConfig',
@@ -184,3 +185,9 @@ if DEBUG:
     JQUERY_LIB = 'https://code.jquery.com/jquery-2.2.3.js'
 else:
     JQUERY_LIB = 'https://code.jquery.com/jquery-2.2.3.min.js'
+
+CITIES_LIGHT_APP_NAME = 'back_office'
+CITIES_LIGHT_TRANSLATION_LANGUAGES = ['es_MX']
+CITIES_LIGHT_INCLUDE_COUNTRIES = ['MX', 'US']
+CITIES_LIGHT_INCLUDE_CITY_TYPES = ['PPL', 'PPLA', 'PPLA2', 'PPLA3', 'PPLA4', 'PPLC', 'PPLF', 'PPLG', 'PPLL', 'PPLR',
+                                   'PPLS', 'STLMT']

@@ -12,12 +12,12 @@ class AddressAdmin(VersionAdmin):
     fields = (
         ('street', 'exterior_number'),
         'interior_number',
-        ('town', 'city'),
+        ('city'),
         ('state', 'country'),
         'zip_code'
     )
-    list_display = ('town', 'street', 'exterior_number')
-    list_filter = ('country', 'state', 'city', 'town')
+    list_display = ('street', 'exterior_number')
+    list_filter = ('country', 'state', 'city',)
 
 
 class EmployeeAdmin(VersionAdmin, UserAdmin):
