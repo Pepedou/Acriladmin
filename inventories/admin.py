@@ -248,6 +248,7 @@ class ProductReimbursementAdmin(admin.ModelAdmin):
     readonly_fields = ('monetary_difference',)
     list_display = ('id', 'to_branch', 'from_branch', 'date', 'monetary_difference',)
     list_display_links = list_display
+    list_filter = ('to_branch', 'from_branch', 'date',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is None:
