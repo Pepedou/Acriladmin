@@ -502,16 +502,18 @@ class ProductReimbursement(models.Model):
     monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
     date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de devolución')
     to_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                  related_name='product_reimbursement_as_to_branch', verbose_name='a la sucursal')
+                                  related_name='product_reimbursement_as_to_branch',
+                                  verbose_name='devuelve a')
     from_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, null=True, blank=True,
-                                    related_name='product_reimbursement_as_from_branch', verbose_name='de la sucursal')
+                                    related_name='product_reimbursement_as_from_branch',
+                                    verbose_name='intercambia con')
 
     class Meta:
         verbose_name = 'devolución de productos'
         verbose_name_plural = 'devoluciones de productos'
 
     def __str__(self):
-        return str(self.id)
+        return "Devolución #{}".format(str(self.id))
 
 
 class ReturnedProduct(models.Model):
@@ -537,15 +539,18 @@ class ReturnedProduct(models.Model):
                 'quantity': 'La cantidad debe ser mayor a 0.'
             })
 
-        if self.reimbursement.from_branch is not None and self.reimbursement.from_branch.productsinventory is None:
-            raise ValidationError('La sucursal de la que se pretende intercambiar el producto no cuenta con un '
+        if self.reimbursement.from_branch is None:
+            raise ValidationError('No se estableció a qué sucursal se va a devolver el producto.')
+
+        if self.reimbursement.from_branch.productsinventory is None:
+            raise ValidationError('La sucursal a la que se pretende devolver el producto no cuenta con un '
                                   'inventario.')
 
         if self.reimbursement.to_branch is None:
             return
 
         if self.reimbursement.to_branch.productsinventory is None:
-            raise ValidationError('La sucursal a la que se pretende devolver este producto no cuenta con un '
+            raise ValidationError('La sucursal a la que se pretende devolver el producto no cuenta con un '
                                   'inventario.')
 
     def save(self):
@@ -603,13 +608,12 @@ class ExchangedProduct(models.Model):
         except ObjectDoesNotExist:
             raise ValidationError('La sucursal de destino no cuenta con un inventario de productos.')
 
-        inventory_product_queryset = from_inventory.productinventoryitem_set.filter(
-            product__sku=self.product.sku)
+        inventory_product_queryset = from_inventory.productinventoryitem_set.filter(product=self.product)
 
         if inventory_product_queryset.count() < 1:
             raise ValidationError('El inventario de la sucursal no cuenta con este producto.')
 
-        inventory_product = inventory_product_queryset[0]
+        inventory_product = inventory_product_queryset.first()
 
         if inventory_product.quantity < self.quantity:
             raise ValidationError('El inventario de la sucursal no cuenta con la cantidad suficiente de este producto. '

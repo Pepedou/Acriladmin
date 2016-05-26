@@ -6,8 +6,6 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
     TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
-from inventories.forms.product_reimbursement_and_related_fields_forms import AddOrChangeExchangedProductForm, \
-    AddOrChangeReturnedProductForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 
 
@@ -206,7 +204,6 @@ class ReturnedProductInLine(admin.TabularInline):
     Describes the inline render of a returned product for the
     Product's admin view.
     """
-    form = AddOrChangeReturnedProductForm
     model = models.ReturnedProduct
 
     def get_extra(self, request, obj=None, **kwargs):
@@ -227,7 +224,6 @@ class ExchangedProductInLine(admin.TabularInline):
     Describes the inline render of a returned product for the
     Product's admin view.
     """
-    form = AddOrChangeExchangedProductForm
     model = models.ExchangedProduct
 
     def get_extra(self, request, obj=None, **kwargs):
@@ -250,12 +246,49 @@ class ProductReimbursementAdmin(admin.ModelAdmin):
     """
     inlines = [ReturnedProductInLine, ExchangedProductInLine]
     readonly_fields = ('monetary_difference',)
+    list_display = ('id', 'to_branch', 'from_branch', 'date', 'monetary_difference',)
+    list_display_links = list_display
 
     def get_readonly_fields(self, request, obj=None):
         if obj is None:
             return self.readonly_fields
         else:
             return ['to_branch', 'from_branch', 'monetary_difference']
+
+    def save_related(self, request, form, formsets, change):
+        """
+        Overrides super's save_related method in order to calculate the monetary difference
+        between the returned products and the exchanged products.
+        """
+        from finances.models import ProductPrice
+        from functools import reduce
+
+        super(ProductReimbursementAdmin, self).save_related(request, form, formsets, change)
+        total_income = 0
+        total_cost = 0
+
+        reimbursement = form.instance
+
+        returned_products = models.ReturnedProduct.objects.filter(reimbursement=reimbursement).all()
+
+        if returned_products.count() > 0:
+            product_prices = ProductPrice.objects.filter(product__in=[item.product for item in returned_products])
+
+            total_income = reduce(lambda x, y: x + y,
+                                  [a.price * b.quantity for a in product_prices for b in returned_products if
+                                   a.product == b.product])
+
+        exchanged_products = models.ExchangedProduct.objects.filter(reimbursement=reimbursement)
+
+        if exchanged_products.count() > 0:
+            product_prices = ProductPrice.objects.filter(product__in=[item.product for item in returned_products])
+
+            total_cost = reduce(lambda x, y: x + y,
+                                [a.price * b.quantity for a in product_prices for b in exchanged_products if
+                                 a.product == b.product])
+
+        reimbursement.monetary_difference = total_income - total_cost
+        reimbursement.save()
 
 
 admin.site.register(models.Product, ProductAdmin)
