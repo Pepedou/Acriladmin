@@ -4,6 +4,7 @@ from cities_light.receivers import connect_default_signals
 from django.contrib.auth.models import User, AbstractUser
 from django.core.validators import EmailValidator, URLValidator
 from django.db import models
+from django.db.models import Q
 from utils.validators import phone_regex_validator, zip_code_regex_validator
 
 
@@ -162,20 +163,18 @@ class BranchOffice(models.Model):
     A location involved in the business activities of the firm.
     """
     name = models.CharField(verbose_name='nombre de la sucursal', max_length=45)
-    phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
-    website = models.URLField(verbose_name='sitio web', max_length=45, blank=True,
-                              validators=[URLValidator(message="URL inválida.")])
-    email = models.EmailField(verbose_name='correo electrónico', blank=True,
-                              validators=[EmailValidator(message="Correo electrónico inválido.")])
-    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
     administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, null=True,
                                       verbose_name='administrador de la sucursal',
                                       related_name="administrated_branches",
-                                      limit_choices_to=
-                                      {
-                                          'roles__name': EmployeeRole.ADMINISTRATOR
-                                      })
-    employees = models.ManyToManyField(Employee, verbose_name='empleados de la sucursal', blank=True)
+                                      limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
+    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
+    phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
+    email = models.EmailField(verbose_name='correo electrónico', blank=True,
+                              validators=[EmailValidator(message="Correo electrónico inválido.")])
+    website = models.URLField(verbose_name='sitio web', max_length=45, blank=True,
+                              validators=[URLValidator(message="URL inválida.")])
+    employees = models.ManyToManyField(Employee, verbose_name='empleados de la sucursal', blank=True,
+                                       limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'sucursal'

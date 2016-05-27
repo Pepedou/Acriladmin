@@ -4,6 +4,7 @@ from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import models, transaction
+from django.db.models import Q
 
 
 class SIPrefix:
@@ -192,14 +193,12 @@ class ProductsInventory(models.Model):
     name = models.CharField(max_length=45, verbose_name='nombre')
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="products_inventories_supervised",
                                    verbose_name='supervisor',
-                                   limit_choices_to=
-                                   {
-                                       'roles__name': EmployeeRole.WAREHOUSE_CHIEF
-                                   })
+                                   limit_choices_to=Q(roles__name=EmployeeRole.WAREHOUSE_CHIEF) & ~Q(username='root'))
     branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
-                                     verbose_name='autor de la última actualización')
+                                     verbose_name='autor de la última actualización',
+                                     limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'inventario de productos'
@@ -230,14 +229,12 @@ class MaterialsInventory(models.Model):
     name = models.CharField(max_length=45, verbose_name='nombre')
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="materials_inventories_supervised",
                                    verbose_name='supervisor',
-                                   limit_choices_to=
-                                   {
-                                       'roles__name': EmployeeRole.ADMINISTRATOR
-                                   })
+                                   limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
     branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
-                                     verbose_name='autor de la última actualización')
+                                     verbose_name='autor de la última actualización',
+                                     limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'inventario de materiales'
@@ -290,14 +287,12 @@ class ConsumablesInventory(models.Model):
     name = models.CharField(max_length=45, verbose_name='nombre')
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                    related_name="consumables_inventories_supervised", verbose_name='supervisor',
-                                   limit_choices_to=
-                                   {
-                                       'roles__name': EmployeeRole.ADMINISTRATOR
-                                   })
+                                   limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
     branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
-                                     verbose_name='autor de la última actualización')
+                                     verbose_name='autor de la última actualización',
+                                     limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'inventario de consumibles'
@@ -352,14 +347,13 @@ class DurableGoodsInventory(models.Model):
     name = models.CharField(max_length=45, verbose_name='nombre')
     supervisor = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                    related_name="durable_goods_inventories_supervised", verbose_name='supervisor',
-                                   limit_choices_to=
-                                   {
-                                       'roles__name': EmployeeRole.ADMINISTRATOR
-                                   })
+                                   limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
+
     branch = models.OneToOneField(BranchOffice, on_delete=models.CASCADE, verbose_name='sucursal')
     last_update = models.DateTimeField(auto_now=True, verbose_name='última actualización')
     last_updater = models.ForeignKey(Employee, on_delete=models.PROTECT,
-                                     verbose_name='autor de la última actualización')
+                                     verbose_name='autor de la última actualización',
+                                     limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'inventario de activos'

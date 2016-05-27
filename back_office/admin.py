@@ -24,7 +24,8 @@ class AddressAdmin(VersionAdmin):
 
 class RoleInline(admin.StackedInline):
     """
-
+    Admin inline for the many to many relationship
+    between Employee and EmployeeRoles.
     """
     model = models.Employee.roles.through
 
@@ -33,7 +34,12 @@ class RoleInline(admin.StackedInline):
 
 
 class EmployeeRoleAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the EmployeeRole entity.
+    """
     inlines = [RoleInline]
+    list_display = ('name', 'description',)
 
 
 class EmployeeAdmin(VersionAdmin, UserAdmin):
@@ -64,6 +70,8 @@ class BranchOfficeAdmin(VersionAdmin):
     to the OfficeBranch entity.
     """
     filter_horizontal = ("employees",)
+    list_display = ('name', 'administrator', 'phone',)
+    list_display_links = list_display
 
 
 class CustomCountryAdmin(CountryAdmin):

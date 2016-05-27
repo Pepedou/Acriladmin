@@ -2,6 +2,7 @@ import django
 from back_office.models import Client, Employee, EmployeeRole, Address
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import Q
 from geoposition.fields import GeopositionField
 from inventories.models import Product, Material, DurableGood, Material, ProductsInventory
 
@@ -12,7 +13,8 @@ class WorkOrder(models.Model):
     """
     product_definition = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     amount = models.PositiveIntegerField(default=1, verbose_name='cantidad')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por', )
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por',
+                                      limit_choices_to=~Q(username='root'))
     authorization_datetime = models.DateTimeField(default=django.utils.timezone.now,
                                                   verbose_name='fecha de autorización')
 
@@ -47,7 +49,8 @@ class Repair(models.Model):
     date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha efectuada')
     reason = models.TextField(max_length=300, blank=True, verbose_name='motivo')
     requested_by = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='requested_repairs',
-                                     verbose_name='solicitada por')
+                                     verbose_name='solicitada por',
+                                     limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'reparación'
@@ -65,17 +68,11 @@ class Project(models.Model):
     description = models.CharField(max_length=100, blank=True, verbose_name='descripción')
     supervisor = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='projects_supervised',
                                    verbose_name='supervisor',
-                                   limit_choices_to=
-                                   {
-                                       'roles__name': EmployeeRole.ADMINISTRATOR
-                                   })
+                                   limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
     client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='cliente')
     sales_agent = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='projects_as_sales_agent',
                                     verbose_name='agente de ventas',
-                                    limit_choices_to=
-                                    {
-                                        'roles__name': EmployeeRole.SALES_AGENT
-                                    })
+                                    limit_choices_to=Q(roles__name=EmployeeRole.SALES_AGENT) & ~Q(username='root'))
     start_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de inicio')
     end_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de finalización')
     vehicle = models.ForeignKey(DurableGood, null=True, blank=True, verbose_name='vehículo utilizado')
@@ -131,7 +128,9 @@ class ProjectEstimation(models.Model):
     for a project.
     """
     project = models.OneToOneField(Project, on_delete=models.CASCADE, verbose_name='proyecto')
-    author = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='autor')
+    author = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='autor',
+                               limit_choices_to=~Q(username='root'))
+
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
     is_approved_by_client = models.BooleanField(default=False, verbose_name='aceptada por el cliente')
 
@@ -181,7 +180,8 @@ class ProjectVisit(models.Model):
     """
     An employee's attendance to a specific project.
     """
-    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='empleado')
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='empleado',
+                                 limit_choices_to=~Q(username='root'))
     project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='proyecto')
     notes = models.TextField(blank=True, verbose_name='observaciones')
     datetime = models.DateTimeField(auto_now_add=True, verbose_name='fecha y hora')
@@ -200,9 +200,7 @@ class SalesVisit(models.Model):
     A sales agent's visit to an existing or potential client.
     """
     sales_agent = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='agente de ventas',
-                                    limit_choices_to={
-                                        'roles__name': EmployeeRole.SALES_AGENT
-                                    })
+                                    limit_choices_to=Q(roles__name=EmployeeRole.SALES_AGENT) & ~Q(username='root'))
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección')
     position = GeopositionField(verbose_name='localización')
