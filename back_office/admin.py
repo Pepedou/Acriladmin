@@ -22,6 +22,20 @@ class AddressAdmin(VersionAdmin):
     list_filter = ('country', 'state', 'city',)
 
 
+class RoleInline(admin.StackedInline):
+    """
+
+    """
+    model = models.Employee.roles.through
+
+    verbose_name = 'rol'
+    verbose_name_plural = 'roles'
+
+
+class EmployeeRoleAdmin(admin.ModelAdmin):
+    inlines = [RoleInline]
+
+
 class EmployeeAdmin(VersionAdmin, UserAdmin):
     """
     Specifies the details for the admin app in regard
@@ -31,10 +45,11 @@ class EmployeeAdmin(VersionAdmin, UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ("Datos administrativos", {
             'fields': (
-                'gender', 'phone', 'picture', 'address', 'roles',
+                'gender', 'phone', 'picture', 'address',
             )
         },),
     )
+    inlines = [RoleInline]
 
 
 class BranchOfficeAdmin(VersionAdmin):
@@ -82,7 +97,7 @@ class CustomCityAdmin(CityAdmin):
 
 
 admin.site.register(models.Address, AddressAdmin)
-admin.site.register(models.EmployeeRole, VersionAdmin)
+admin.site.register(models.EmployeeRole, EmployeeRoleAdmin)
 admin.site.register(models.Employee, EmployeeAdmin)
 admin.site.register(models.Client, VersionAdmin)
 admin.site.register(models.BranchOffice, BranchOfficeAdmin)

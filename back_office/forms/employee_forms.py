@@ -10,7 +10,19 @@ class AddOrChangeEmployeeForm(ModelForm):
 
     class Meta:
         model = Employee
-        fields = "__all__"
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'is_staff',
+            'is_active',
+            'date_joined',
+            'gender',
+            'phone',
+            'picture',
+            'address'
+        ]
         widgets = {
             'address': autocomplete.ModelSelect2(url='address-autocomplete',
                                                  attrs={

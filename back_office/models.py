@@ -76,7 +76,7 @@ class Address(models.Model):
 class EmployeeRole(models.Model):
     """
     Describes a role assigned to an employee.
-    """,
+    """
     ADMINISTRATOR = "Administrador"
     TELEPHONE_SALES = "Ventas telefónicas"
     FIELD_SALES = "Ventas en campo"
@@ -122,7 +122,6 @@ class Employee(AbstractUser):
     phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
     picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
-
     roles = models.ManyToManyField(EmployeeRole, verbose_name='roles')
 
     REQUIRED_FIELDS = ["first_name", "last_name", "email"]
