@@ -73,6 +73,7 @@ class ProductsInventoryAdmin(admin.ModelAdmin):
     to the inventory entities.
     """
     list_display = ('name', 'branch', 'supervisor', 'detail_page')
+    readonly_fields = ('last_updater',)
     inlines = (ProductInventoryItemInLine,)
 
     def detail_page(self, obj):
@@ -87,6 +88,14 @@ class ProductsInventoryAdmin(admin.ModelAdmin):
 
     detail_page.short_description = "Detalle"
 
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the ProductsInventory model. After each ProductsInventory is saved,
+        the last_updater field is filled with the current user.
+        """
+        obj.last_updater = request.user
+        obj.save()
+
 
 class MaterialInventoryItemInLine(admin.TabularInline):
     """
@@ -97,13 +106,14 @@ class MaterialInventoryItemInLine(admin.TabularInline):
     model = models.MaterialInventoryItem
 
 
-class MaterialInventoryAdmin(admin.ModelAdmin):
+class MaterialsInventoryAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
     """
     list_display = ('name', 'branch', 'supervisor', 'detail_page')
     inlines = (MaterialInventoryItemInLine,)
+    readonly_fields = ('last_updater',)
 
     def detail_page(self, obj):
         """
@@ -117,6 +127,14 @@ class MaterialInventoryAdmin(admin.ModelAdmin):
 
     detail_page.short_description = "Detalle"
 
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the MaterialsInventory model.
+        After each MaterialsInventory is saved, the last_updater field is filled with the current user.
+        """
+        obj.last_updater = request.user
+        obj.save()
+
 
 class ConsumableInventoryItemInLine(admin.TabularInline):
     """
@@ -127,13 +145,14 @@ class ConsumableInventoryItemInLine(admin.TabularInline):
     model = models.ConsumableInventoryItem
 
 
-class ConsumableInventoryAdmin(admin.ModelAdmin):
+class ConsumablesInventoryAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
     """
     list_display = ('name', 'branch', 'supervisor', 'detail_page')
     inlines = (ConsumableInventoryItemInLine,)
+    readonly_fields = ('last_updater',)
 
     def detail_page(self, obj):
         """
@@ -147,6 +166,14 @@ class ConsumableInventoryAdmin(admin.ModelAdmin):
 
     detail_page.short_description = "Detalle"
 
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the ConsumablesInventory model.
+        After each ConsumablesInventory is saved, the last_updater field is filled with the current user.
+        """
+        obj.last_updater = request.user
+        obj.save()
+
 
 class DurableGoodInventoryItemInLine(admin.TabularInline):
     """
@@ -157,13 +184,14 @@ class DurableGoodInventoryItemInLine(admin.TabularInline):
     model = models.DurableGoodInventoryItem
 
 
-class DurableGoodInventoryAdmin(admin.ModelAdmin):
+class DurableGoodsInventoryAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
     """
     list_display = ('name', 'branch', 'supervisor', 'detail_page')
     inlines = (DurableGoodInventoryItemInLine,)
+    readonly_fields = ('last_updater',)
 
     def detail_page(self, obj):
         """
@@ -176,6 +204,15 @@ class DurableGoodInventoryAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">Mostrar detalle</a>', url)
 
     detail_page.short_description = "Detalle"
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the DurableGoodsInventory model.
+        After each DurableGoodsInventory is saved,
+        the last_updater field is filled with the current user.
+        """
+        obj.last_updater = request.user
+        obj.save()
 
 
 class ProductTransferAdmin(admin.ModelAdmin):
@@ -297,12 +334,12 @@ admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
 admin.site.register(models.Material)
 admin.site.register(models.MaterialInventoryItem, InventoryItemAdmin)
-admin.site.register(models.MaterialsInventory, MaterialInventoryAdmin)
+admin.site.register(models.MaterialsInventory, MaterialsInventoryAdmin)
 admin.site.register(models.Consumable)
 admin.site.register(models.ConsumableInventoryItem, InventoryItemAdmin)
-admin.site.register(models.ConsumablesInventory, ConsumableInventoryAdmin)
+admin.site.register(models.ConsumablesInventory, ConsumablesInventoryAdmin)
 admin.site.register(models.DurableGood)
 admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
-admin.site.register(models.DurableGoodsInventory, DurableGoodInventoryAdmin)
+admin.site.register(models.DurableGoodsInventory, DurableGoodsInventoryAdmin)
 admin.site.register(models.ProductTransfer, ProductTransferAdmin)
 admin.site.register(models.ProductReimbursement, ProductReimbursementAdmin)

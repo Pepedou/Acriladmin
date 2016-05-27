@@ -1,3 +1,4 @@
+from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.forms import ModelForm
@@ -14,6 +15,13 @@ class ProjectProductsInLineForm(ModelForm):
     class Meta:
         model = ProjectProductsEntry
         fields = "__all__"
+        widgets = {
+            'product': autocomplete.ModelSelect2(url='product-autocomplete',
+                                                 attrs={
+                                                     'data-placeholder': 'Ingrese un producto',
+                                                     'data-minimum-input-length': 1,
+                                                 })
+        }
 
     class Media:
         js = (

@@ -131,7 +131,7 @@ class ProjectEstimation(models.Model):
     author = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='autor',
                                limit_choices_to=~Q(username='root'))
 
-    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
+    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo estimado')
     is_approved_by_client = models.BooleanField(default=False, verbose_name='aceptada por el cliente')
 
     class Meta:

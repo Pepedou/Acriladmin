@@ -16,5 +16,11 @@ class AddOrChangeSaleForm(ModelForm):
                                                  attrs={
                                                      'data-placeholder': 'Ingrese un producto',
                                                      'data-minimum-input-length': 1,
-                                                 })
+                                                 }),
+            'shipping_address': autocomplete.ModelSelect2(url='address-autocomplete',
+                                                          attrs={
+                                                              'data-placeholder': 'Ingrese una calle, ciudad, '
+                                                                                  'región o país...',
+                                                              'data-minimum-input-length': 3,
+                                                          })
         }

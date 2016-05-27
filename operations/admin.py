@@ -22,16 +22,32 @@ class WorkOrderAdmin(admin.ModelAdmin):
 
 
 class ProjectProductsInLine(admin.TabularInline):
+    """
+    Tabular inline for the Products shown in the Project admin page.
+    """
     model = models.ProjectProductsEntry
     form = ProjectProductsInLineForm
 
+    verbose_name = 'producto'
+    verbose_name_plural = 'productos utilizados'
+
 
 class ProjectMaterialsInLine(admin.TabularInline):
+    """
+    Tabular inline for the Materials shown in the Project admin page.
+    """
     model = models.ProjectMaterialsEntry
     form = ProjectMaterialsInLineForm
 
+    verbose_name = 'material'
+    verbose_name_plural = 'materiales utilizados'
+
 
 class ProjectAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProjectAdmin entity.
+    """
     form = AddOrChangeProjectForm
     fieldsets = (
         ("Datos administrativos", {
@@ -50,18 +66,45 @@ class ProjectAdmin(admin.ModelAdmin):
 
 
 class ProjectEstimationProductsInLine(admin.TabularInline):
+    """
+    Tabular inline for the Products shown in the Project Estimation
+    admin page.
+    """
     model = models.ProjectEstimationProductsEntry
+
+    verbose_name = 'producto'
+    verbose_name_plural = 'productos estimados'
 
 
 class ProjectEstimationMaterialsInLine(admin.TabularInline):
+    """
+    Tabular inline for the Materials shown in the Project Estimation
+    admin page.
+    """
     model = models.ProjectEstimationMaterialsEntry
+
+    verbose_name = 'material'
+    verbose_name_plural = 'materiales estimados'
 
 
 class ProjectEstimationAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProjectEstimation entity.
+    """
     inlines = [
         ProjectEstimationProductsInLine,
         ProjectEstimationMaterialsInLine,
     ]
+    readonly_fields = ('author',)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides the default save function for the ProjectEstimation model. After each ProjectEstimation is saved,
+        the author field is filled with the current user.
+        """
+        obj.author = request.user
+        obj.save()
 
 
 admin.site.register(models.WorkOrder, WorkOrderAdmin)

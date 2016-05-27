@@ -4,7 +4,7 @@ from back_office.models import Client, Employee, Address
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Q
 from inventories.models import Product, Material, Product, Material, ProductsInventory
 from operations.models import Service, Repair, Project
 
@@ -140,14 +140,15 @@ class ProductPrice(models.Model):
     """
     product = models.OneToOneField(Product, on_delete=models.CASCADE, verbose_name='producto')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='precio')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por',
+                                      limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'precio de producto'
         verbose_name_plural = 'precios de productos'
 
     def __str__(self):
-        return str(self.price)
+        return "Precio - {0}: ${1}".format(self.product.sku, str(self.price))
 
 
 class MaterialCost(models.Model):
@@ -156,7 +157,8 @@ class MaterialCost(models.Model):
     """
     material = models.OneToOneField(Material, on_delete=models.CASCADE, verbose_name='material')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por',
+                                      limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'costo de un material'
@@ -189,7 +191,8 @@ class RepairCost(models.Model):
     """
     repair = models.ForeignKey(Repair, on_delete=models.PROTECT, verbose_name='reparación')
     cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='costo')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por')
+    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por',
+                                      limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'costo de una reparación'

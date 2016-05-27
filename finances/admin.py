@@ -45,7 +45,12 @@ class OrderAdmin(admin.ModelAdmin):
         })
     )
 
-    # noinspection PyMethodMayBeStatic
+
+class TransactionInline(admin.StackedInline):
+    """
+    Tabular inline for a Transaction used in the Invoice Admin.
+    """
+    model = models.Transaction
 
 
 class InvoiceAdmin(admin.ModelAdmin):
@@ -54,6 +59,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     """
     list_display = ('id', 'is_closed',)
     readonly_fields = ('is_closed',)
+    inlines = (TransactionInline,)
 
 
 class ProductPriceAdmin(admin.ModelAdmin):
@@ -62,6 +68,8 @@ class ProductPriceAdmin(admin.ModelAdmin):
     """
     form = AddOrChangeProductPriceForm
     readonly_fields = ('authorized_by',)
+    list_display = ('product', 'price', 'authorized_by',)
+    list_filter = ('authorized_by',)
 
     def save_model(self, request, obj, form, change):
         """
@@ -77,6 +85,8 @@ class MaterialCostAdmin(admin.ModelAdmin):
     Contains the details for the admin app in regard to the MaterialCost entity.
     """
     readonly_fields = ('authorized_by',)
+    list_display = ('material', 'cost', 'authorized_by',)
+    list_filter = ('authorized_by',)
 
     def save_model(self, request, obj, form, change):
         """
@@ -118,6 +128,8 @@ class RepairCostAdmin(admin.ModelAdmin):
     Contains the details for the admin app in regard to the RepairCost entity.
     """
     readonly_fields = ('authorized_by',)
+    list_display = ('repair', 'cost', 'authorized_by',)
+    list_filter = ('authorized_by',)
 
     def save_model(self, request, obj, form, change):
         """

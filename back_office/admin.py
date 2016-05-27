@@ -18,8 +18,8 @@ class AddressAdmin(VersionAdmin):
         ('state', 'country'),
         'zip_code'
     )
-    list_display = ('street', 'exterior_number')
-    list_filter = ('country', 'state', 'city',)
+    list_display = ('street', 'exterior_number', 'city', 'state', 'country',)
+    list_filter = ('country', 'state',)
 
 
 class RoleInline(admin.StackedInline):
