@@ -51,6 +51,12 @@ class EmployeeAdmin(VersionAdmin, UserAdmin):
     )
     inlines = [RoleInline]
 
+    def get_queryset(self, request):
+        """
+        Remove the root user from the list view.
+        """
+        return models.Employee.objects.exclude(username='root')
+
 
 class BranchOfficeAdmin(VersionAdmin):
     """
