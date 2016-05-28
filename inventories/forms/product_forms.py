@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.forms import ModelForm
 from inventories.models import Product
 
@@ -14,6 +13,5 @@ class AddOrChangeProductForm(ModelForm):
 
     class Media:
         js = (
-            settings.JQUERY_LIB,
             'inventories/scripts/addOrChangeProductForm.js',
         )

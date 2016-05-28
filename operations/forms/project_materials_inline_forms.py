@@ -1,5 +1,4 @@
 from django import forms
-from django.conf import settings
 from django.forms import ModelForm
 from operations.models import ProjectMaterialsEntry
 
@@ -17,7 +16,6 @@ class ProjectMaterialsInLineForm(ModelForm):
 
     class Media:
         js = (
-            settings.JQUERY_LIB,
             'finances/scripts/materialCost.js',
             'operations/scripts/projectMaterialsInLineForm.js',
         )

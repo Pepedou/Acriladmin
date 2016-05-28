@@ -32,6 +32,7 @@ urlpatterns = [
     url(r'^api/', include(router.urls)),
     url(r'^inventories/', include(inventories_urls)),
     url(r'^select2/', include('django_select2.urls')),
+    url(r'session_security/', include('session_security.urls')),
     url(r'^product-autocomplete/$', ProductAutocomplete.as_view(), name='product-autocomplete', ),
     url(r'^material-autocomplete/$', MaterialAutocomplete.as_view(), name='material-autocomplete', ),
     url(r'^consumable-autocomplete/$', ConsumableAutocomplete.as_view(), name='consumable-autocomplete', ),

@@ -1,5 +1,4 @@
 from django import forms
-from django.conf import settings
 from django.forms import ModelForm
 from finances.models import Order
 
@@ -16,6 +15,5 @@ class AddOrChangeOrderForm(ModelForm):
 
     class Media:
         js = (
-            settings.JQUERY_LIB,
             'finances/scripts/addOrChangeOrderForm.js',
         )

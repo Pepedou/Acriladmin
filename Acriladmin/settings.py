@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'geoposition',
     'rest_framework',
     'django_select2',
+    'session_security',
 ]
 
 AUTH_USER_MODEL = 'back_office.Employee'
@@ -67,6 +68,7 @@ MIDDLEWARE_CLASSES = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    'session_security.middleware.SessionSecurityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -84,6 +86,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.core.context_processors.request',
             ],
         },
     },
@@ -142,7 +145,7 @@ AdminSite.site_title = "Acriladmin"
 
 AuthConfig.verbose_name = "Autorización y autenticación"
 
-STATIC_ROOT = 'static'
+STATIC_ROOT = 'collected_static'
 MEDIA_ROOT = 'media'
 
 if "AWS_ACCESS_KEY_ID" in os.environ and \
@@ -181,13 +184,13 @@ GEOPOSITION_MARKER_OPTIONS = {
     'cursor': 'move'
 }
 
-if DEBUG:
-    JQUERY_LIB = 'https://code.jquery.com/jquery-2.2.3.js'
-else:
-    JQUERY_LIB = 'https://code.jquery.com/jquery-2.2.3.min.js'
-
 CITIES_LIGHT_APP_NAME = 'back_office'
 CITIES_LIGHT_TRANSLATION_LANGUAGES = ['es_MX']
 CITIES_LIGHT_INCLUDE_COUNTRIES = ['MX', 'US']
 CITIES_LIGHT_INCLUDE_CITY_TYPES = ['PPL', 'PPLA', 'PPLA2', 'PPLA3', 'PPLA4', 'PPLC', 'PPLF', 'PPLG', 'PPLL', 'PPLR',
                                    'PPLS', 'STLMT']
+
+# Django session security
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SECURITY_WARN_AFTER = 350
+SESSION_SECURITY_EXPIRE_AFTER = 420

@@ -10,9 +10,12 @@
         <link rel="stylesheet" type="text/css"
               href="{% block stylesheet_rtl %}{% static "admin/css/rtl.css" %}{% endblock %}"/>{% endif %}
     <script type="text/javascript">var APP_DOMAIN = "{% if request.is_secure %}https://{% else %}http://{% endif %}{{ request.get_host }}";</script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+    {% include 'session_security/all.html' %}
     {% block extrahead %}{% endblock %}
     {% block blockbots %}
-        <meta name="robots" content="NONE,NOARCHIVE"/>{% endblock %}
+        <meta name="robots" content="NONE,NOARCHIVE"/>
+    {% endblock %}
 </head>
 {% load i18n %}
 
@@ -83,9 +86,9 @@
     <!-- END Content -->
 
     {% block footer %}
-        <div id="footer"></div>{% endblock %}
+        <div id="footer"></div>
+    {% endblock %}
 </div>
 <!-- END Container -->
-
 </body>
 </html>

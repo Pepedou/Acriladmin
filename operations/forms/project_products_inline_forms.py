@@ -1,6 +1,5 @@
 from dal import autocomplete
 from django import forms
-from django.conf import settings
 from django.forms import ModelForm
 from operations.models import ProjectProductsEntry
 
@@ -25,7 +24,6 @@ class ProjectProductsInLineForm(ModelForm):
 
     class Media:
         js = (
-            settings.JQUERY_LIB,
             'finances/scripts/productPrice.js',
             'operations/scripts/projectProductsInLineForm.js',
         )
