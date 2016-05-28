@@ -395,8 +395,8 @@ class ProductTransfer(models.Model):
     is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
 
     class Meta:
-        verbose_name = 'transferencia de producto'
-        verbose_name_plural = 'transferencias de producto'
+        verbose_name = 'transferencia de productos'
+        verbose_name_plural = 'transferencias de productos'
 
     def __str__(self):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
@@ -407,22 +407,24 @@ class ProductTransfer(models.Model):
         if self.id is not None:
             return
 
-        source_inventory = self.source_branch.productsinventory
-        target_inventory = self.target_branch.productsinventory
-
-        if source_inventory is None:
+        try:
+            source_inventory = self.source_branch.productsinventory
+        except ProductsInventory.DoesNotExist:
             raise ValidationError({
-                'source_branch': 'La sucursal de origen no cuenta con un inventario de productos.'
+                'source_branch': 'La sucursal de origen no cuenta con un inventario de productos. Hay que agregar '
+                                 'uno antes de poder hacer una transferencia.'
             })
 
-        if target_inventory is None:
+        try:
+            self.target_branch.productsinventory
+        except ProductsInventory.DoesNotExist:
             raise ValidationError({
                 'target_branch': 'La sucursal de destino no cuenta con un inventario de productos.'
             })
 
         filtered_items = source_inventory.productinventoryitem_set.filter(product=self.product)
 
-        if len(filtered_items) == 0:
+        if filtered_items.count() == 0:
             raise ValidationError({
                 'product': 'El inventario de la sucursal de origen no cuenta con ese producto.'
             })

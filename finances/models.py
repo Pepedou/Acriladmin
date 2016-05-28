@@ -242,7 +242,7 @@ class Sale(models.Model):
         product_inventory_item_set = self.inventory.productinventoryitem_set.filter(product=self.product)
         product_price_set = ProductPrice.objects.filter(product=self.product)
 
-        if len(product_inventory_item_set) == 0:
+        if product_inventory_item_set.count() == 0:
             raise ValidationError({
                 'inventory': 'El inventario no cuenta con el producto elegido.'
             })
@@ -255,7 +255,7 @@ class Sale(models.Model):
                     product_inventory_item.quantity)
             })
 
-        if len(product_price_set) == 0:
+        if product_price_set.count() == 0:
             raise ValidationError({
                 'product': 'A este produto no se le ha asignado un precio. No se puede generar'
                            ' la venta hasta que tenga un precio.'
