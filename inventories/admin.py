@@ -7,6 +7,7 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
+from reversion.admin import VersionAdmin
 
 
 class ProductComponentInLine(admin.TabularInline):
@@ -17,7 +18,7 @@ class ProductComponentInLine(admin.TabularInline):
     model = models.ProductComponent
 
 
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the Product entity.
@@ -41,7 +42,7 @@ class ProductAdmin(admin.ModelAdmin):
             models.ProductComponent.objects.filter(product=obj).delete()
 
 
-class InventoryItemAdmin(admin.ModelAdmin):
+class InventoryItemAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProductInventoryItem, MaterialInventoryItem,
@@ -67,7 +68,7 @@ class ProductInventoryItemInLine(admin.TabularInline):
     model = models.ProductInventoryItem
 
 
-class ProductsInventoryAdmin(admin.ModelAdmin):
+class ProductsInventoryAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
@@ -106,7 +107,7 @@ class MaterialInventoryItemInLine(admin.TabularInline):
     model = models.MaterialInventoryItem
 
 
-class MaterialsInventoryAdmin(admin.ModelAdmin):
+class MaterialsInventoryAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
@@ -145,7 +146,7 @@ class ConsumableInventoryItemInLine(admin.TabularInline):
     model = models.ConsumableInventoryItem
 
 
-class ConsumablesInventoryAdmin(admin.ModelAdmin):
+class ConsumablesInventoryAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
@@ -184,7 +185,7 @@ class DurableGoodInventoryItemInLine(admin.TabularInline):
     model = models.DurableGoodInventoryItem
 
 
-class DurableGoodsInventoryAdmin(admin.ModelAdmin):
+class DurableGoodsInventoryAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the inventory entities.
@@ -215,7 +216,7 @@ class DurableGoodsInventoryAdmin(admin.ModelAdmin):
         obj.save()
 
 
-class ProductTransferAdmin(admin.ModelAdmin):
+class ProductTransferAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProductTransfer entity.
@@ -276,7 +277,7 @@ class ExchangedProductInLine(admin.TabularInline):
         return obj is None
 
 
-class ProductReimbursementAdmin(admin.ModelAdmin):
+class ProductReimbursementAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProductReimbursement entity.

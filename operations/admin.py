@@ -3,9 +3,10 @@ from django.contrib import admin
 from operations.forms.project_forms import AddOrChangeProjectForm
 from operations.forms.project_materials_inline_forms import ProjectMaterialsInLineForm
 from operations.forms.project_products_inline_forms import ProjectProductsInLineForm
+from reversion.admin import VersionAdmin
 
 
-class WorkOrderAdmin(admin.ModelAdmin):
+class WorkOrderAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the WorkOrder entity.
@@ -43,7 +44,7 @@ class ProjectMaterialsInLine(admin.TabularInline):
     verbose_name_plural = 'materiales utilizados'
 
 
-class ProjectAdmin(admin.ModelAdmin):
+class ProjectAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProjectAdmin entity.
@@ -87,7 +88,7 @@ class ProjectEstimationMaterialsInLine(admin.TabularInline):
     verbose_name_plural = 'materiales estimados'
 
 
-class ProjectEstimationAdmin(admin.ModelAdmin):
+class ProjectEstimationAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProjectEstimation entity.

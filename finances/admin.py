@@ -4,6 +4,7 @@ from django.db.models import Sum, F
 from finances.forms.order_forms import AddOrChangeOrderForm
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm
+from reversion.admin import VersionAdmin
 
 
 class OrderProductsInLine(admin.TabularInline):
@@ -20,7 +21,7 @@ class OrderServicesInLine(admin.TabularInline):
     model = models.OrderServices
 
 
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(VersionAdmin):
     """
     Contains the details for the admin app
     in regard to the Order entity.
@@ -53,7 +54,7 @@ class TransactionInline(admin.StackedInline):
     model = models.Transaction
 
 
-class InvoiceAdmin(admin.ModelAdmin):
+class InvoiceAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
@@ -62,7 +63,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     inlines = (TransactionInline,)
 
 
-class ProductPriceAdmin(admin.ModelAdmin):
+class ProductPriceAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the ProductPrice entity.
     """
@@ -80,7 +81,7 @@ class ProductPriceAdmin(admin.ModelAdmin):
         obj.save()
 
 
-class MaterialCostAdmin(admin.ModelAdmin):
+class MaterialCostAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the MaterialCost entity.
     """
@@ -97,7 +98,7 @@ class MaterialCostAdmin(admin.ModelAdmin):
         obj.save()
 
 
-class TransactionAdmin(admin.ModelAdmin):
+class TransactionAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Transaction entity.
     """
@@ -123,7 +124,7 @@ class TransactionAdmin(admin.ModelAdmin):
         invoice.save()
 
 
-class RepairCostAdmin(admin.ModelAdmin):
+class RepairCostAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the RepairCost entity.
     """
@@ -140,7 +141,7 @@ class RepairCostAdmin(admin.ModelAdmin):
         obj.save()
 
 
-class SaleAdmin(admin.ModelAdmin):
+class SaleAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Sale entity.
     """
