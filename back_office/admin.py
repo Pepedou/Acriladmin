@@ -55,6 +55,7 @@ class EmployeeAdmin(VersionAdmin, UserAdmin):
             )
         },),
     )
+    readonly_fields = ('password',)
     inlines = [RoleInline]
 
     def get_queryset(self, request):
