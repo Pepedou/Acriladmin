@@ -148,8 +148,15 @@ class SaleAdmin(VersionAdmin):
     list_display = ['invoice', 'client', 'product', 'quantity']
     exclude = ['invoice']
     list_display_links = list_display
-
+    list_filter = ('type', 'date', 'inventory',)
     form = AddOrChangeSaleForm
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ('product', 'quantity', 'order', 'inventory', 'client',
+                    'amount',)
+        else:
+            return ['amount']
 
 
 admin.site.register(models.Order, OrderAdmin)

@@ -3,7 +3,7 @@ import django
 from back_office.models import Client, Employee, Address
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum, F, Q
 from inventories.models import Product, Material, Product, Material, ProductsInventory
 from operations.models import Service, Repair, Project
@@ -223,6 +223,7 @@ class Sale(models.Model):
                                          verbose_name='dirección de envío')
     date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha de venta')
     type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=COUNTER_TYPE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.0, verbose_name='monto')
 
     class Meta:
         verbose_name = 'venta'
@@ -233,6 +234,9 @@ class Sale(models.Model):
 
     def clean(self):
         super(Sale, self).clean()
+
+        if self.id is not None:
+            return
 
         if self.quantity == 0:
             raise ValidationError({
@@ -262,13 +266,21 @@ class Sale(models.Model):
             })
 
     def save(self):
+        if self.id is not None:
+            super(Sale, self).save()
+            return
+
         product_inventory_item = self.inventory.productinventoryitem_set.filter(product=self.product)[0]
 
         product_inventory_item.quantity -= self.quantity
 
         product_price = ProductPrice.objects.filter(product=self.product)[0]
 
-        self.invoice = Invoice(total=product_price.price * self.quantity, is_closed=True)
-        self.invoice.save()
+        self.amount = product_price.price * self.quantity
+        # TODO: Check if a Transaction is needed for an Invoice to be considered closed.
+        self.invoice = Invoice(total=self.amount, is_closed=True)
 
-        super(Sale, self).save()
+        with transaction.atomic():
+            self.invoice.save()
+            product_inventory_item.save()
+            super(Sale, self).save()
