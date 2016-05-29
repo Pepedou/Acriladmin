@@ -7,6 +7,8 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
+from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeExchangedProductTabularInlineForm, \
+    AddOrChangeReturnedProductTabularInlineForm
 from reversion.admin import VersionAdmin
 
 
@@ -242,6 +244,7 @@ class ReturnedProductInLine(admin.TabularInline):
     Describes the inline render of a returned product for the
     Product's admin view.
     """
+    form = AddOrChangeReturnedProductTabularInlineForm
     model = models.ReturnedProduct
 
     def get_extra(self, request, obj=None, **kwargs):
@@ -262,6 +265,7 @@ class ExchangedProductInLine(admin.TabularInline):
     Describes the inline render of a returned product for the
     Product's admin view.
     """
+    form = AddOrChangeExchangedProductTabularInlineForm
     model = models.ExchangedProduct
 
     def get_extra(self, request, obj=None, **kwargs):

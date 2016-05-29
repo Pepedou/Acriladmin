@@ -19,9 +19,6 @@ class Country(AbstractCountry):
         verbose_name_plural = 'paises'
 
 
-connect_default_signals(Country)
-
-
 class Region(AbstractRegion):
     """
     Default implementation of abstract class AbstractRegion
@@ -31,9 +28,6 @@ class Region(AbstractRegion):
     class Meta:
         verbose_name = 'región'
         verbose_name_plural = 'regiones'
-
-
-connect_default_signals(Region)
 
 
 class City(AbstractCity):
@@ -47,6 +41,8 @@ class City(AbstractCity):
         verbose_name_plural = 'ciudades'
 
 
+connect_default_signals(Country)
+connect_default_signals(Region)
 connect_default_signals(City)
 
 

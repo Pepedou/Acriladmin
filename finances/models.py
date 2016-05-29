@@ -175,7 +175,7 @@ class Transaction(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, verbose_name='factura')
     payed_by = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='pagado por')
     datetime = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha y hora')
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='cantidad')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='monto')
 
     class Meta:
         verbose_name = 'transacción'
