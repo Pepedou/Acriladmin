@@ -74,6 +74,18 @@ class BranchOfficeAdmin(VersionAdmin):
     list_display = ('name', 'administrator', 'phone',)
     list_display_links = list_display
 
+    def save_related(self, request, form, formsets, change):
+        """
+        Overrides the save related method to add by default the administrator
+        to the branch's employees if it's not already part of them.
+        """
+        super(BranchOfficeAdmin, self).save_related(request, form, formsets, change)
+
+        branch_office = form.instance
+
+        if branch_office.administrator not in branch_office.employees.all():
+            branch_office.employees.add(branch_office.administrator)
+
 
 class CustomCountryAdmin(CountryAdmin):
     """
