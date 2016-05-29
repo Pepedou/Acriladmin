@@ -6,6 +6,7 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
     TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
+from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeExchangedProductTabularInlineForm, \
     AddOrChangeReturnedProductTabularInlineForm
@@ -17,6 +18,7 @@ class ProductComponentInLine(admin.TabularInline):
     Describes the inline render of a product component for the
     Product's admin view.
     """
+    form = AddOrChangeProductComponentInlineForm
     model = models.ProductComponent
 
 
