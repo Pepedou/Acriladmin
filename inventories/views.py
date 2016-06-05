@@ -1,9 +1,12 @@
+import operator
 from dal import autocomplete
 from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
+from functools import reduce
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
     Product, Material, Consumable, DurableGood
 
@@ -220,10 +223,12 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated():
             return Product.objects.none()
 
-        query_set = Product.objects.all()
-
         if self.q:
-            query_set = query_set.filter(description__icontains=self.q)
+            search_terms = self.q.split(',')
+            search_terms_queries = reduce(operator.and_, (Q(description__icontains=x.strip()) for x in search_terms))
+            query_set = Product.objects.filter(search_terms_queries)
+        else:
+            query_set = Product.objects.all()
 
         return query_set
 
@@ -237,10 +242,12 @@ class MaterialAutocomplete(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated():
             return Material.objects.none()
 
-        query_set = Material.objects.all()
-
         if self.q:
-            query_set = query_set.filter(name__istartswith=self.q)
+            search_terms = self.q.split(',')
+            search_terms_queries = reduce(operator.or_, (Q(description__icontains=x.strip()) for x in search_terms))
+            query_set = Material.objects.filter(search_terms_queries)
+        else:
+            query_set = Material.objects.all()
 
         return query_set
 
@@ -254,10 +261,12 @@ class ConsumableAutocomplete(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated():
             return Consumable.objects.none()
 
-        query_set = Consumable.objects.all()
-
         if self.q:
-            query_set = query_set.filter(name__istartswith=self.q)
+            search_terms = self.q.split(',')
+            search_terms_queries = reduce(operator.or_, (Q(description__icontains=x.strip()) for x in search_terms))
+            query_set = Consumable.objects.filter(search_terms_queries)
+        else:
+            query_set = Consumable.objects.all()
 
         return query_set
 
@@ -271,9 +280,11 @@ class DurableGoodAutocomplete(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated():
             return DurableGood.objects.none()
 
-        query_set = DurableGood.objects.all()
-
         if self.q:
-            query_set = query_set.filter(name__istartswith=self.q)
+            search_terms = self.q.split(',')
+            search_terms_queries = reduce(operator.or_, (Q(description__icontains=x.strip()) for x in search_terms))
+            query_set = DurableGood.objects.filter(search_terms_queries)
+        else:
+            query_set = DurableGood.objects.all()
 
         return query_set

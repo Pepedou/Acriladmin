@@ -14,7 +14,7 @@ class AddOrChangeReturnedProductTabularInlineForm(ModelForm):
         widgets = {
             'product': autocomplete.ModelSelect2(url='product-autocomplete',
                                                  attrs={
-                                                     'data-placeholder': 'Ingrese un producto',
+                                                     'data-placeholder': 'Ejemplo: POL, 1.20, VERDE, cristal',
                                                      'data-minimum-input-length': 1,
                                                  })
         }
@@ -31,7 +31,7 @@ class AddOrChangeExchangedProductTabularInlineForm(ModelForm):
         widgets = {
             'product': autocomplete.ModelSelect2(url='product-autocomplete',
                                                  attrs={
-                                                     'data-placeholder': 'Ingrese un producto',
+                                                     'data-placeholder': 'Ejemplo: POL, 1.20, VERDE, cristal',
                                                      'data-minimum-input-length': 1,
                                                  })
         }

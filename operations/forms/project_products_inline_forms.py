@@ -17,7 +17,7 @@ class ProjectProductsInLineForm(ModelForm):
         widgets = {
             'product': autocomplete.ModelSelect2(url='product-autocomplete',
                                                  attrs={
-                                                     'data-placeholder': 'Ingrese un producto',
+                                                     'data-placeholder': 'Separe los términos de búsqueda con \',\'',
                                                      'data-minimum-input-length': 1,
                                                  })
         }
