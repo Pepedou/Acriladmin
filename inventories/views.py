@@ -226,7 +226,7 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             search_terms = self.q.split(',')
             search_terms_queries = reduce(operator.and_, (Q(description__icontains=x.strip()) for x in search_terms))
-            query_set = Product.objects.filter(search_terms_queries)
+            query_set = Product.objects.filter(search_terms_queries | Q(sku=self.q))
         else:
             query_set = Product.objects.all()
 
