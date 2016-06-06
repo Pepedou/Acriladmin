@@ -10,6 +10,7 @@ from inventories.forms.product_tabularinlines_forms import AddOrChangeProductCom
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeExchangedProductTabularInlineForm, \
     AddOrChangeReturnedProductTabularInlineForm
+from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
 from reversion.admin import VersionAdmin
 
 
@@ -77,6 +78,7 @@ class ProductsInventoryAdmin(VersionAdmin):
     Specifies the details for the admin app in regard
     to the inventory entities.
     """
+    form = AddOrChangeProductsInventoryForm
     list_display = ('name', 'branch', 'supervisor', 'detail_page')
     readonly_fields = ('last_updater',)
     inlines = (ProductInventoryItemInLine,)
@@ -99,6 +101,7 @@ class ProductsInventoryAdmin(VersionAdmin):
         the last_updater field is filled with the current user.
         """
         obj.last_updater = request.user
+
         obj.save()
 
 
