@@ -221,7 +221,7 @@ class Sale(models.Model):
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
                                          verbose_name='dirección de envío')
-    date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha de venta')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha de venta')
     type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=COUNTER_TYPE)
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.0, verbose_name='monto')
 

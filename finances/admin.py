@@ -154,9 +154,9 @@ class SaleAdmin(VersionAdmin):
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
             return ('product', 'quantity', 'order', 'inventory', 'client',
-                    'amount',)
+                    'amount', 'date',)
         else:
-            return ['amount']
+            return ['amount', 'date']
 
 
 admin.site.register(models.Order, OrderAdmin)
