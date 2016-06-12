@@ -1,4 +1,5 @@
 import finances.models as models
+from back_office.models import EmployeeRole
 from django.contrib import admin
 from django.db.models import Sum, F
 from finances.forms.order_forms import AddOrChangeOrderForm
@@ -122,6 +123,12 @@ class TransactionAdmin(VersionAdmin):
             invoice.is_closed = False
 
         invoice.save()
+
+    def get_readonly_fields(self, request, obj=None):
+        if not obj or request.user.roles.filter(name=EmployeeRole.ADMINISTRATOR).exists():
+            return super(TransactionAdmin, self).get_readonly_fields(request, obj)
+
+        return ['invoice', 'payed_by', 'datetime', 'amount']
 
 
 class RepairCostAdmin(VersionAdmin):
