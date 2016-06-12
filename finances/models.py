@@ -213,8 +213,6 @@ class Sale(models.Model):
         (SHIPPING_TYPE, "Con entrega"),
     )
 
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
-    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
     order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='orden')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
@@ -230,7 +228,7 @@ class Sale(models.Model):
         verbose_name_plural = 'ventas'
 
     def __str__(self):
-        return "{0} - {1} ({2})".format(self.date.strftime("%x"), str(self.product), str(self.quantity))
+        return "{0} - {1} ({2})".format(self.date.strftime("%x"), str(self.client), str(self.amount))
 
     def clean(self):
         super(Sale, self).clean()
@@ -238,49 +236,73 @@ class Sale(models.Model):
         if self.id is not None:
             return
 
-        if self.quantity == 0:
-            raise ValidationError({
-                'quantity': 'La cantidad debe ser mayor a 0.'
-            })
-
-        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(product=self.product)
-        product_price_set = ProductPrice.objects.filter(product=self.product)
+        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(
+            product__in=[x.product for x in self.saleproductitem_set.all()])
 
         if product_inventory_item_set.count() == 0:
             raise ValidationError({
-                'inventory': 'El inventario no cuenta con el producto elegido.'
+                'inventory': 'El inventario no cuenta con ningún producto.'
             })
 
-        product_inventory_item = product_inventory_item_set[0]
+        for sale_product_item in self.saleproductitem_set.all():
+            product_inventory_item = product_inventory_item_set.filter(product=sale_product_item.product).first()
+            product_price_set = ProductPrice.objects.filter(product=sale_product_item.product)
 
-        if product_inventory_item.quantity < self.quantity:
-            raise ValidationError({
-                'quantity': 'El inventario sólo cuenta con {0} unidades del producto elegido.'.format(
-                    product_inventory_item.quantity)
-            })
+            if product_inventory_item is None:
+                raise ValidationError({
+                    'inventory': 'El inventario no cuenta con el producto {0}.'.format(sale_product_item.product)
+                })
 
-        if product_price_set.count() == 0:
-            raise ValidationError({
-                'product': 'A este produto no se le ha asignado un precio. No se puede generar'
-                           ' la venta hasta que tenga un precio.'
-            })
+            if product_inventory_item.quantity < self.quantity:
+                raise ValidationError({
+                    'quantity': 'El inventario sólo cuenta con {0}/{1} unidades del producto {2}.'.format(
+                        product_inventory_item.quantity, sale_product_item.quantity, sale_product_item.product)
+                })
+
+            if product_price_set.count() == 0:
+                raise ValidationError({
+                    'product': 'Al producto {0} no se le ha asignado un precio. No se puede generar'
+                               ' la venta hasta que tenga un precio.'.format(sale_product_item.product)
+                })
 
     def save(self):
         if self.id is not None:
             super(Sale, self).save()
             return
 
-        product_inventory_item = self.inventory.productinventoryitem_set.filter(product=self.product)[0]
-
-        product_inventory_item.quantity -= self.quantity
-
-        product_price = ProductPrice.objects.filter(product=self.product)[0]
-
-        self.amount = product_price.price * self.quantity
-        # TODO: Check if a Transaction is needed for an Invoice to be considered closed.
-        self.invoice = Invoice(total=self.amount, is_closed=True)
+        self.amount = 0
 
         with transaction.atomic():
+            for sale_product_item in self.saleproductitem_set.all():
+                product_inventory_item = self.inventory.productinventoryitem_set.filter(
+                    product=sale_product_item.product).first()
+
+                product_inventory_item.quantity -= sale_product_item.quantity
+
+                product_price = ProductPrice.objects.filter(product=sale_product_item.product).first()
+
+                self.amount += product_price.price * sale_product_item.quantity
+                product_inventory_item.save()
+
+            # TODO: Check if a Transaction is needed for an Invoice to be considered closed.
+            self.invoice = Invoice(total=self.amount, is_closed=True)
             self.invoice.save()
-            product_inventory_item.save()
             super(Sale, self).save()
+
+
+class SaleProductItem(models.Model):
+    """
+    A product and the amount of that product that belongs
+    to a Sale.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, verbose_name='venta')
+
+    class Meta:
+        verbose_name = 'producto de la venta'
+        verbose_name_plural = 'productos de la venta'
+
+    def __str__(self):
+        return "{0}: {1}".format(str(self.product), str(self.quantity))

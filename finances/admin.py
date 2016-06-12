@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.db.models import Sum, F
 from finances.forms.order_forms import AddOrChangeOrderForm
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
-from finances.forms.sale_forms import AddOrChangeSaleForm
+from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm
 from reversion.admin import VersionAdmin
 
 
@@ -141,20 +141,28 @@ class RepairCostAdmin(VersionAdmin):
         obj.save()
 
 
+class SaleProductItemInline(admin.TabularInline):
+    """
+    Tabular inline for a SaleProductItem used in the Sale Admin.
+    """
+    model = models.SaleProductItem
+    form = SaleProductItemInlineForm
+
+
 class SaleAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Sale entity.
     """
-    list_display = ['invoice', 'client', 'product', 'quantity']
+    list_display = ['date', 'client', 'amount']
     exclude = ['invoice']
     list_display_links = list_display
     list_filter = ('type', 'date', 'inventory',)
     form = AddOrChangeSaleForm
+    inlines = (SaleProductItemInline,)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
-            return ('product', 'quantity', 'order', 'inventory', 'client',
-                    'amount', 'date',)
+            return 'order', 'inventory', 'client', 'amount', 'date',
         else:
             return ['amount', 'date']
 
