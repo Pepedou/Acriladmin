@@ -125,7 +125,7 @@ class SaleAdmin(VersionAdmin):
         }),
         ('Montos', {
             'fields': ('date', 'amount', 'subtotal', 'shipping_and_handling',
-                       'discount', 'project')
+                       'discount')
         })
     )
 

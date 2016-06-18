@@ -22,5 +22,10 @@ class AddOrChangeSaleForm(ModelForm):
                                                               'data-placeholder': 'Ingrese una calle, ciudad, '
                                                                                   'región o país...',
                                                               'data-minimum-input-length': 3,
-                                                          })
+                                                          }),
+            'client': autocomplete.ModelSelect2(url='client-autocomplete',
+                                                attrs={
+                                                    'data-placeholder': 'Ingrese el nombre de un cliente...',
+                                                    'data-minimum-input-length': 1
+                                                })
         }
