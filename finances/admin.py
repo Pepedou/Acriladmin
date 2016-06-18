@@ -112,7 +112,6 @@ class SaleAdmin(VersionAdmin):
     Contains the details for the admin app in regard to the Sale entity.
     """
     list_display = ['invoice', 'client', 'product', 'quantity']
-    exclude = ['invoice']
     list_display_links = list_display
     list_filter = ('type', 'date', 'inventory',)
     form = AddOrChangeSaleForm
@@ -124,7 +123,7 @@ class SaleAdmin(VersionAdmin):
             'fields': ('product', 'quantity')
         }),
         ('Montos', {
-            'fields': ('date', 'subtotal', 'shipping_and_handling',
+            'fields': ('date', 'invoice', 'subtotal', 'shipping_and_handling',
                        'discount', 'amount')
         })
     )

@@ -18,6 +18,7 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from django.views.generic import RedirectView
 from finances import views
+from finances.views import InvoiceAutocomplete
 from inventories import urls as inventories_urls
 from inventories.views import ProductAutocomplete, MaterialAutocomplete, ConsumableAutocomplete, DurableGoodAutocomplete
 from rest_framework import routers
@@ -39,4 +40,5 @@ urlpatterns = [
     url(r'^durablegood-autocomplete/$', DurableGoodAutocomplete.as_view(), name='durablegood-autocomplete', ),
     url(r'^address-autocomplete/$', AddressAutocomplete.as_view(), name='address-autocomplete', ),
     url(r'^client-autocomplete/$', ClientAutocomplete.as_view(), name='client-autocomplete', ),
+    url(r'^invoice-autocomplete/$', InvoiceAutocomplete.as_view(), name='invoice-autocomplete', ),
 ]

@@ -27,7 +27,12 @@ class AddOrChangeSaleForm(ModelForm):
                                                 attrs={
                                                     'data-placeholder': 'Ingrese el nombre de un cliente...',
                                                     'data-minimum-input-length': 1
-                                                })
+                                                }),
+            'invoice': autocomplete.ModelSelect2(url='invoice-autocomplete',
+                                                 attrs={
+                                                     'data-placeholder': 'Ingrese el ID de una factura...',
+                                                     'data-minimum-input-length': 1
+                                                 })
         }
 
     class Media:
