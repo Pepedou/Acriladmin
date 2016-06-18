@@ -127,6 +127,15 @@ class Sale(models.Model):
         (TYPE_SHIPPING, "Con entrega"),
     )
 
+    PAYMENT_CASH = 0
+    PAYMENT_TRANSFER = 1
+    PAYMENT_ON_DELIVERY = 2
+    PAYMENT_TYPES = (
+        (PAYMENT_CASH, "Efectivo"),
+        (PAYMENT_TRANSFER, "Transferencia"),
+        (PAYMENT_ON_DELIVERY, "Contra entrega")
+    )
+
     @property
     def total(self):
         return self.subtotal + self.shipping_and_handling - self.discount
@@ -135,12 +144,13 @@ class Sale(models.Model):
     type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=TYPE_COUNTER)
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
                                          verbose_name='dirección de envío')
+    payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
+                                                      verbose_name='método de pago')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha de venta')
-    date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
     subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
     shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
                                                 default=0.00)

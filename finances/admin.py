@@ -118,7 +118,7 @@ class SaleAdmin(VersionAdmin):
     form = AddOrChangeSaleForm
     fieldsets = (
         ('Datos', {
-            'fields': ('client', 'type', 'shipping_address')
+            'fields': ('client', 'type', 'shipping_address', 'payment_method')
         }),
         ('Productos', {
             'fields': ('product', 'quantity')
