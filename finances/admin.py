@@ -2,50 +2,9 @@ import finances.models as models
 from back_office.models import EmployeeRole
 from django.contrib import admin
 from django.db.models import Sum, F
-from finances.forms.order_forms import AddOrChangeOrderForm
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm
 from reversion.admin import VersionAdmin
-
-
-class OrderProductsInLine(admin.TabularInline):
-    """
-    Describes an inline class.
-    """
-    model = models.OrderProducts
-
-
-class OrderServicesInLine(admin.TabularInline):
-    """
-    Describes an inline class.
-    """
-    model = models.OrderServices
-
-
-class OrderAdmin(VersionAdmin):
-    """
-    Contains the details for the admin app
-    in regard to the Order entity.
-    """
-    form = AddOrChangeOrderForm
-    inlines = [
-        OrderProductsInLine,
-        OrderServicesInLine
-    ]
-    readonly_fields = [
-        'total'
-    ]
-    fieldsets = (
-        ("Datos administrativos", {
-            'fields': ('status', 'target', 'client', 'date',)
-        }),
-        ("Cotización", {
-            'fields': ('subtotal', 'shipping_and_handling', 'discount', 'total',)
-        }),
-        ("Otros", {
-            'fields': ('project',)
-        })
-    )
 
 
 class TransactionInline(admin.StackedInline):
@@ -157,6 +116,18 @@ class SaleAdmin(VersionAdmin):
     list_display_links = list_display
     list_filter = ('type', 'date', 'inventory',)
     form = AddOrChangeSaleForm
+    fieldsets = (
+        ('Datos', {
+            'fields': ('client', 'type', 'shipping_address')
+        }),
+        ('Productos', {
+            'fields': ('product', 'quantity')
+        }),
+        ('Montos', {
+            'fields': ('date', 'amount', 'subtotal', 'shipping_and_handling',
+                       'discount', 'project')
+        })
+    )
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
@@ -166,7 +137,6 @@ class SaleAdmin(VersionAdmin):
             return ['amount', 'date']
 
 
-admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
 admin.site.register(models.ProductPrice, ProductPriceAdmin)
 admin.site.register(models.MaterialCost, MaterialCostAdmin)

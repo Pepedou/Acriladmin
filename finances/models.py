@@ -9,91 +9,6 @@ from inventories.models import Product, Material, Product, Material, ProductsInv
 from operations.models import Service, Repair, Project
 
 
-class Order(models.Model):
-    """
-    An order of products made by a client.
-    """
-    PLACED = 0
-    IN_PROGRESS = 1
-    COMPLETE = 2
-    DELIVERED = 3
-    CANCELLED = 4
-    RETURNED = 5
-    STATUS_CHOICES = (
-        (PLACED, "Solicitada"),
-        (IN_PROGRESS, "En progreso"),
-        (COMPLETE, "Completa"),
-        (DELIVERED, "Entregada"),
-        (CANCELLED, "Cancelada"),
-        (RETURNED, "Devuelta"),
-    )
-
-    PROJECT = 0
-    PRODUCTS = 1
-    SERVICES = 2
-    PRODUCTS_AND_SERVICES = 3
-    ALL = 4
-    TARGET_CHOICES = (
-        (PROJECT, "Proyecto"),
-        (PRODUCTS, "Productos"),
-        (SERVICES, "Servicios"),
-        (PRODUCTS_AND_SERVICES, "Productos y servicios"),
-        (ALL, "Todos"),
-    )
-
-    @property
-    def total(self):
-        return self.subtotal + self.shipping_and_handling - self.discount
-
-    status = models.PositiveSmallIntegerField(verbose_name='estado', default=PLACED, choices=STATUS_CHOICES)
-    target = models.PositiveSmallIntegerField(verbose_name='entregable', choices=TARGET_CHOICES)
-    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
-    date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
-    subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
-    shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
-                                                default=0.00)
-    discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, verbose_name='proyecto')
-
-    class Meta:
-        verbose_name = 'orden'
-        verbose_name_plural = 'órdenes'
-
-    def __str__(self):
-        return str(self.id).zfill(9)
-
-
-class OrderProducts(models.Model):
-    """
-    An entry that relates a quantity of a certain product with an order.
-    """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
-    quantity = models.PositiveIntegerField(verbose_name='cantidad', default=1)
-
-    class Meta:
-        verbose_name = 'productos de una orden'
-        verbose_name_plural = 'productos de órdenes'
-
-    def __str__(self):
-        return "{0} - {1}".format(self.order, self.product)
-
-
-class OrderServices(models.Model):
-    """
-    An entry that relates a service with an order.
-    """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name='servicio')
-
-    class Meta:
-        verbose_name = 'servicios de una orden'
-        verbose_name_plural = 'servicios de órdenes'
-
-    def __str__(self):
-        return "{0} - {1}".format(self.order, self.service)
-
-
 class Invoice(models.Model):
     """
     Commercial document issued by Acrilfrasa to a buyer related to a sale transaction
@@ -101,7 +16,6 @@ class Invoice(models.Model):
     provided.
     """
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='total')
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name="orden")
     file = models.FileField(blank=True, verbose_name="archivo")
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
 
@@ -206,24 +120,32 @@ class Sale(models.Model):
     """
     The sale of a branch's product.
     """
-    COUNTER_TYPE = 0
-    SHIPPING_TYPE = 1
+    TYPE_COUNTER = 0
+    TYPE_SHIPPING = 1
     SALE_TYPES = (
-        (COUNTER_TYPE, "En mostrador"),
-        (SHIPPING_TYPE, "Con entrega"),
+        (TYPE_COUNTER, "En mostrador"),
+        (TYPE_SHIPPING, "Con entrega"),
     )
 
+    @property
+    def total(self):
+        return self.subtotal + self.shipping_and_handling - self.discount
+
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
+    type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=TYPE_COUNTER)
+    shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
+                                         verbose_name='dirección de envío')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='orden')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
-    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
-    shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
-                                         verbose_name='dirección de envío')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha de venta')
-    type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=COUNTER_TYPE)
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.0, verbose_name='monto')
+    date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
+    subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
+    shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
+                                                default=0.00)
+    discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
 
     class Meta:
         verbose_name = 'venta'
