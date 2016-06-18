@@ -15,6 +15,15 @@ class Invoice(models.Model):
     and indicating the products, quantities and agreed prices for products or services
     provided.
     """
+
+    @property
+    def folio(self):
+        """
+        Creates a folio using the Invoice's ID.
+        :return: The folio as a string.
+        """
+        return "F{0}".format(str(self.id).zfill(9))
+
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='total')
     file = models.FileField(blank=True, verbose_name="archivo")
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
@@ -24,7 +33,7 @@ class Invoice(models.Model):
         verbose_name_plural = "facturas"
 
     def __str__(self):
-        return str(self.id).zfill(9)
+        return self.folio
 
     def has_been_paid(self):
         """
@@ -86,6 +95,15 @@ class Transaction(models.Model):
     """
     Details a monetary transaction.
     """
+
+    @property
+    def folio(self):
+        """
+        Returns a folio using the Transaction's ID.
+        :return: The folio as a string.
+        """
+        return "T{0}".format(str(self.id).zfill(9))
+
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, verbose_name='factura')
     payed_by = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='pagado por')
     datetime = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha y hora')
@@ -96,7 +114,7 @@ class Transaction(models.Model):
         verbose_name_plural = 'transacciones'
 
     def __str__(self):
-        return "{0}: ${1}".format(self.datetime.date(), self.amount)
+        return self.folio
 
 
 class RepairCost(models.Model):
@@ -167,6 +185,12 @@ class Sale(models.Model):
     def clean(self):
         super(Sale, self).clean()
 
+        if self.type == Sale.TYPE_COUNTER and self.payment_method == Sale.PAYMENT_ON_DELIVERY:
+            raise ValidationError({
+                'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
+                                  'Para esto elija tipo de venta "Con entrega".'
+            })
+
         if self.id is not None:
             return
 
@@ -202,17 +226,21 @@ class Sale(models.Model):
             super(Sale, self).save()
             return
 
-        product_inventory_item = self.inventory.productinventoryitem_set.filter(product=self.product)[0]
+        product_inventory_item = self.inventory.productinventoryitem_set.filter(product=self.product).first()
 
         product_inventory_item.quantity -= self.quantity
 
-        product_price = ProductPrice.objects.filter(product=self.product)[0]
+        product_price = ProductPrice.objects.filter(product=self.product).first()
 
         self.amount = product_price.price * self.quantity
-        # TODO: Check if a Transaction is needed for an Invoice to be considered closed.
-        self.invoice = Invoice(total=self.amount, is_closed=True)
+
+        if self.payment_method == Sale.PAYMENT_CASH or self.payment_method == Sale.PAYMENT_TRANSFER:
+            if self.invoice is None:
+                self.invoice = Invoice(total=self.amount, is_closed=True)
+                self.invoice.save()
+
+            self.invoice.transaction_set.create(amount=self.amount, payed_by=self.client)
 
         with transaction.atomic():
-            self.invoice.save()
             product_inventory_item.save()
             super(Sale, self).save()

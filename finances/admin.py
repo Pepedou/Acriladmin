@@ -13,12 +13,18 @@ class TransactionInline(admin.StackedInline):
     """
     model = models.Transaction
 
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj is None:
+            return super(TransactionInline, self).get_extra(request, obj, **kwargs)
+        else:
+            return 0
+
 
 class InvoiceAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
-    list_display = ('id', 'is_closed',)
+    list_display = ('folio', 'is_closed',)
     readonly_fields = ('is_closed',)
     inlines = (TransactionInline,)
 
@@ -73,7 +79,7 @@ class TransactionAdmin(VersionAdmin):
 
         invoice = obj.invoice
 
-        related_transactions_sum = models.Transaction.objects.filter(invoice_id=invoice.id).aggregate(
+        related_transactions_sum = models.Transaction.objects.filter(invoice=invoice).aggregate(
             sum=Sum(F('amount')))['sum']
 
         if related_transactions_sum >= invoice.total:
@@ -120,7 +126,7 @@ class SaleAdmin(VersionAdmin):
             'fields': ('client', 'type', 'shipping_address', 'payment_method')
         }),
         ('Productos', {
-            'fields': ('product', 'quantity')
+            'fields': ('inventory', 'product', 'quantity')
         }),
         ('Montos', {
             'fields': ('date', 'invoice', 'subtotal', 'shipping_and_handling',
