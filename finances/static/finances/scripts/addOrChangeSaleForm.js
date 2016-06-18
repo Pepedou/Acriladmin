@@ -13,7 +13,7 @@ $(document).ready(function () {
     shippingInput = $("#id_shipping_and_handling");
     discountInput = $("#id_discount");
     discountPercentageInput = $("#id_discount_percentage");
-    totalParagraph = $("label:contains('Total:')").next("p");
+    totalParagraph = $("label:contains('Monto:')").next("p");
 
     totalParagraph.css("font-weight", "bold");
 

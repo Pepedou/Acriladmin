@@ -140,12 +140,12 @@ class Sale(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha de venta')
-    amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.0, verbose_name='monto')
     date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
     subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
     shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
                                                 default=0.00)
     discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.0, verbose_name='monto')
 
     class Meta:
         verbose_name = 'venta'

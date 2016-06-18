@@ -124,8 +124,8 @@ class SaleAdmin(VersionAdmin):
             'fields': ('product', 'quantity')
         }),
         ('Montos', {
-            'fields': ('date', 'amount', 'subtotal', 'shipping_and_handling',
-                       'discount')
+            'fields': ('date', 'subtotal', 'shipping_and_handling',
+                       'discount', 'amount')
         })
     )
 

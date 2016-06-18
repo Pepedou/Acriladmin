@@ -29,3 +29,8 @@ class AddOrChangeSaleForm(ModelForm):
                                                     'data-minimum-input-length': 1
                                                 })
         }
+
+    class Media:
+        js = [
+            "finances/scripts/addOrChangeSaleForm.js",
+        ]
