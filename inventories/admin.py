@@ -9,8 +9,7 @@ from inventories.forms.inventory_item_forms import TabularInLineProductInventory
 from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
-from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeExchangedProductTabularInlineForm, \
-    AddOrChangeReturnedProductTabularInlineForm
+from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeReturnedProductTabularInlineForm
 from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
 from reversion.admin import VersionAdmin
 
@@ -274,47 +273,38 @@ class ReturnedProductInLine(admin.TabularInline):
         else:
             return []
 
-    def has_delete_permission(self, request, obj=None):
-        return obj is None
-
-
-class ExchangedProductInLine(admin.TabularInline):
-    """
-    Describes the inline render of a returned product for the
-    Product's admin view.
-    """
-    form = AddOrChangeExchangedProductTabularInlineForm
-    model = models.ExchangedProduct
-
-    def get_extra(self, request, obj=None, **kwargs):
-        return 0 if obj is not None else 3
-
-    def get_readonly_fields(self, request, obj=None):
-        if obj is not None:
-            return ['product', 'quantity']
-        else:
-            return []
+    def get_actions(self, request):
+        actions = super(ReturnedProductInLine, self).get_actions(request)
+        del actions['delete_selected']
+        return actions
 
     def has_delete_permission(self, request, obj=None):
         return obj is None
 
 
-class ProductReimbursementAdmin(VersionAdmin):
+class ProductReimbursementAdmin(ModelAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProductReimbursement entity.
     """
-    inlines = [ReturnedProductInLine, ExchangedProductInLine]
-    readonly_fields = ('monetary_difference',)
-    list_display = ('id', 'to_branch', 'from_branch', 'date', 'monetary_difference',)
+    inlines = [ReturnedProductInLine]
+    list_display = ('folio', 'inventory', 'date', 'monetary_difference',)
     list_display_links = list_display
-    list_filter = ('to_branch', 'from_branch', 'date',)
+    list_filter = ('inventory', 'date',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is None:
-            return self.readonly_fields
+            return ['monetary_difference']
         else:
-            return ['to_branch', 'from_branch', 'monetary_difference']
+            return ['date', 'inventory', 'monetary_difference']
+
+    def get_actions(self, request):
+        actions = super(ProductReimbursementAdmin, self).get_actions(request)
+        del actions['delete_selected']
+        return actions
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def save_related(self, request, form, formsets, change):
         """
@@ -325,8 +315,6 @@ class ProductReimbursementAdmin(VersionAdmin):
         from functools import reduce
 
         super(ProductReimbursementAdmin, self).save_related(request, form, formsets, change)
-        total_income = 0
-        total_cost = 0
 
         reimbursement = form.instance
 
@@ -335,21 +323,12 @@ class ProductReimbursementAdmin(VersionAdmin):
         if returned_products.count() > 0:
             product_prices = ProductPrice.objects.filter(product__in=[item.product for item in returned_products])
 
-            total_income = reduce(lambda x, y: x + y,
-                                  [a.price * b.quantity for a in product_prices for b in returned_products if
-                                   a.product == b.product])
+            reimbursement.monetary_difference = reduce(lambda x, y: x + y,
+                                                       [a.price * b.quantity for a in product_prices for b in
+                                                        returned_products if
+                                                        a.product == b.product])
 
-        exchanged_products = models.ExchangedProduct.objects.filter(reimbursement=reimbursement)
-
-        if exchanged_products.count() > 0:
-            product_prices = ProductPrice.objects.filter(product__in=[item.product for item in returned_products])
-
-            total_cost = reduce(lambda x, y: x + y,
-                                [a.price * b.quantity for a in product_prices for b in exchanged_products if
-                                 a.product == b.product])
-
-        reimbursement.monetary_difference = total_income - total_cost
-        reimbursement.save()
+            reimbursement.save()
 
 
 admin.site.register(models.Product, ProductAdmin)

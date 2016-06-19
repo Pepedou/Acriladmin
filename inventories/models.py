@@ -2,7 +2,7 @@ import django
 
 from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
 
@@ -493,27 +493,31 @@ class ProductReimbursement(models.Model):
     """
     A product or material reimbursement.
     """
-    monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
+
+    @property
+    def folio(self):
+        """
+        Returns a folio created base on the reimbursement's ID.
+        :return: The folio as a string.
+        """
+        return "D{0}".format(str(self.id).zfill(9))
+
     date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de devolución')
-    to_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                  related_name='product_reimbursement_as_to_branch',
-                                  verbose_name='devuelve a')
-    from_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, null=True, blank=True,
-                                    related_name='product_reimbursement_as_from_branch',
-                                    verbose_name='intercambia con')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
 
     class Meta:
         verbose_name = 'devolución de productos'
         verbose_name_plural = 'devoluciones de productos'
 
     def __str__(self):
-        return "Devolución #{}".format(str(self.id))
+        return self.folio
 
 
 class ReturnedProduct(models.Model):
     """
     Represents a tuple consisting of a Product and a quantity
-    of that product that were returned.
+    that states how many units of that product were returned.
     """
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
@@ -523,102 +527,44 @@ class ReturnedProduct(models.Model):
         verbose_name = 'producto devuelto (entra)'
         verbose_name_plural = 'productos devueltos (entran)'
 
+    def __str__(self):
+        return str(self.id)
+
     def clean(self):
-        if self.pk is not None:
-            super(ReturnedProduct, self).clean()
-            return
+        super(ReturnedProduct, self).clean()
 
         if self.quantity == 0:
             raise ValidationError({
                 'quantity': 'La cantidad debe ser mayor a 0.'
             })
 
-        if self.reimbursement.to_branch is None:
-            return
+        from finances.models import ProductPrice
+        product_price = ProductPrice.objects.filter(product=self.product).first()
 
-        if self.reimbursement.to_branch.productsinventory is None:
-            raise ValidationError('La sucursal a la que se pretende devolver el producto no cuenta con un '
-                                  'inventario.')
+        if product_price is None:
+            raise ValidationError({
+                'product': 'Este producto no cuenta con un precio. Solicite que se le asigne un precio '
+                           'para poder completar la devolución.'
+            })
 
     def save(self):
         if self.pk is not None:
             super(ReturnedProduct, self).save()
             return
 
-        to_inventory = self.reimbursement.to_branch.productsinventory
+        inventory = self.reimbursement.inventory
 
-        inventory_product_items = to_inventory.productinventoryitem_set.filter(product=self.product)
+        inventory_product_items = inventory.productinventoryitem_set.filter(product=self.product)
 
         if inventory_product_items.count() == 0:
             inventory_item = ProductInventoryItem()
             inventory_item.product = self.product
-            inventory_item.inventory = to_inventory
+            inventory_item.inventory = inventory
         else:
-            inventory_item = inventory_product_items[0]
+            inventory_item = inventory_product_items.first()
 
         inventory_item.quantity += self.quantity
 
         with transaction.atomic():
             inventory_item.save()
             super(ReturnedProduct, self).save()
-
-
-class ExchangedProduct(models.Model):
-    """
-    Represents a tuple consisting of a Product and a quantity
-    of that product that were asked in exchange for others.
-    """
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
-    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
-    reimbursement = models.ForeignKey(ProductReimbursement, on_delete=models.CASCADE, verbose_name='devolución')
-
-    class Meta:
-        verbose_name = 'producto intercambiado (sale)'
-        verbose_name_plural = 'productos intercambiados (salen)'
-
-    def clean(self):
-        if self.pk is not None:
-            super(ExchangedProduct, self).clean()
-            return
-
-        if self.quantity == 0:
-            raise ValidationError({
-                'quantity': 'La cantidad debe ser mayor a 0.'
-            })
-
-        if self.reimbursement.from_branch is None:
-            raise ValidationError('No se pueden elegir productos a intercambiar sin haber seleccionado '
-                                  'de qué sucursal se van a obtener.')
-
-        try:
-            from_inventory = self.reimbursement.from_branch.productsinventory
-        except ObjectDoesNotExist:
-            raise ValidationError('La sucursal de destino no cuenta con un inventario de productos.')
-
-        inventory_product_queryset = from_inventory.productinventoryitem_set.filter(product=self.product)
-
-        if inventory_product_queryset.count() < 1:
-            raise ValidationError('El inventario de la sucursal no cuenta con este producto.')
-
-        inventory_product = inventory_product_queryset.first()
-
-        if inventory_product.quantity < self.quantity:
-            raise ValidationError('El inventario de la sucursal no cuenta con la cantidad suficiente de este producto. '
-                                  'Sólo cuenta con {0}.'.format(inventory_product.quantity))
-
-    def save(self):
-        if self.pk is not None:
-            super(ExchangedProduct, self).save()
-            return
-
-        from_inventory = self.reimbursement.from_branch.productsinventory
-
-        inventory_product_items = from_inventory.productinventoryitem_set.filter(product=self.product)
-
-        inventory_item = inventory_product_items[0]
-
-        inventory_item.quantity -= self.quantity
-
-        with transaction.atomic():
-            inventory_item.save()
-            super(ExchangedProduct, self).save()
