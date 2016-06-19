@@ -296,7 +296,7 @@ class ProductReimbursementAdmin(ModelAdmin):
         if obj is None:
             return ['monetary_difference']
         else:
-            return ['date', 'inventory', 'monetary_difference']
+            return ['date', 'inventory', 'monetary_difference', 'sale']
 
     def get_actions(self, request):
         actions = super(ProductReimbursementAdmin, self).get_actions(request)

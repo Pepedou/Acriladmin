@@ -155,6 +155,14 @@ class Sale(models.Model):
     )
 
     @property
+    def folio(self):
+        """
+        Returns a folio created base on the sale's ID.
+        :return: The folio as a string.
+        """
+        return "V{0}".format(str(self.id).zfill(9))
+
+    @property
     def total(self):
         return self.subtotal + self.shipping_and_handling - self.discount
 
@@ -180,7 +188,7 @@ class Sale(models.Model):
         verbose_name_plural = 'ventas'
 
     def __str__(self):
-        return "{0} - {1} ({2})".format(self.date.strftime("%x"), str(self.product), str(self.quantity))
+        return self.folio
 
     def clean(self):
         super(Sale, self).clean()

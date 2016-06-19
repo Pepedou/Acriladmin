@@ -505,6 +505,8 @@ class ProductReimbursement(models.Model):
     date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de devolución')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
+    sale = models.ForeignKey('finances.Sale', on_delete=models.SET_NULL, null=True, blank=True,
+                             verbose_name='venta relacionada')
 
     class Meta:
         verbose_name = 'devolución de productos'
