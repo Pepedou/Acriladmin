@@ -384,6 +384,15 @@ class ProductTransfer(models.Model):
     A transfer between two branches of a product.
     """
 
+    REJECTION_QUANTITY_MISMATCH = 0
+    REJECTION_MATERIAL_MISMATCH = 1
+    REJECTION_POOR_CONDITION = 2
+    REJECTION_REASONS = (
+        (REJECTION_QUANTITY_MISMATCH, "La cantidad recibida no concuerda con la esperada."),
+        (REJECTION_MATERIAL_MISMATCH, "El material recibido no concuerda con el esperado."),
+        (REJECTION_MATERIAL_MISMATCH, "El material se encuentra en mal estado.")
+    )
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
                                       related_name='product_transfers_as_source_branch',
@@ -393,6 +402,9 @@ class ProductTransfer(models.Model):
                                       verbose_name='sucursal de destino')
     quantity = models.PositiveIntegerField(verbose_name='cantidad')
     is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+    transfer_has_been_made = models.BooleanField(default=False, editable=False)
+    rejection_reason = models.PositiveSmallIntegerField(null=True, blank=True, choices=REJECTION_REASONS,
+                                                        verbose_name='motivo de rechazo')
 
     class Meta:
         verbose_name = 'transferencia de productos'
@@ -405,6 +417,16 @@ class ProductTransfer(models.Model):
         super(ProductTransfer, self).clean()
 
         if self.id is not None:
+            if self.is_confirmed and self.rejection_reason is not None:
+                raise ValidationError({
+                    'rejection_reason': 'No se puede rechazar un producto cuya recepción está confirmada. '
+                                        'Para hacerlo, deshabilite la confirmación o elimine el motivo de rechazo.'
+                })
+            elif not self.is_confirmed and self.rejection_reason is None:
+                raise ValidationError({
+                    'rejection_reason': 'Debe indicar un motivo para el rechazo de la transferencia.'
+                })
+
             return
 
         try:
@@ -439,56 +461,32 @@ class ProductTransfer(models.Model):
             })
 
     def save(self, *args, **kwargs):
-        if self.id is not None:
+        if self.is_confirmed and not self.transfer_has_been_made:
+            source_inventory = self.source_branch.productsinventory
+            target_inventory = self.target_branch.productsinventory
+
+            source_inventory_item = source_inventory.productinventoryitem_set.filter(product=self.product).first()
+            target_inventory_items = target_inventory.productinventoryitem_set.filter(product=self.product)
+
+            source_inventory_item.quantity -= self.quantity
+
+            if target_inventory_items.count() == 0:
+                target_inventory_item = ProductInventoryItem()
+                target_inventory_item.product = self.product
+                target_inventory_item.inventory = target_inventory
+            else:
+                target_inventory_item = target_inventory_items.first()
+
+            target_inventory_item.quantity += self.quantity
+
+            self.transfer_has_been_made = True
+
+            with transaction.atomic():
+                target_inventory_item.save()
+                source_inventory_item.save()
+                super(ProductTransfer, self).save(*args, **kwargs)
+        else:
             super(ProductTransfer, self).save(*args, **kwargs)
-            return
-
-        source_inventory = self.source_branch.productsinventory
-        target_inventory = self.target_branch.productsinventory
-
-        source_inventory_item = source_inventory.productinventoryitem_set.filter(product=self.product)[0]
-        target_inventory_items = target_inventory.productinventoryitem_set.filter(product=self.product)
-
-        source_inventory_item.quantity -= self.quantity
-
-        if len(target_inventory_items) == 0:
-            target_inventory_item = ProductInventoryItem()
-            target_inventory_item.product = self.product
-            target_inventory_item.inventory = target_inventory
-        else:
-            target_inventory_item = target_inventory_items[0]
-
-        target_inventory_item.quantity += self.quantity
-
-        with transaction.atomic():
-            target_inventory_item.save()
-            source_inventory_item.save()
-
-        super(ProductTransfer, self).save(*args, **kwargs)
-
-    def delete(self, using=None, keep_parents=False):
-        source_inventory = self.source_branch.productsinventory[0]
-        target_inventory = self.target_branch.productsinventory[0]
-
-        source_inventory_items = source_inventory.productinventoryitem_set.filter(product=self.product)
-        target_inventory_item = target_inventory.productinventoryitem_set.filter(product=self.product)[0]
-
-        if len(source_inventory_items) == 0:
-            source_inventory_item = ProductInventoryItem()
-            source_inventory_item.product = self.product
-            source_inventory_item.inventory = source_inventory
-        else:
-            source_inventory_item = source_inventory_items[0]
-
-        source_inventory_item.quantity += self.quantity
-
-        target_inventory_item.quantity -= self.quantity
-
-        with transaction.atomic():
-            target_inventory_item.save()
-            source_inventory_item.save()
-
-        super(ProductTransfer, self).delete(using, keep_parents)
 
 
 class ProductReimbursement(models.Model):

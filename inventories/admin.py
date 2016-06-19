@@ -1,5 +1,6 @@
 import inventories.models as models
 from django.contrib import admin
+from django.contrib.admin import ModelAdmin
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 from inventories.forms.inventory_item_forms import TabularInLineProductInventoryItemForm, \
@@ -223,7 +224,7 @@ class DurableGoodsInventoryAdmin(VersionAdmin):
         obj.save()
 
 
-class ProductTransferAdmin(VersionAdmin):
+class ProductTransferAdmin(ModelAdmin):
     """
     Specifies the details for the admin app in regard
     to the ProductTransfer entity.
@@ -234,14 +235,26 @@ class ProductTransferAdmin(VersionAdmin):
     readonly_fields = ("product", "source_branch", "target_branch", "quantity",)
 
     def get_readonly_fields(self, request, obj=None):
-        if obj is not None:
-            if request.user == obj.target_branch.productsinventory.supervisor or request.user.is_superuser \
-                    and obj.is_confirmed is False:
-                return super(ProductTransferAdmin, self).get_readonly_fields(request, obj)
-            else:
-                return super(ProductTransferAdmin, self).get_readonly_fields(request, obj) + ('is_confirmed',)
+        if obj is None:
+            return 'is_confirmed', 'rejection_reason',
+        elif request.user != obj.target_branch.productsinventory.supervisor and not request.user.is_superuser \
+                or obj.is_confirmed:
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason',)
+        elif obj.rejection_reason is None:
+            return self.readonly_fields
         else:
-            return 'is_confirmed',
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason',)
+
+    def get_actions(self, request):
+        actions = super(ProductTransferAdmin, self).get_actions(request)
+        del actions['delete_selected']
+        return actions
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.transfer_has_been_made:
+            return False
+        else:
+            return True
 
 
 class ReturnedProductInLine(admin.TabularInline):
