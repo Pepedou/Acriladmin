@@ -16,6 +16,13 @@ class Invoice(models.Model):
     provided.
     """
 
+    STATE_VALID = 0
+    STATE_CANCELLED = 1
+    INVOICE_STATES = (
+        (STATE_VALID, 'Válida'),
+        (STATE_CANCELLED, 'Cancelada')
+    )
+
     @property
     def folio(self):
         """
@@ -27,6 +34,8 @@ class Invoice(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='total')
     file = models.FileField(blank=True, verbose_name="archivo")
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
+    state = models.PositiveSmallIntegerField(choices=INVOICE_STATES, default=STATE_VALID, blank=True,
+                                             verbose_name='estado')
 
     class Meta:
         verbose_name = "factura"
@@ -55,6 +64,13 @@ class Invoice(models.Model):
                 self.is_closed = False
 
         super(Invoice, self).save()
+
+    def cancel(self):
+        """
+        Cancels the invoice, rendering it invalid.
+        """
+        self.state = Invoice.STATE_CANCELLED
+        self.save()
 
 
 class ProductPrice(models.Model):
@@ -154,6 +170,13 @@ class Sale(models.Model):
         (PAYMENT_ON_DELIVERY, "Contra entrega")
     )
 
+    STATE_VALID = 0
+    STATE_CANCELLED = 1
+    SALE_STATES = (
+        (STATE_VALID, 'Válida'),
+        (STATE_CANCELLED, 'Cancelada')
+    )
+
     @property
     def folio(self):
         """
@@ -168,6 +191,8 @@ class Sale(models.Model):
 
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=TYPE_COUNTER)
+    state = models.PositiveSmallIntegerField(choices=SALE_STATES, blank=True, default=STATE_VALID,
+                                             verbose_name='estado')
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
                                          verbose_name='dirección de envío')
     payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
@@ -252,3 +277,25 @@ class Sale(models.Model):
         with transaction.atomic():
             product_inventory_item.save()
             super(Sale, self).save()
+
+    def cancel(self):
+        """
+        Cancels the Sale, rendering it invalid. It restores the given quantity of the Sale's Product
+        to its corresponding inventory. If the Sale was the only Sale for its Invoice, the Invoice is
+        also cancelled.
+        """
+        if self.state == Sale.STATE_CANCELLED:
+            return
+
+        self.state = Sale.STATE_CANCELLED
+
+        product_inventory_item, created = self.inventory.productinventoryitem_set.get_or_create(
+            product=self.product)
+        product_inventory_item.quantity += self.quantity
+
+        with transaction.atomic():
+            product_inventory_item.save()
+            self.save()
+
+            if self.invoice is not None and self.invoice.sale_set.count() == 1:
+                self.invoice.cancel()

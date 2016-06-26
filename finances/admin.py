@@ -1,6 +1,7 @@
 import finances.models as models
 from back_office.models import EmployeeRole
 from django.contrib import admin
+from django.contrib.admin import ModelAdmin
 from django.db.models import Sum, F
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm
@@ -113,17 +114,18 @@ class RepairCostAdmin(VersionAdmin):
         obj.save()
 
 
-class SaleAdmin(VersionAdmin):
+class SaleAdmin(ModelAdmin):
     """
     Contains the details for the admin app in regard to the Sale entity.
     """
-    list_display = ['invoice', 'client', 'product', 'quantity']
+    list_display = ['invoice', 'client', 'product', 'quantity', 'state']
     list_display_links = list_display
-    list_filter = ('type', 'date', 'inventory',)
+    list_filter = ('type', 'state', 'date', 'inventory',)
     form = AddOrChangeSaleForm
+    actions = ['cancel_sales']
     fieldsets = (
         ('Datos', {
-            'fields': ('client', 'type', 'shipping_address', 'payment_method')
+            'fields': ('client', 'type', 'shipping_address', 'payment_method', 'state')
         }),
         ('Productos', {
             'fields': ('inventory', 'product', 'quantity')
@@ -135,11 +137,52 @@ class SaleAdmin(VersionAdmin):
     )
 
     def get_readonly_fields(self, request, obj=None):
-        if obj is not None:
+        if obj is not None and obj.state == models.Sale.STATE_VALID:
             return ('product', 'quantity', 'order', 'inventory', 'client',
-                    'amount', 'date',)
+                    'amount', 'date', 'state',)
+        if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
+            return ('client', 'type', 'state', 'shipping_address', 'payment_method',
+                    'product', 'quantity', 'invoice', 'inventory', 'date',
+                    'subtotal', 'shipping_and_handling', 'discount', 'amount')
         else:
-            return ['amount', 'date']
+            return ['amount', 'date', 'state']
+
+    def get_actions(self, request):
+        actions = super(SaleAdmin, self).get_actions(request)
+        del actions['delete_selected']
+        return actions
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
+            return False
+        else:
+            return True
+
+    def cancel_sales(self, request, queryset):
+        """
+        Cancels the requested sales.
+        :param request: The received HTTP request.
+        :param queryset: The sales to cancel.
+        """
+        num_failed_cancelations = 0
+        num_successfull_cancelations = 0
+
+        for sale in queryset:
+            try:
+                sale.cancel()
+                num_successfull_cancelations += 1
+            except:
+                num_failed_cancelations += 1
+
+        if num_failed_cancelations:
+            message = "Ocurrió un error al cancelar {0} ventas. Recargue la página para ver cuáles.".format(
+                num_failed_cancelations)
+        else:
+            message = "Se cancelaron exitosamente {0} ventas.".format(num_successfull_cancelations)
+
+        self.message_user(request, message)
+
+    cancel_sales.short_description = "Cancelar las ventas elegidas"
 
 
 admin.site.register(models.Invoice, InvoiceAdmin)
