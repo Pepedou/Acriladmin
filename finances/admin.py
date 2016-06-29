@@ -1,50 +1,11 @@
 import finances.models as models
+from back_office.models import EmployeeRole
 from django.contrib import admin
+from django.contrib.admin import ModelAdmin
 from django.db.models import Sum, F
-from finances.forms.order_forms import AddOrChangeOrderForm
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm
 from reversion.admin import VersionAdmin
-
-
-class OrderProductsInLine(admin.TabularInline):
-    """
-    Describes an inline class.
-    """
-    model = models.OrderProducts
-
-
-class OrderServicesInLine(admin.TabularInline):
-    """
-    Describes an inline class.
-    """
-    model = models.OrderServices
-
-
-class OrderAdmin(VersionAdmin):
-    """
-    Contains the details for the admin app
-    in regard to the Order entity.
-    """
-    form = AddOrChangeOrderForm
-    inlines = [
-        OrderProductsInLine,
-        OrderServicesInLine
-    ]
-    readonly_fields = [
-        'total'
-    ]
-    fieldsets = (
-        ("Datos administrativos", {
-            'fields': ('status', 'target', 'client', 'date',)
-        }),
-        ("Cotización", {
-            'fields': ('subtotal', 'shipping_and_handling', 'discount', 'total',)
-        }),
-        ("Otros", {
-            'fields': ('project',)
-        })
-    )
 
 
 class TransactionInline(admin.StackedInline):
@@ -53,12 +14,18 @@ class TransactionInline(admin.StackedInline):
     """
     model = models.Transaction
 
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj is None:
+            return super(TransactionInline, self).get_extra(request, obj, **kwargs)
+        else:
+            return 0
+
 
 class InvoiceAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
-    list_display = ('id', 'is_closed',)
+    list_display = ('folio', 'is_closed',)
     readonly_fields = ('is_closed',)
     inlines = (TransactionInline,)
 
@@ -113,7 +80,7 @@ class TransactionAdmin(VersionAdmin):
 
         invoice = obj.invoice
 
-        related_transactions_sum = models.Transaction.objects.filter(invoice_id=invoice.id).aggregate(
+        related_transactions_sum = models.Transaction.objects.filter(invoice=invoice).aggregate(
             sum=Sum(F('amount')))['sum']
 
         if related_transactions_sum >= invoice.total:
@@ -122,6 +89,12 @@ class TransactionAdmin(VersionAdmin):
             invoice.is_closed = False
 
         invoice.save()
+
+    def get_readonly_fields(self, request, obj=None):
+        if not obj or request.user.roles.filter(name=EmployeeRole.ADMINISTRATOR).exists():
+            return super(TransactionAdmin, self).get_readonly_fields(request, obj)
+
+        return ['invoice', 'payed_by', 'datetime', 'amount']
 
 
 class RepairCostAdmin(VersionAdmin):
@@ -149,25 +122,78 @@ class SaleProductItemInline(admin.TabularInline):
     form = SaleProductItemInlineForm
 
 
-class SaleAdmin(VersionAdmin):
+class SaleAdmin(ModelAdmin):
     """
     Contains the details for the admin app in regard to the Sale entity.
     """
-    list_display = ['date', 'client', 'amount']
-    exclude = ['invoice']
+    list_display = ['invoice', 'client', 'product', 'quantity', 'state']
     list_display_links = list_display
-    list_filter = ('type', 'date', 'inventory',)
+    list_filter = ('type', 'state', 'date', 'inventory',)
     form = AddOrChangeSaleForm
     inlines = (SaleProductItemInline,)
+    actions = ['cancel_sales']
+    fieldsets = (
+        ('Datos', {
+            'fields': ('client', 'type', 'shipping_address', 'payment_method', 'state')
+        }),
+        ('Productos', {
+            'fields': ('inventory', 'product', 'quantity')
+        }),
+        ('Montos', {
+            'fields': ('date', 'invoice', 'subtotal', 'shipping_and_handling',
+                       'discount', 'amount')
+        })
+    )
 
     def get_readonly_fields(self, request, obj=None):
-        if obj is not None:
-            return 'order', 'inventory', 'client', 'amount', 'date',
+        if obj is not None and obj.state == models.Sale.STATE_VALID:
+            return ('product', 'quantity', 'order', 'inventory', 'client',
+                    'amount', 'date', 'state',)
+        if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
+            return ('client', 'type', 'state', 'shipping_address', 'payment_method',
+                    'product', 'quantity', 'invoice', 'inventory', 'date',
+                    'subtotal', 'shipping_and_handling', 'discount', 'amount')
         else:
-            return ['amount', 'date']
+            return ['amount', 'date', 'state']
+
+    def get_actions(self, request):
+        actions = super(SaleAdmin, self).get_actions(request)
+        del actions['delete_selected']
+        return actions
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
+            return False
+        else:
+            return True
+
+    def cancel_sales(self, request, queryset):
+        """
+        Cancels the requested sales.
+        :param request: The received HTTP request.
+        :param queryset: The sales to cancel.
+        """
+        num_failed_cancelations = 0
+        num_successfull_cancelations = 0
+
+        for sale in queryset:
+            try:
+                sale.cancel()
+                num_successfull_cancelations += 1
+            except:
+                num_failed_cancelations += 1
+
+        if num_failed_cancelations:
+            message = "Ocurrió un error al cancelar {0} ventas. Recargue la página para ver cuáles.".format(
+                num_failed_cancelations)
+        else:
+            message = "Se cancelaron exitosamente {0} ventas.".format(num_successfull_cancelations)
+
+        self.message_user(request, message)
+
+    cancel_sales.short_description = "Cancelar las ventas elegidas"
 
 
-admin.site.register(models.Order, OrderAdmin)
 admin.site.register(models.Invoice, InvoiceAdmin)
 admin.site.register(models.ProductPrice, ProductPriceAdmin)
 admin.site.register(models.MaterialCost, MaterialCostAdmin)

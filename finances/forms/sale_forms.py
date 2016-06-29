@@ -40,5 +40,20 @@ class AddOrChangeSaleForm(ModelForm):
                                                               'data-placeholder': 'Ingrese una calle, ciudad, '
                                                                                   'región o país...',
                                                               'data-minimum-input-length': 3,
-                                                          })
+                                                          }),
+            'client': autocomplete.ModelSelect2(url='client-autocomplete',
+                                                attrs={
+                                                    'data-placeholder': 'Ingrese el nombre de un cliente...',
+                                                    'data-minimum-input-length': 1
+                                                }),
+            'invoice': autocomplete.ModelSelect2(url='invoice-autocomplete',
+                                                 attrs={
+                                                     'data-placeholder': 'Ingrese el ID de una factura...',
+                                                     'data-minimum-input-length': 1
+                                                 })
         }
+
+    class Media:
+        js = [
+            "finances/scripts/addOrChangeSaleForm.js",
+        ]

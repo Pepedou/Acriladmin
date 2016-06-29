@@ -9,108 +9,40 @@ from inventories.models import Product, Material, Product, Material, ProductsInv
 from operations.models import Service, Repair, Project
 
 
-class Order(models.Model):
-    """
-    An order of products made by a client.
-    """
-    PLACED = 0
-    IN_PROGRESS = 1
-    COMPLETE = 2
-    DELIVERED = 3
-    CANCELLED = 4
-    RETURNED = 5
-    STATUS_CHOICES = (
-        (PLACED, "Solicitada"),
-        (IN_PROGRESS, "En progreso"),
-        (COMPLETE, "Completa"),
-        (DELIVERED, "Entregada"),
-        (CANCELLED, "Cancelada"),
-        (RETURNED, "Devuelta"),
-    )
-
-    PROJECT = 0
-    PRODUCTS = 1
-    SERVICES = 2
-    PRODUCTS_AND_SERVICES = 3
-    ALL = 4
-    TARGET_CHOICES = (
-        (PROJECT, "Proyecto"),
-        (PRODUCTS, "Productos"),
-        (SERVICES, "Servicios"),
-        (PRODUCTS_AND_SERVICES, "Productos y servicios"),
-        (ALL, "Todos"),
-    )
-
-    @property
-    def total(self):
-        return self.subtotal + self.shipping_and_handling - self.discount
-
-    status = models.PositiveSmallIntegerField(verbose_name='estado', default=PLACED, choices=STATUS_CHOICES)
-    target = models.PositiveSmallIntegerField(verbose_name='entregable', choices=TARGET_CHOICES)
-    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
-    date = models.DateField(verbose_name='fecha', default=django.utils.timezone.now)
-    subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
-    shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
-                                                default=0.00)
-    discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, verbose_name='proyecto')
-
-    class Meta:
-        verbose_name = 'orden'
-        verbose_name_plural = 'órdenes'
-
-    def __str__(self):
-        return str(self.id).zfill(9)
-
-
-class OrderProducts(models.Model):
-    """
-    An entry that relates a quantity of a certain product with an order.
-    """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
-    quantity = models.PositiveIntegerField(verbose_name='cantidad', default=1)
-
-    class Meta:
-        verbose_name = 'productos de una orden'
-        verbose_name_plural = 'productos de órdenes'
-
-    def __str__(self):
-        return "{0} - {1}".format(self.order, self.product)
-
-
-class OrderServices(models.Model):
-    """
-    An entry that relates a service with an order.
-    """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='orden')
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name='servicio')
-
-    class Meta:
-        verbose_name = 'servicios de una orden'
-        verbose_name_plural = 'servicios de órdenes'
-
-    def __str__(self):
-        return "{0} - {1}".format(self.order, self.service)
-
-
 class Invoice(models.Model):
     """
     Commercial document issued by Acrilfrasa to a buyer related to a sale transaction
     and indicating the products, quantities and agreed prices for products or services
     provided.
     """
+
+    STATE_VALID = 0
+    STATE_CANCELLED = 1
+    INVOICE_STATES = (
+        (STATE_VALID, 'Válida'),
+        (STATE_CANCELLED, 'Cancelada')
+    )
+
+    @property
+    def folio(self):
+        """
+        Creates a folio using the Invoice's ID.
+        :return: The folio as a string.
+        """
+        return "F{0}".format(str(self.id).zfill(9))
+
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='total')
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name="orden")
     file = models.FileField(blank=True, verbose_name="archivo")
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
+    state = models.PositiveSmallIntegerField(choices=INVOICE_STATES, default=STATE_VALID, blank=True,
+                                             verbose_name='estado')
 
     class Meta:
         verbose_name = "factura"
         verbose_name_plural = "facturas"
 
     def __str__(self):
-        return str(self.id).zfill(9)
+        return self.folio
 
     def has_been_paid(self):
         """
@@ -132,6 +64,13 @@ class Invoice(models.Model):
                 self.is_closed = False
 
         super(Invoice, self).save()
+
+    def cancel(self):
+        """
+        Cancels the invoice, rendering it invalid.
+        """
+        self.state = Invoice.STATE_CANCELLED
+        self.save()
 
 
 class ProductPrice(models.Model):
@@ -172,6 +111,15 @@ class Transaction(models.Model):
     """
     Details a monetary transaction.
     """
+
+    @property
+    def folio(self):
+        """
+        Returns a folio using the Transaction's ID.
+        :return: The folio as a string.
+        """
+        return "T{0}".format(str(self.id).zfill(9))
+
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, verbose_name='factura')
     payed_by = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='pagado por')
     datetime = models.DateTimeField(default=django.utils.timezone.now, verbose_name='fecha y hora')
@@ -182,7 +130,7 @@ class Transaction(models.Model):
         verbose_name_plural = 'transacciones'
 
     def __str__(self):
-        return "{0}: ${1}".format(self.datetime.date(), self.amount)
+        return self.folio
 
 
 class RepairCost(models.Model):
@@ -206,21 +154,58 @@ class Sale(models.Model):
     """
     The sale of a branch's product.
     """
-    COUNTER_TYPE = 0
-    SHIPPING_TYPE = 1
+    TYPE_COUNTER = 0
+    TYPE_SHIPPING = 1
     SALE_TYPES = (
-        (COUNTER_TYPE, "En mostrador"),
-        (SHIPPING_TYPE, "Con entrega"),
+        (TYPE_COUNTER, "En mostrador"),
+        (TYPE_SHIPPING, "Con entrega"),
     )
 
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='orden')
-    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    PAYMENT_CASH = 0
+    PAYMENT_TRANSFER = 1
+    PAYMENT_ON_DELIVERY = 2
+    PAYMENT_TYPES = (
+        (PAYMENT_CASH, "Efectivo"),
+        (PAYMENT_TRANSFER, "Transferencia"),
+        (PAYMENT_ON_DELIVERY, "Contra entrega")
+    )
+
+    STATE_VALID = 0
+    STATE_CANCELLED = 1
+    SALE_STATES = (
+        (STATE_VALID, 'Válida'),
+        (STATE_CANCELLED, 'Cancelada')
+    )
+
+    @property
+    def folio(self):
+        """
+        Returns a folio created base on the sale's ID.
+        :return: The folio as a string.
+        """
+        return "V{0}".format(str(self.id).zfill(9))
+
+    @property
+    def total(self):
+        return self.subtotal + self.shipping_and_handling - self.discount
+
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
+    type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=TYPE_COUNTER)
+    state = models.PositiveSmallIntegerField(choices=SALE_STATES, blank=True, default=STATE_VALID,
+                                             verbose_name='estado')
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True,
                                          verbose_name='dirección de envío')
+    payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
+                                                      verbose_name='método de pago')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha de venta')
-    type = models.PositiveSmallIntegerField(verbose_name='tipo de venta', choices=SALE_TYPES, default=COUNTER_TYPE)
+    subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0.00)
+    shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
+                                                default=0.00)
+    discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0.00)
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.0, verbose_name='monto')
 
     class Meta:
@@ -228,10 +213,16 @@ class Sale(models.Model):
         verbose_name_plural = 'ventas'
 
     def __str__(self):
-        return "{0} - {1} ({2})".format(self.date.strftime("%x"), str(self.client), str(self.amount))
+        return self.folio
 
     def clean(self):
         super(Sale, self).clean()
+
+        if self.type == Sale.TYPE_COUNTER and self.payment_method == Sale.PAYMENT_ON_DELIVERY:
+            raise ValidationError({
+                'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
+                                  'Para esto elija tipo de venta "Con entrega".'
+            })
 
         if self.id is not None:
             return
@@ -270,8 +261,6 @@ class Sale(models.Model):
             super(Sale, self).save()
             return
 
-        self.amount = 0
-
         with transaction.atomic():
             for sale_product_item in self.saleproductitem_set.all():
                 product_inventory_item = self.inventory.productinventoryitem_set.filter(
@@ -288,6 +277,43 @@ class Sale(models.Model):
             self.invoice = Invoice(total=self.amount, is_closed=True)
             self.invoice.save()
             super(Sale, self).save()
+
+        product_price = ProductPrice.objects.filter(product=self.product).first()
+
+        self.amount = product_price.price * self.quantity
+
+        if self.payment_method == Sale.PAYMENT_CASH or self.payment_method == Sale.PAYMENT_TRANSFER:
+            if self.invoice is None:
+                self.invoice = Invoice(total=self.amount, is_closed=True)
+                self.invoice.save()
+
+            self.invoice.transaction_set.create(amount=self.amount, payed_by=self.client)
+
+        with transaction.atomic():
+            product_inventory_item.save()
+            super(Sale, self).save()
+
+    def cancel(self):
+        """
+        Cancels the Sale, rendering it invalid. It restores the given quantity of the Sale's Product
+        to its corresponding inventory. If the Sale was the only Sale for its Invoice, the Invoice is
+        also cancelled.
+        """
+        if self.state == Sale.STATE_CANCELLED:
+            return
+
+        self.state = Sale.STATE_CANCELLED
+
+        product_inventory_item, created = self.inventory.productinventoryitem_set.get_or_create(
+            product=self.product)
+        product_inventory_item.quantity += self.quantity
+
+        with transaction.atomic():
+            product_inventory_item.save()
+            self.save()
+
+            if self.invoice is not None and self.invoice.sale_set.count() == 1:
+                self.invoice.cancel()
 
 
 class SaleProductItem(models.Model):
