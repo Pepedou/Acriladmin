@@ -101,8 +101,12 @@ if IS_RUNNING_ON_HEROKU:
     default_database = dj_database_url.config()
 else:
     default_database = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'acriladmin_db',
+        'USER': 'acriladmin_user',
+        'PASSWORD': 'temp',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 
 DATABASES = {
@@ -175,7 +179,7 @@ else:
     STATIC_URL = '/{0}/'.format(STATIC_ROOT)
     MEDIA_URL = '/{0}/'.format(MEDIA_ROOT)
 
-#TODO: Must obtain from env
+# TODO: Must obtain from env
 GEOPOSITION_GOOGLE_MAPS_API_KEY = 'AIzaSyDoNl3rth4aERmk2DN45shHxOOLS8E81TQ'
 
 GEOPOSITION_MAP_OPTIONS = {
