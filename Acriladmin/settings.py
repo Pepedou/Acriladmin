@@ -175,6 +175,9 @@ else:
     STATIC_URL = '/{0}/'.format(STATIC_ROOT)
     MEDIA_URL = '/{0}/'.format(MEDIA_ROOT)
 
+#TODO: Must obtain from env
+GEOPOSITION_GOOGLE_MAPS_API_KEY = 'AIzaSyDoNl3rth4aERmk2DN45shHxOOLS8E81TQ'
+
 GEOPOSITION_MAP_OPTIONS = {
     'minZoom': 3,
     'maxZoom': 15,
