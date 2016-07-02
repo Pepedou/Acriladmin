@@ -26,8 +26,12 @@ class InvoiceAdmin(VersionAdmin):
     Contains the details for the admin app in regard to the Invoice entity.
     """
     list_display = ('folio', 'is_closed',)
-    readonly_fields = ('is_closed',)
+    readonly_fields = ('is_closed', 'state',)
     inlines = (TransactionInline,)
+
+    def save_model(self, request, obj, form, change):
+        obj.state = models.Invoice.STATE_VALID
+        super(InvoiceAdmin, self).save_model(request, obj, form, change)
 
 
 class ProductPriceAdmin(VersionAdmin):
@@ -126,7 +130,7 @@ class SaleAdmin(ModelAdmin):
     """
     Contains the details for the admin app in regard to the Sale entity.
     """
-    list_display = ['invoice', 'client', 'product', 'quantity', 'state']
+    list_display = ['folio', 'client', 'state']
     list_display_links = list_display
     list_filter = ('type', 'state', 'date', 'inventory',)
     form = AddOrChangeSaleForm
@@ -134,27 +138,27 @@ class SaleAdmin(ModelAdmin):
     actions = ['cancel_sales']
     fieldsets = (
         ('Datos', {
-            'fields': ('client', 'type', 'shipping_address', 'payment_method', 'state')
+            'fields': ('client', 'shipping_address', 'type', 'payment_method', 'state')
         }),
         ('Productos', {
-            'fields': ('inventory', 'product', 'quantity')
+            'fields': ('inventory',)
         }),
         ('Montos', {
             'fields': ('date', 'invoice', 'subtotal', 'shipping_and_handling',
-                       'discount', 'amount')
+                       'discount', 'total',),
         })
     )
 
     def get_readonly_fields(self, request, obj=None):
-        if obj is not None and obj.state == models.Sale.STATE_VALID:
+        if obj is not None and obj.state == models.Sale.STATE_ACTIVE:
             return ('product', 'quantity', 'order', 'inventory', 'client',
-                    'amount', 'date', 'state',)
+                    'date', 'state', 'subtotal', 'total',)
         if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
             return ('client', 'type', 'state', 'shipping_address', 'payment_method',
                     'product', 'quantity', 'invoice', 'inventory', 'date',
-                    'subtotal', 'shipping_and_handling', 'discount', 'amount')
+                    'subtotal', 'shipping_and_handling', 'discount', 'total',)
         else:
-            return ['amount', 'date', 'state']
+            return 'date', 'state', 'subtotal', 'total',
 
     def get_actions(self, request):
         actions = super(SaleAdmin, self).get_actions(request)
@@ -192,6 +196,12 @@ class SaleAdmin(ModelAdmin):
         self.message_user(request, message)
 
     cancel_sales.short_description = "Cancelar las ventas elegidas"
+
+    def save_related(self, request, form, formsets, change):
+        obj = form.instance
+        super(SaleAdmin, self).save_related(request, form, formsets, change)
+        obj.invoice.state = models.Invoice.STATE_VALID
+        obj.invoice.save()
 
 
 admin.site.register(models.Invoice, InvoiceAdmin)
