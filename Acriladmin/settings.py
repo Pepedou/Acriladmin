@@ -23,9 +23,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'zus&*yei-pwy*ov%$(3i*0@)b@4*7&gsdv__k5w(w(j*c98^0u'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 IS_RUNNING_ON_HEROKU = "IS_RUNNING_ON_HEROKU" in os.environ
 DEBUG = not IS_RUNNING_ON_HEROKU
 
@@ -179,8 +178,7 @@ else:
     STATIC_URL = '/{0}/'.format(STATIC_ROOT)
     MEDIA_URL = '/{0}/'.format(MEDIA_ROOT)
 
-# TODO: Must obtain from env
-GEOPOSITION_GOOGLE_MAPS_API_KEY = 'AIzaSyDoNl3rth4aERmk2DN45shHxOOLS8E81TQ'
+GEOPOSITION_GOOGLE_MAPS_API_KEY = os.getenv('GEOPOSITION_GOOGLE_MAPS_API_KEY')
 
 GEOPOSITION_MAP_OPTIONS = {
     'minZoom': 3,
@@ -198,6 +196,6 @@ CITIES_LIGHT_INCLUDE_CITY_TYPES = ['PPL', 'PPLA', 'PPLA2', 'PPLA3', 'PPLA4', 'PP
                                    'PPLS', 'STLMT']
 
 # Django session security
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = not DEBUG
 SESSION_SECURITY_WARN_AFTER = 350
 SESSION_SECURITY_EXPIRE_AFTER = 420
