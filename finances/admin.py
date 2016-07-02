@@ -73,6 +73,7 @@ class TransactionAdmin(VersionAdmin):
     """
     Contains the details for the admin app in regard to the Transaction entity.
     """
+    list_filter = ['datetime']
 
     def save_model(self, request, obj, form, change):
         """
@@ -124,6 +125,16 @@ class SaleProductItemInline(admin.TabularInline):
     """
     model = models.SaleProductItem
     form = SaleProductItemInlineForm
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
+            return 'product', 'quantity',
+
+    def get_extra(self, request, obj=None, **kwargs):
+        return 3 if obj is None else 0
+
+    def has_delete_permission(self, request, obj=None):
+        return obj is None or obj.state != models.Sale.STATE_CANCELLED
 
 
 class SaleAdmin(ModelAdmin):

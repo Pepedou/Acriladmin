@@ -253,12 +253,20 @@ class Sale(models.Model):
 
         self.state = Sale.STATE_CANCELLED
 
-        product_inventory_item, created = self.inventory.productinventoryitem_set.get_or_create(
-            product=self.product)
-        product_inventory_item.quantity += self.quantity
+        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(
+            product__in=[x.product for x in self.saleproductitem_set.all()])
 
         with transaction.atomic():
-            product_inventory_item.save()
+            item_tuples = [(inv_item, sale_item,)
+                           for inv_item in product_inventory_item_set
+                           for sale_item in self.saleproductitem_set.all()
+                           if inv_item.product == sale_item.product]
+
+            for inv_item, sale_item in item_tuples:
+                inv_item.quantity += sale_item.quantity
+                inv_item.save()
+
+            self.inventory.save()
             self.save()
 
             if self.invoice is not None and self.invoice.sale_set.count() == 1:
