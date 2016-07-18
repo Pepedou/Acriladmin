@@ -129,6 +129,8 @@ class SaleProductItemInline(admin.TabularInline):
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
             return 'product', 'quantity',
+        else:
+            return []
 
     def get_extra(self, request, obj=None, **kwargs):
         return 3 if obj is None else 0
