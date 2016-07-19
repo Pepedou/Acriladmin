@@ -11,13 +11,13 @@ class AddressAdmin(VersionAdmin):
     Specifies the details for the admin app in regard
     to the Address entity.
     """
-    fields = (
+    fields = [
         ('street', 'exterior_number'),
         'interior_number',
-        ('city'),
+        'city',
         ('state', 'country'),
         'zip_code'
-    )
+    ]
     list_display = ('street', 'exterior_number', 'city', 'state', 'country',)
     list_filter = ('country', 'state',)
 
