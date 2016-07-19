@@ -1,6 +1,6 @@
 name|description
 Administrador|Administrador de área.
-Ventas telefónicas|Encargado de realizar ventas por teléfono.
+Ventas|Encargado de realizar ventas de productos.
 Ventas en campo|Encargado de realizar ventas en el campo.
 Agente de ventas|Encargado de generar nuevos clientes.
 Instalador|Instalación del producto en las obras.
