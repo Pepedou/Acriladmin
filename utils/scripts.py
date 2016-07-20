@@ -56,13 +56,27 @@ def fill_up_product_inventories(product_quantity):
     ProductInventoryItem.objects.bulk_create(inventory_items)
 
 
+def set_default_passwords_and_make_staff():
+    """
+    Sets the default password for all the users. The password
+    consists of their first name followed by the first letter of their
+    lastname. It also marks them as staff so that they can login.
+    """
+    from back_office.models import Employee
+
+    for emp in Employee.objects.all():
+        emp.is_staff = True
+        emp.set_password(emp.first_name.split()[0] + emp.last_name[0])
+        emp.save()
+
+
 if __name__ == "__main__":
     try:
         print("Executing scripts...")
         assign_product_price_to_all_products(100.00)
         fill_up_product_inventories(100)
+        set_default_passwords_and_make_staff()
         print("Scripts executed successfully!")
     except Exception as ex:
         print("Scripts execution failed!")
         print("{0}".format(ex))
-
