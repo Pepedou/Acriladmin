@@ -66,9 +66,10 @@ def set_default_passwords_and_make_staff():
 
     for emp in Employee.objects.all():
         emp.is_staff = True
-        emp.set_password(emp.first_name.split()[0] + emp.last_name[0])
+        emp.set_password("{0}{1}".format(
+            emp.first_name.split()[0].strip().lower(),
+            emp.last_name[0].strip().lower()))
         emp.save()
-
 
 if __name__ == "__main__":
     try:
