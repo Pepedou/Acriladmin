@@ -21,7 +21,7 @@ class TransactionInline(admin.StackedInline):
             return 0
 
 
-class InvoiceAdmin(VersionAdmin):
+class InvoiceAdmin(admin.ModelAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
@@ -69,7 +69,7 @@ class MaterialCostAdmin(VersionAdmin):
         obj.save()
 
 
-class TransactionAdmin(VersionAdmin):
+class TransactionAdmin(admin.ModelAdmin):
     """
     Contains the details for the admin app in regard to the Transaction entity.
     """
