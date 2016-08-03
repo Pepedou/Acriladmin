@@ -25,7 +25,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
-    list_display = ('folio', 'is_closed',)
+    list_display = ('folio', 'external_id', 'is_closed',)
     readonly_fields = ('is_closed', 'state',)
     inlines = (TransactionInline,)
 

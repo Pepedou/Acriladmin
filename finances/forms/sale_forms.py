@@ -48,7 +48,8 @@ class AddOrChangeSaleForm(ModelForm):
                                                 }),
             'invoice': autocomplete.ModelSelect2(url='invoice-autocomplete',
                                                  attrs={
-                                                     'data-placeholder': 'Ingrese el ID de una factura...',
+                                                     'data-placeholder':
+                                                         'Ingrese el folio de una factura...',
                                                      'data-minimum-input-length': 1
                                                  })
         }
