@@ -32,7 +32,8 @@ class ProductAdmin(VersionAdmin):
     inlines = [ProductComponentInLine]
     list_display = ['sku', 'description', 'line', 'length', 'width', 'thickness']
     list_display_links = ['sku', 'description']
-    list_filter = ['line', 'color', 'engraving', 'is_composite']
+    list_filter = ['is_composite', 'line', 'engraving']
+    list_per_page = 50
     search_fields = ['sku', 'description']
 
     def save_model(self, request, obj, form, change):

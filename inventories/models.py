@@ -1,10 +1,10 @@
 import django
-
-from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
+
+from back_office.models import Employee, Client, BranchOffice, EmployeeRole
 
 
 class SIPrefix:
@@ -91,35 +91,78 @@ class Product(models.Model):
     """
     The definition of a product manufactured by Acrilfrasa.
     """
-    ACRYLIC = 0
-    POLYCARBONATE = 1
-    CELLULAR = 2
-    PLASTIC = 3
-    SHEET = 4
-    GRIDS = 5
-    DOMES = 6
-    SILICON = 7
-    NOT_LISTED = 8
+    POL = 0
+    POL_SOL = 1
+    LAM = 2
+    OTROS = 3
+    ACR_R = 4
+    ACR_L = 5
+    ADHESIVO = 6
+    ACCESORIO = 7
+    DOM = 8
+    BUR = 9
+    CORTE = 10
+    NINGUNA = 11
+    ACR_LINEA = 12
+    ACR_GRUESO = 13
+    ACR_IMPACTO = 14
+    GRABADO = 15
+    ACR_ESPEJO = 16
+    GALVANIZADA = 17
+    PERFIL = 18
+    NO_INCLUIDOS = 19
+    DIFUSOR = 20
+    LINER = 21
+    LAM_LISA = 22
+    PLASTICO = 23
+    REJILLA = 24
+    GLASLINER = 25
+    SILICON = 26
+    POL_SOLIDO = 27
+    SINTRA = 28
+    STONIA = 29
+
     LINE_TYPES = (
-        (ACRYLIC, "Acrílico"),
-        (POLYCARBONATE, "Policarbonato"),
-        (CELLULAR, "Celular"),
-        (PLASTIC, "Plástico"),
-        (SHEET, "Lámina"),
-        (GRIDS, "Rejillas"),
-        (DOMES, "Domos"),
-        (SILICON, "Silicones"),
-        (NOT_LISTED, "Otra")
+        (POL, "POL"),
+        (POL_SOL, "POL_SOL"),
+        (LAM, "LAM"),
+        (OTROS, "OTROS"),
+        (ACR_R, "ACR R"),
+        (ACR_L, "ACR_L"),
+        (ADHESIVO, "ADHESIVO"),
+        (ACCESORIO, "ACCESORIO"),
+        (DOM, "DOM"),
+        (BUR, "BUR"),
+        (CORTE, "CORTE"),
+        (NINGUNA, "NINGUNA"),
+        (ACR_LINEA, "ACR LINEA"),
+        (ACR_GRUESO, "ACR GRUESO"),
+        (ACR_IMPACTO, "ACR_IMPACTO"),
+        (GRABADO, "GRABADO"),
+        (ACR_ESPEJO, "ACR ESPEJO"),
+        (GALVANIZADA, "GALVANIZADA"),
+        (PERFIL, "PERFIL"),
+        (NO_INCLUIDOS, "NO INCLUIDOS"),
+        (DIFUSOR, "DIFUSOR"),
+        (LINER, "LINER"),
+        (LAM_LISA, "LAM - LISA"),
+        (PLASTICO, "PLASTICO"),
+        (REJILLA, "REJILLA"),
+        (GLASLINER, "GLASLINER"),
+        (SILICON, "SILICON"),
+        (POL_SOLIDO, "POL SOLIDO"),
+        (SINTRA, "SINTRA"),
+        (STONIA, "STONIA"),
     )
 
     sku = models.CharField(max_length=45, unique=True, verbose_name='SKU')
     description = models.CharField(max_length=100, verbose_name='descripción')
-    line = models.PositiveSmallIntegerField(verbose_name='línea', choices=LINE_TYPES, default=NOT_LISTED)
+    line = models.PositiveSmallIntegerField(verbose_name='línea', choices=LINE_TYPES, default=NINGUNA)
     engraving = models.CharField(max_length=45, verbose_name='grabado', blank=True)
-    color = models.CharField(blank=True, max_length=10, verbose_name='color')
+    color = models.CharField(blank=True, max_length=20, verbose_name='color')
     length = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='longitud (m)')
-    width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura (m)')
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='espesor (mm)')
+    width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura (m)')
     is_composite = models.BooleanField(default=False, verbose_name='es compuesto')
 
     class Meta:

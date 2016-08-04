@@ -79,7 +79,7 @@ class ProductPrice(models.Model):
     """
     Determines the price of a product.
     """
-    product = models.OneToOneField(Product, on_delete=models.CASCADE, verbose_name='producto')
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, primary_key=True, verbose_name='producto')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='precio')
     authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, verbose_name='autorizado por',
                                       limit_choices_to=~Q(username='root'))

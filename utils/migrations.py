@@ -1,7 +1,10 @@
 import csv
-
 import os
+from decimal import Decimal
+
 from django.conf import settings
+
+from inventories.models import Product
 
 
 def load_employee_roles(apps, schema_editor):
@@ -69,36 +72,122 @@ def load_products_inventory(apps, schema_editor):
     Loads the product_inventory.csv file into the database.
     """
     new_products = []
-    product_definition_class = apps.get_model("inventories", "Product")
+    product_class = apps.get_model("inventories", "Product")
 
     del schema_editor
 
     with open(os.path.join(settings.BASE_DIR, "var/csv/product_inventory.csv")) as file:
-        content = csv.DictReader(file, delimiter=',')
-        width = 0
-        length = 0
-        thickness = 0
+        content = csv.DictReader(file, delimiter='|')
 
         for row in content:
-            for string in row['descripcion'].split():
-                if '*' in string:
-                    try:
-                        width = float(string.split('*')[0])
-                        length = float(string.split('*')[1])
-                    except ValueError:
-                        continue
-                elif 'MM' in string:
-                    try:
-                        thickness = float(string.split('M')[0])
-                    except ValueError:
-                        continue
+            new_product = product_class(sku=row['CLAVE'].strip(),
+                                        description=row['DESCRIPCION'].strip(),
+                                        line=_get_index_for_product_line(row['LINEA'].strip()),
+                                        engraving=row['GRABADO'].strip(),
+                                        color=row['COLOR'].strip(),
+                                        length=Decimal(row['LONGITUD']),
+                                        thickness=Decimal(row['ANCHO']),
+                                        width=Decimal(row['ESPESOR']),
+                                        is_composite=False)
 
-            new_product = product_definition_class(sku=row['clave'],
-                                                   description=row['descripcion'],
-                                                   width=width,
-                                                   length=length,
-                                                   thickness=thickness,
-                                                   is_composite=False)
             new_products.append(new_product)
 
-        product_definition_class.objects.bulk_create(new_products)
+    product_class.objects.bulk_create(new_products)
+
+
+def _get_index_for_product_line(product_line):
+    """
+    Returns the integer that corresponds to a Product Line.
+    :param product_line: The line for which the index is needed.
+    :return: The line's index.
+    """
+    if product_line == "POL":
+        return Product.POL
+    elif product_line == "POL SOL":
+        return Product.POL_SOL
+    elif product_line == "LAM":
+        return Product.LAM
+    elif product_line == "OTROS":
+        return Product.OTROS
+    elif product_line == "ACR R":
+        return Product.ACR_R
+    elif product_line == "ACR L":
+        return Product.ACR_L
+    elif product_line == "ADHESIVO":
+        return Product.ADHESIVO
+    elif product_line == "ACCESORIO":
+        return Product.ACCESORIO
+    elif product_line == "DOM":
+        return Product.DOM
+    elif product_line == "BUR":
+        return Product.BUR
+    elif product_line == "CORTE":
+        return Product.CORTE
+    elif product_line == "NINGUNA":
+        return Product.NINGUNA
+    elif product_line == "ACR-LINEA":
+        return Product.ACR_LINEA
+    elif product_line == "ACR-GRUESO":
+        return Product.ACR_GRUESO
+    elif product_line == "ACR-IMPACTO":
+        return Product.ACR_IMPACTO
+    elif product_line == "GRABADO":
+        return Product.GRABADO
+    elif product_line == "ACR-ESPEJO":
+        return Product.ACR_ESPEJO
+    elif product_line == "GALVANIZADA":
+        return Product.GALVANIZADA
+    elif product_line == "PERFIL":
+        return Product.PERFIL
+    elif product_line == "NO INCLUIDOS":
+        return Product.NO_INCLUIDOS
+    elif product_line == "DIFUSOR":
+        return Product.DIFUSOR
+    elif product_line == "LINER":
+        return Product.LINER
+    elif product_line == "LAM-LISA":
+        return Product.LAM_LISA
+    elif product_line == "PLASTICO":
+        return Product.PLASTICO
+    elif product_line == "REJILLA":
+        return Product.REJILLA
+    elif product_line == "GLASLINER":
+        return Product.GLASLINER
+    elif product_line == "SILICON":
+        return Product.SILICON
+    elif product_line == "POL SOLIDO":
+        return Product.POL_SOLIDO
+    elif product_line == "SINTRA":
+        return Product.SINTRA
+    elif product_line == "STONIA":
+        return Product.STONIA
+    else:
+        raise NotImplementedError(product_line)
+
+
+def load_product_prices(apps, schema_editor):
+    """
+    Loads the product prices' from the product_inventory.csv file into
+    the database.
+    """
+    product_prices = []
+    product_price_class = apps.get_model("finances", "ProductPrice")
+    product_class = apps.get_model("inventories", "Product")
+    employee_class = apps.get_model("back_office", "Employee")
+
+    author = employee_class.objects.filter(username='lfragoso').first()
+
+    del schema_editor
+
+    with open(os.path.join(settings.BASE_DIR, "var/csv/product_inventory.csv")) as file:
+        content = csv.DictReader(file, delimiter='|')
+
+        for row in content:
+            product = product_class.objects.filter(sku=row['CLAVE'].strip()).first()
+            new_product_price = product_price_class(product=product,
+                                                    price=Decimal(row['PRECIO']),
+                                                    authorized_by_id=author.id)
+
+            product_prices.append(new_product_price)
+
+    product_price_class.objects.bulk_create(product_prices)
