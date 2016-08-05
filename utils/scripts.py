@@ -74,7 +74,6 @@ def set_default_passwords_and_make_staff():
 if __name__ == "__main__":
     try:
         print("Executing scripts...")
-        assign_product_price_to_all_products(100.00)
         fill_up_product_inventories(100)
         set_default_passwords_and_make_staff()
         print("Scripts executed successfully!")

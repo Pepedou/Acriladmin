@@ -25,9 +25,16 @@ class InvoiceAdmin(admin.ModelAdmin):
     """
     Contains the details for the admin app in regard to the Invoice entity.
     """
-    list_display = ('folio', 'external_id', 'is_closed',)
-    readonly_fields = ('is_closed', 'state',)
+    list_display = ('folio', 'total', 'is_closed',)
     inlines = (TransactionInline,)
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = ('is_closed', 'state',)
+        
+        if obj is None:
+            return readonly_fields
+        else:
+            return readonly_fields + ('folio',)
 
     def save_model(self, request, obj, form, change):
         obj.state = models.Invoice.STATE_VALID

@@ -8,7 +8,7 @@ from utils import migrations as utils_migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('finances', '0003_auto_20160803_2338'),
+        ('finances', '0003_auto_20160804_2155'),
         ('back_office', 'load_initial_data'),
         ('inventories', 'load_initial_data')
     ]

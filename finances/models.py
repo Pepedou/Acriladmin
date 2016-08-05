@@ -25,16 +25,8 @@ class Invoice(models.Model):
         (STATE_CANCELLED, 'Cancelada')
     )
 
-    @property
-    def folio(self):
-        """
-        Creates a folio using the Invoice's ID.
-        :return: The folio as a string.
-        """
-        return "F{0}".format(str(self.id).zfill(9))
-
+    folio = models.CharField(max_length=50, primary_key=True, verbose_name='folio externo')
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='total')
-    external_id = models.PositiveIntegerField(null=True, blank=True, verbose_name='folio externo')
     file = models.FileField(blank=True, verbose_name="archivo")
     is_closed = models.BooleanField(default=False, verbose_name="cerrada")
     state = models.PositiveSmallIntegerField(choices=INVOICE_STATES, default=STATE_VALID, verbose_name='estado')
