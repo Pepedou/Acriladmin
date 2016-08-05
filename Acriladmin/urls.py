@@ -13,19 +13,22 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from back_office.views import AddressAutocomplete, ClientAutocomplete
 from django.conf.urls import url, include
 from django.contrib import admin
 from django.views.generic import RedirectView
-from finances import views
-from finances.views import InvoiceAutocomplete
-from inventories import urls as inventories_urls
-from inventories.views import ProductAutocomplete, MaterialAutocomplete, ConsumableAutocomplete, DurableGoodAutocomplete
 from rest_framework import routers
 
+from back_office.views import AddressAutocomplete, ClientAutocomplete
+from finances import views as fin_views
+from finances.views import InvoiceAutocomplete
+from inventories import urls as inventories_urls
+from inventories import views as inv_views
+from inventories.views import ProductAutocomplete, MaterialAutocomplete, ConsumableAutocomplete, DurableGoodAutocomplete
+
 router = routers.DefaultRouter()
-router.register(r'finances/productprice', views.ProductPriceViewSet)
-router.register(r'finances/materialcost', views.MaterialCostViewSet)
+router.register(r'finances/productprice', fin_views.ProductPriceViewSet)
+router.register(r'finances/materialcost', fin_views.MaterialCostViewSet)
+router.register(r'inventories/productinventoryitem', inv_views.ProductInventoryItemViewSet)
 
 urlpatterns = [
     url(r'^$', RedirectView.as_view(url='/admin/', permanent=False)),

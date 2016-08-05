@@ -1,4 +1,6 @@
 import operator
+from functools import reduce
+
 from dal import autocomplete
 from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
@@ -6,9 +8,11 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
-from functools import reduce
+from rest_framework import viewsets
+
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
-    Product, Material, Consumable, DurableGood
+    Product, Material, Consumable, DurableGood, ProductInventoryItem
+from inventories.serializers import ProductInventoryItemSerializer
 
 
 class ProductInventoryView(ListView):
@@ -39,9 +43,46 @@ class ProductInventoryView(ListView):
 
             for item in inventory_items:
                 queryset.append([
-                    item.product.sku,
-                    item.product.description,
-                    item.quantity
+                    {
+                        "attribute": item.id,
+                        "name": "item_id",
+                        "type": "hidden"
+                    },
+                    {
+                        "attribute": item.product.id,
+                        "name": "product_id",
+                        "type": "hidden"
+                    },
+                    {
+                        "attribute": item.product.sku,
+                        "name": "product_sku",
+                        "type": "label"
+                    },
+                    {
+                        "attribute": item.product.description,
+                        "name": "product_description",
+                        "type": "label"
+                    },
+                    {
+                        "attribute": item.product.engraving,
+                        "name": "product_engraving",
+                        "type": "label"
+                    },
+                    {
+                        "attribute": item.product.color,
+                        "name": "product_color",
+                        "type": "label"
+                    },
+                    {
+                        "attribute": item.quantity,
+                        "name": "item_quantity",
+                        "type": "input"
+                    },
+                    {
+                        "attribute": item.inventory.id,
+                        "name": "inventory_id",
+                        "type": "hidden"
+                    }
                 ])
 
             return queryset
@@ -51,11 +92,12 @@ class ProductInventoryView(ListView):
     def get_context_data(self, **kwargs):
         context = super(ProductInventoryView, self).get_context_data(**kwargs)
         context['title'] = self.inventory_name
-        context['table_headers'] = ['SKU', 'Producto', 'Cantidad']
+        context['table_headers'] = ['SKU', 'Descripción', 'Grabado', 'Color', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
         context['app_list'] = reverse('admin:app_list', args=('inventories',))
         context['inventory_list_url'] = reverse('admin:inventories_productsinventory_changelist')
+        context['product_inv_item_api_url'] = reverse('productinventoryitem-list')
 
         return context
 
@@ -288,3 +330,12 @@ class DurableGoodAutocomplete(autocomplete.Select2QuerySetView):
             query_set = DurableGood.objects.all()
 
         return query_set
+
+
+class ProductInventoryItemViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows a products inventory's item to be viewed or
+    edited through a RESTful API.
+    """
+    queryset = ProductInventoryItem.objects.all()
+    serializer_class = ProductInventoryItemSerializer

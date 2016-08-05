@@ -1,17 +1,18 @@
-import inventories.models as models
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
-from inventories.forms.inventory_item_forms import TabularInLineProductInventoryItemForm, \
-    TabularInLineConsumableInventoryItemForm, TabularInLineMaterialInventoryItemForm, \
+from reversion.admin import VersionAdmin
+
+import inventories.models as models
+from inventories.forms.inventory_item_forms import TabularInLineConsumableInventoryItemForm, \
+    TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeReturnedProductTabularInlineForm
 from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
-from reversion.admin import VersionAdmin
 
 
 class ProductComponentInLine(admin.TabularInline):
@@ -65,15 +66,6 @@ class InventoryItemAdmin(VersionAdmin):
         return {}
 
 
-class ProductInventoryItemInLine(admin.TabularInline):
-    """
-    Describes the inline render of a product inventory item
-    for the ProductInventoryItem's admin view.
-    """
-    form = TabularInLineProductInventoryItemForm
-    model = models.ProductInventoryItem
-
-
 class ProductsInventoryAdmin(VersionAdmin):
     """
     Specifies the details for the admin app in regard
@@ -82,7 +74,6 @@ class ProductsInventoryAdmin(VersionAdmin):
     form = AddOrChangeProductsInventoryForm
     list_display = ('name', 'branch', 'supervisor', 'detail_page')
     readonly_fields = ('last_updater',)
-    inlines = (ProductInventoryItemInLine,)
 
     def detail_page(self, obj):
         """
