@@ -91,73 +91,47 @@ class Product(models.Model):
     """
     The definition of a product manufactured by Acrilfrasa.
     """
-    POL = 0
-    POL_SOL = 1
-    LAM = 2
-    OTROS = 3
-    ACR_R = 4
-    ACR_L = 5
-    ADHESIVO = 6
-    ACCESORIO = 7
-    DOM = 8
-    BUR = 9
-    CORTE = 10
-    NINGUNA = 11
-    ACR_LINEA = 12
-    ACR_GRUESO = 13
-    ACR_IMPACTO = 14
-    GRABADO = 15
-    ACR_ESPEJO = 16
-    GALVANIZADA = 17
-    PERFIL = 18
-    NO_INCLUIDOS = 19
-    DIFUSOR = 20
-    LINER = 21
-    LAM_LISA = 22
-    PLASTICO = 23
-    REJILLA = 24
-    GLASLINER = 25
-    SILICON = 26
-    POL_SOLIDO = 27
-    SINTRA = 28
-    STONIA = 29
+    ACR = 0
+    ACRILETA = 1
+    ACRIMP = 2
+    ACRIP = 3
+    ADE = 4
+    DIFUSOR = 5
+    DOM = 6
+    GLASLINER = 7
+    LAM = 8
+    OTROS = 9
+    PERFIL = 10
+    PLA = 11
+    POL = 12
+    POL_SOL = 13
+    SILI = 14
+    STON = 15
 
     LINE_TYPES = (
-        (POL, "POL"),
-        (POL_SOL, "POL_SOL"),
+        (ACR, "ACR"),
+        (ACRILETA, "ACRILETA"),
+        (ACRIMP, "ACRIMP"),
+        (ACRIP, "ACRIP"),
+        (ADE, "ADE"),
+        (DIFUSOR, "DIFUSOR"),
+        (DOM, "DOM"),
+        (GLASLINER, "GLASLINER"),
         (LAM, "LAM"),
         (OTROS, "OTROS"),
-        (ACR_R, "ACR R"),
-        (ACR_L, "ACR_L"),
-        (ADHESIVO, "ADHESIVO"),
-        (ACCESORIO, "ACCESORIO"),
-        (DOM, "DOM"),
-        (BUR, "BUR"),
-        (CORTE, "CORTE"),
-        (NINGUNA, "NINGUNA"),
-        (ACR_LINEA, "ACR LINEA"),
-        (ACR_GRUESO, "ACR GRUESO"),
-        (ACR_IMPACTO, "ACR_IMPACTO"),
-        (GRABADO, "GRABADO"),
-        (ACR_ESPEJO, "ACR ESPEJO"),
-        (GALVANIZADA, "GALVANIZADA"),
         (PERFIL, "PERFIL"),
-        (NO_INCLUIDOS, "NO INCLUIDOS"),
-        (DIFUSOR, "DIFUSOR"),
-        (LINER, "LINER"),
-        (LAM_LISA, "LAM - LISA"),
-        (PLASTICO, "PLASTICO"),
-        (REJILLA, "REJILLA"),
-        (GLASLINER, "GLASLINER"),
-        (SILICON, "SILICON"),
-        (POL_SOLIDO, "POL SOLIDO"),
-        (SINTRA, "SINTRA"),
-        (STONIA, "STONIA"),
+        (PLA, "PLA"),
+        (POL, "POL"),
+        (POL_SOL, "POL_SOL"),
+        (SILI, "SILI"),
+        (STON, "STON")
+
     )
 
     sku = models.CharField(max_length=45, unique=True, verbose_name='SKU')
     description = models.CharField(max_length=100, verbose_name='descripción')
-    line = models.PositiveSmallIntegerField(verbose_name='línea', choices=LINE_TYPES, default=NINGUNA)
+    search_description = models.CharField(max_length=100, verbose_name='descripción para búsqueda')
+    line = models.PositiveSmallIntegerField(verbose_name='línea', choices=LINE_TYPES, default=OTROS)
     engraving = models.CharField(max_length=45, verbose_name='grabado', blank=True)
     color = models.CharField(blank=True, max_length=20, verbose_name='color')
     length = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='longitud (m)')

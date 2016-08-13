@@ -3,12 +3,13 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
+
 from utils import migrations as utils_migrations
 
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('finances', '0003_auto_20160804_2155'),
+        ('finances', '0003_auto_20160813_1510'),
         ('back_office', 'load_initial_data'),
         ('inventories', 'load_initial_data')
     ]

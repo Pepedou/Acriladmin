@@ -1,11 +1,13 @@
-import finances.models as models
-from back_office.models import EmployeeRole
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum, F
+from reversion.admin import VersionAdmin
+
+import finances.models as models
+from back_office.models import EmployeeRole
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm
-from reversion.admin import VersionAdmin
 
 
 class TransactionInline(admin.StackedInline):
@@ -30,7 +32,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = ('is_closed', 'state',)
-        
+
         if obj is None:
             return readonly_fields
         else:
@@ -168,6 +170,21 @@ class SaleAdmin(ModelAdmin):
                        'discount', 'total',),
         })
     )
+
+    def get_prepopulated_fields(self, request, obj=None):
+        if obj is not None:
+            fields = {}
+        else:
+            try:
+                default_inventory = request.user.branch_office.productsinventory
+                if default_inventory is not None:
+                    fields = {'inventory': default_inventory}
+                else:
+                    fields = {}
+            except ObjectDoesNotExist:
+                fields = {}
+
+        return fields
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.state == models.Sale.STATE_ACTIVE:

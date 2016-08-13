@@ -5,6 +5,7 @@ from django.contrib.auth.models import User, AbstractUser
 from django.core.validators import EmailValidator, URLValidator
 from django.db import models
 from django.db.models import Q
+
 from utils.validators import phone_regex_validator, zip_code_regex_validator
 
 
@@ -120,6 +121,8 @@ class Employee(AbstractUser):
     picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
     roles = models.ManyToManyField(EmployeeRole, verbose_name='roles')
+    branch_office = models.ForeignKey('BranchOffice', on_delete=models.SET_NULL, null=True, blank=True,
+                                      verbose_name='sucursal')
 
     REQUIRED_FIELDS = ["first_name", "last_name", "email"]
 
@@ -169,8 +172,6 @@ class BranchOffice(models.Model):
                               validators=[EmailValidator(message="Correo electrónico inválido.")])
     website = models.URLField(verbose_name='sitio web', max_length=45, blank=True,
                               validators=[URLValidator(message="URL inválida.")])
-    employees = models.ManyToManyField(Employee, verbose_name='empleados de la sucursal', blank=True,
-                                       limit_choices_to=~Q(username='root'))
 
     class Meta:
         verbose_name = 'sucursal'

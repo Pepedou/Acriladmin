@@ -1,9 +1,10 @@
-import back_office.models as models
-from back_office.forms.employee_forms import AddOrChangeEmployeeForm
 from cities_light.admin import CountryAdmin, CityAdmin, RegionAdmin
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from reversion.admin import VersionAdmin
+
+import back_office.models as models
+from back_office.forms.employee_forms import AddOrChangeEmployeeForm
 
 
 class AddressAdmin(VersionAdmin):
@@ -70,7 +71,6 @@ class BranchOfficeAdmin(VersionAdmin):
     Specifies the details for the admin app in regard
     to the OfficeBranch entity.
     """
-    filter_horizontal = ("employees",)
     list_display = ('name', 'administrator', 'phone',)
     list_display_links = list_display
 

@@ -10,10 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
-import dj_database_url
 import os
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import dj_database_url
 from django.contrib.admin import AdminSite
 from django.contrib.auth.apps import AuthConfig
 
@@ -101,7 +100,7 @@ if IS_RUNNING_ON_HEROKU:
 else:
     default_database = {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'acriladmin_db',
+        'NAME': 'ACRILADMIN_DB',
         'USER': 'acriladmin_user',
         'PASSWORD': 'temp',
         'HOST': '127.0.0.1',
