@@ -9,7 +9,7 @@ from utils import migrations as utils_migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('inventories', '0002_auto_20160813_1510'),
+        ('inventories', '0002_auto_20160813_1552'),
     ]
 
     operations = [

@@ -412,6 +412,7 @@ class ProductTransfer(models.Model):
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
     source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                      editable=False,
                                       related_name='product_transfers_as_source_branch',
                                       verbose_name='sucursal de origen')
     target_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
@@ -432,53 +433,6 @@ class ProductTransfer(models.Model):
 
     def __str__(self):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
-
-    def clean(self):
-        super(ProductTransfer, self).clean()
-
-        if self.id is not None:
-            if self.is_confirmed and self.rejection_reason is not None:
-                raise ValidationError({
-                    'rejection_reason': 'No se puede rechazar un producto cuya recepción está confirmada. '
-                                        'Para hacerlo, deshabilite la confirmación o elimine el motivo de rechazo.'
-                })
-            elif not self.is_confirmed and self.rejection_reason is None:
-                raise ValidationError({
-                    'rejection_reason': 'Debe indicar un motivo para el rechazo de la transferencia.'
-                })
-
-            return
-
-        try:
-            source_inventory = self.source_branch.productsinventory
-        except ProductsInventory.DoesNotExist:
-            raise ValidationError({
-                'source_branch': 'La sucursal de origen no cuenta con un inventario de productos. Hay que agregar '
-                                 'uno antes de poder hacer una transferencia.'
-            })
-
-        try:
-            self.target_branch.productsinventory
-        except ProductsInventory.DoesNotExist:
-            raise ValidationError({
-                'target_branch': 'La sucursal de destino no cuenta con un inventario de productos.'
-            })
-
-        filtered_items = source_inventory.productinventoryitem_set.filter(product=self.product)
-
-        if filtered_items.count() == 0:
-            raise ValidationError({
-                'product': 'El inventario de la sucursal de origen no cuenta con ese producto.'
-            })
-
-        inventory_item = filtered_items[0]
-
-        if inventory_item.quantity < self.quantity:
-            raise ValidationError({
-                'quantity': 'El inventario de la sucursal de origen cuenta con {0} unidades de {1}.'.format(
-                    inventory_item.quantity,
-                    str(inventory_item.product))
-            })
 
     def save(self, *args, **kwargs):
         if self.is_confirmed and not self.transfer_has_been_made:
@@ -523,7 +477,8 @@ class ProductReimbursement(models.Model):
         return "D{0}".format(str(self.id).zfill(9))
 
     date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de devolución')
-    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, editable=False,
+                                  verbose_name='inventario')
     monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
     sale = models.ForeignKey('finances.Sale', on_delete=models.SET_NULL, null=True, blank=True,
                              verbose_name='venta relacionada')

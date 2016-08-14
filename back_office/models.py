@@ -121,8 +121,7 @@ class Employee(AbstractUser):
     picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
     roles = models.ManyToManyField(EmployeeRole, verbose_name='roles')
-    branch_office = models.ForeignKey('BranchOffice', on_delete=models.SET_NULL, null=True, blank=True,
-                                      verbose_name='sucursal')
+    branch_office = models.ForeignKey('BranchOffice', default=1, on_delete=models.PROTECT, verbose_name='sucursal')
 
     REQUIRED_FIELDS = ["first_name", "last_name", "email"]
 

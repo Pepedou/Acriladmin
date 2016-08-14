@@ -247,6 +247,22 @@ class ProductTransferAdmin(ModelAdmin):
         else:
             return True
 
+    def get_form(self, request, obj=None, **kwargs):
+        admin_form_class = super(ProductTransferAdmin, self).get_form(request, obj, **kwargs)
+
+        class AdminFormWithRequest(admin_form_class):
+            """Subclass to add request"""
+
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return admin_form_class(*args, **kwargs)
+
+        return AdminFormWithRequest
+
+    def save_model(self, request, obj, form, change):
+        obj.source_branch = request.user.branch_office
+        obj.save()
+
 
 class ReturnedProductInLine(admin.TabularInline):
     """
@@ -297,6 +313,10 @@ class ProductReimbursementAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def save_model(self, request, obj, form, change):
+        obj.inventory = request.user.branch_office.productsinventory
+        obj.save()
 
     def save_related(self, request, form, formsets, change):
         """

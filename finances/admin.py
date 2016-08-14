@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum, F
 from reversion.admin import VersionAdmin
 
@@ -154,7 +153,7 @@ class SaleAdmin(ModelAdmin):
     """
     list_display = ['folio', 'client', 'state']
     list_display_links = list_display
-    list_filter = ('type', 'state', 'date', 'inventory',)
+    list_filter = ('type', 'state', 'date',)
     form = AddOrChangeSaleForm
     inlines = (SaleProductItemInline,)
     actions = ['cancel_sales']
@@ -162,37 +161,19 @@ class SaleAdmin(ModelAdmin):
         ('Datos', {
             'fields': ('client', 'shipping_address', 'type', 'payment_method', 'state')
         }),
-        ('Productos', {
-            'fields': ('inventory',)
-        }),
         ('Montos', {
             'fields': ('date', 'invoice', 'subtotal', 'shipping_and_handling',
                        'discount', 'total',),
         })
     )
 
-    def get_prepopulated_fields(self, request, obj=None):
-        if obj is not None:
-            fields = {}
-        else:
-            try:
-                default_inventory = request.user.branch_office.productsinventory
-                if default_inventory is not None:
-                    fields = {'inventory': default_inventory}
-                else:
-                    fields = {}
-            except ObjectDoesNotExist:
-                fields = {}
-
-        return fields
-
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.state == models.Sale.STATE_ACTIVE:
-            return ('product', 'quantity', 'order', 'inventory', 'client',
+            return ('product', 'quantity', 'order', 'client',
                     'date', 'state', 'subtotal', 'total',)
         if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
             return ('client', 'type', 'state', 'shipping_address', 'payment_method',
-                    'product', 'quantity', 'invoice', 'inventory', 'date',
+                    'product', 'quantity', 'invoice', 'date',
                     'subtotal', 'shipping_and_handling', 'discount', 'total',)
         else:
             return 'date', 'state', 'subtotal', 'total',
@@ -233,6 +214,10 @@ class SaleAdmin(ModelAdmin):
         self.message_user(request, message)
 
     cancel_sales.short_description = "Cancelar las ventas elegidas"
+
+    def save_model(self, request, obj, form, change):
+        obj.inventory = request.user.branch_office.productsinventory
+        obj.save()
 
     def save_related(self, request, form, formsets, change):
         obj = form.instance

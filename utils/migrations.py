@@ -51,6 +51,9 @@ def load_employees(apps, schema_editor):
     """
     new_employees = []
     employee_class = apps.get_model("back_office", "Employee")
+    branch_office_class = apps.get_model("back_office", "BranchOffice")
+
+    default_branch_office = branch_office_class.objects.first()
 
     del schema_editor
 
@@ -61,7 +64,8 @@ def load_employees(apps, schema_editor):
             employee = employee_class(username=row['username'],
                                       first_name=row['first_name'],
                                       last_name=row['last_name'],
-                                      email=row['email'])
+                                      email=row['email'],
+                                      branch_office=default_branch_office)
             new_employees.append(employee)
 
     employee_class.objects.bulk_create(new_employees)

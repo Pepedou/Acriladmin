@@ -1,10 +1,10 @@
 import django
-
-from back_office.models import Client, Employee, Address
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Sum, F, Q
+
+from back_office.models import Client, Employee, Address
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
 from operations.models import Service, Repair, Project
 
@@ -195,7 +195,8 @@ class Sale(models.Model):
                                 limit_choices_to=~Q(state=Invoice.STATE_CANCELLED) and Q(is_closed=False))
     transaction = models.OneToOneField(Transaction, on_delete=models.PROTECT, null=True, editable=False,
                                        verbose_name='transacción')
-    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, editable=False,
+                                  verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha de venta')
     subtotal = models.DecimalField(verbose_name='subtotal', max_digits=10, decimal_places=2, default=0)
     shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
