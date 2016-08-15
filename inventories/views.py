@@ -64,6 +64,11 @@ class ProductInventoryView(ListView):
                         "type": "label"
                     },
                     {
+                        "attribute": item.product.search_description,
+                        "name": "search_description",
+                        "type": "label"
+                    },
+                    {
                         "attribute": item.product.engraving,
                         "name": "product_engraving",
                         "type": "label"
@@ -92,7 +97,7 @@ class ProductInventoryView(ListView):
     def get_context_data(self, **kwargs):
         context = super(ProductInventoryView, self).get_context_data(**kwargs)
         context['title'] = self.inventory_name
-        context['table_headers'] = ['SKU', 'Descripción', 'Grabado', 'Color', 'Cantidad']
+        context['table_headers'] = ['SKU', 'Descripción', 'Descripción para búsqueda', 'Grabado', 'Color', 'Cantidad']
         context['site_title'] = AdminSite.site_title
         context['site_header'] = AdminSite.site_header
         context['app_list'] = reverse('admin:app_list', args=('inventories',))
@@ -267,7 +272,8 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
 
         if self.q:
             search_terms = self.q.split(',')
-            search_terms_queries = reduce(operator.and_, (Q(description__icontains=x.strip()) for x in search_terms))
+            search_terms_queries = reduce(operator.and_,
+                                          (Q(search_description__icontains=x.strip()) for x in search_terms))
             query_set = Product.objects.filter(search_terms_queries | Q(sku=self.q))
         else:
             query_set = Product.objects.all()
