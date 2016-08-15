@@ -27,40 +27,27 @@ def load_employee_groups(apps, schema_editor):
     employee_group_class.objects.bulk_create(new_employee_groups)
 
 
-def load_permissions(apps, schema_editor):
+def load_branch_employee_relationship(apps, schema_editor):
     """
     Assigns auth permissions to each group.
     """
-    permission_class = apps.get_model("auth", "Permission")
-    employee_group_class = apps.get_model("auth", "Group")
+    branch_office_class = apps.get_model("back_office", "BranchOffice")
+    employee_class = apps.get_model("back_office", "Employee")
 
     del schema_editor
 
-    print(str(permission_class.objects.all()))
+    with open(os.path.join(settings.BASE_DIR,
+                           "var/csv/branch_employees_relationship.csv")) as file:
+        content = csv.DictReader(file, delimiter='|')
 
-    for group in employee_group_class.objects.all():
-        perms = []
+        for row in content:
+            branch_office = branch_office_class.objects.filter(name=row['branch_office']).first()
+            employees_usernames = row['employees_usernames'].split(',')
+            employees = employee_class.objects.filter(username__in=employees_usernames)
 
-        if group.name == 'Ventas':
-            perms = permission_class.objects.filter(codename__in=[
-                'add_sale',
-                'change_sale',
-                'add_invoice',
-                'change_invoice',
-
-            ])
-        elif group.name == 'Jefe de almacén':
-            perms = permission_class.objects.filter(codename__in=[
-                'add_product',
-                'change_product',
-                'delete_product',
-                'add_producttransfer',
-                'change_producttransfer',
-                'add_productreimbursement',
-                'change_productreimbursement'
-            ])
-        print("Permisos para {0}: {1}".format(str(group.name), ", ".join([str(x) for x in perms])))
-        group.permissions = perms
+            for employee in employees:
+                employee.branch_office = branch_office
+                employee.save()
 
 
 def load_branch_offices(apps, schema_editor):
