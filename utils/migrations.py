@@ -1,6 +1,7 @@
 import csv
 import os
 from decimal import Decimal
+from distutils.util import grok_environment_error
 
 from django.conf import settings
 
@@ -24,6 +25,42 @@ def load_employee_groups(apps, schema_editor):
             new_employee_groups.append(employee_group)
 
     employee_group_class.objects.bulk_create(new_employee_groups)
+
+
+def load_permissions(apps, schema_editor):
+    """
+    Assigns auth permissions to each group.
+    """
+    permission_class = apps.get_model("auth", "Permission")
+    employee_group_class = apps.get_model("auth", "Group")
+
+    del schema_editor
+
+    print(str(permission_class.objects.all()))
+
+    for group in employee_group_class.objects.all():
+        perms = []
+
+        if group.name == 'Ventas':
+            perms = permission_class.objects.filter(codename__in=[
+                'add_sale',
+                'change_sale',
+                'add_invoice',
+                'change_invoice',
+
+            ])
+        elif group.name == 'Jefe de almacén':
+            perms = permission_class.objects.filter(codename__in=[
+                'add_product',
+                'change_product',
+                'delete_product',
+                'add_producttransfer',
+                'change_producttransfer',
+                'add_productreimbursement',
+                'change_productreimbursement'
+            ])
+        print("Permisos para {0}: {1}".format(str(group.name), ", ".join([str(x) for x in perms])))
+        group.permissions = perms
 
 
 def load_branch_offices(apps, schema_editor):

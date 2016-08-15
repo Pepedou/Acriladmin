@@ -71,11 +71,47 @@ def set_default_passwords_and_make_staff():
             emp.last_name.split()[0].strip()[0].lower()))
         emp.save()
 
+
+def assign_group_permissions():
+    """
+
+    """
+    from django.contrib.auth.models import Group, Permission
+
+    for group in Group.objects.all():
+        perms = []
+
+        if group.name == 'Administrador':
+            perms = Permission.objects.all()
+        elif group.name == 'Ventas':
+            perms = Permission.objects.filter(codename__in=[
+                'add_sale',
+                'change_sale',
+                'add_invoice',
+                'change_invoice',
+
+            ])
+        elif group.name == 'Jefe de almacén':
+            perms = Permission.objects.filter(codename__in=[
+                'add_product',
+                'change_product',
+                'delete_product',
+                'add_producttransfer',
+                'change_producttransfer',
+                'add_productreimbursement',
+                'change_productreimbursement'
+            ])
+
+        print("Permisos para {0}: {1}".format(str(group.name), ", ".join([x.codename for x in perms])))
+        group.permissions = perms
+
+
 if __name__ == "__main__":
     try:
         print("Executing scripts...")
         fill_up_product_inventories(100)
         set_default_passwords_and_make_staff()
+        assign_group_permissions()
         print("Scripts executed successfully!")
     except Exception as ex:
         print("Scripts execution failed!")

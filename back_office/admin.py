@@ -52,7 +52,7 @@ class EmployeeAdmin(VersionAdmin, UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ("Datos administrativos", {
             'fields': (
-                'gender', 'phone', 'picture', 'address',
+                'gender', 'phone', 'picture', 'address', 'branch_office',
             )
         },),
     )

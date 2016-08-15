@@ -17,6 +17,7 @@ class AddOrChangeEmployeeForm(ModelForm):
             'email',
             'is_staff',
             'is_active',
+            'branch_office',
             'date_joined',
             'gender',
             'phone',
