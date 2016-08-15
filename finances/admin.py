@@ -4,7 +4,7 @@ from django.db.models import Sum, F
 from reversion.admin import VersionAdmin
 
 import finances.models as models
-from back_office.models import EmployeeRole
+from back_office.models import EmployeeGroup
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm
 
@@ -104,7 +104,7 @@ class TransactionAdmin(admin.ModelAdmin):
         invoice.save()
 
     def get_readonly_fields(self, request, obj=None):
-        if not obj or request.user.roles.filter(name=EmployeeRole.ADMINISTRATOR).exists():
+        if not obj or request.user.groups.filter(name=EmployeeGroup.ADMINISTRATOR).exists():
             return super(TransactionAdmin, self).get_readonly_fields(request, obj)
 
         return ['invoice', 'payed_by', 'datetime', 'amount']

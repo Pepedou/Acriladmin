@@ -1,6 +1,7 @@
 from cities_light.admin import CountryAdmin, CityAdmin, RegionAdmin
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 from reversion.admin import VersionAdmin
 
 import back_office.models as models
@@ -23,24 +24,23 @@ class AddressAdmin(VersionAdmin):
     list_filter = ('country', 'state',)
 
 
-class RoleInline(admin.StackedInline):
+class GroupInline(admin.StackedInline):
     """
     Admin inline for the many to many relationship
-    between Employee and EmployeeRoles.
+    between Employee and Group.
     """
-    model = models.Employee.roles.through
+    model = models.Employee.groups.through
 
-    verbose_name = 'rol'
-    verbose_name_plural = 'roles'
+    verbose_name = 'grupo'
+    verbose_name_plural = 'grupos'
 
 
-class EmployeeRoleAdmin(admin.ModelAdmin):
+class GroupAdmin(admin.ModelAdmin):
     """
     Specifies the details for the admin app in regard
-    to the EmployeeRole entity.
+    to the Group entity.
     """
-    inlines = [RoleInline]
-    list_display = ('name', 'description',)
+    inlines = [GroupInline]
 
 
 class EmployeeAdmin(VersionAdmin, UserAdmin):
@@ -57,7 +57,7 @@ class EmployeeAdmin(VersionAdmin, UserAdmin):
         },),
     )
     readonly_fields = ('password',)
-    inlines = [RoleInline]
+    inlines = [GroupInline]
 
     def get_queryset(self, request):
         """
@@ -124,7 +124,8 @@ class CustomCityAdmin(CityAdmin):
 
 
 admin.site.register(models.Address, AddressAdmin)
-admin.site.register(models.EmployeeRole, EmployeeRoleAdmin)
+admin.site.unregister(Group)
+admin.site.register(Group, GroupAdmin)
 admin.site.register(models.Employee, EmployeeAdmin)
 admin.site.register(models.Client, VersionAdmin)
 admin.site.register(models.BranchOffice, BranchOfficeAdmin)

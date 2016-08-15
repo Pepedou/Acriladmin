@@ -71,9 +71,10 @@ class Address(models.Model):
         return "{0}, {1}, {2}".format(self.exterior_number, self.street, self.state)
 
 
-class EmployeeRole(models.Model):
+class EmployeeGroup:
     """
-    Describes a role assigned to an employee.
+    Describes a group assigned to an employee.
+    They describe an employee's role within the company.
     """
     ADMINISTRATOR = "Administrador"
     TELEPHONE_SALES = "Ventas telefónicas"
@@ -94,16 +95,6 @@ class EmployeeRole(models.Model):
         (WAREHOUSE_CHIEF, WAREHOUSE_CHIEF),
     )
 
-    name = models.CharField(verbose_name='nombre del rol', max_length=20, primary_key=True)
-    description = models.CharField(verbose_name='descripción del rol', max_length=50)
-
-    class Meta:
-        verbose_name = 'rol'
-        verbose_name_plural = 'roles'
-
-    def __str__(self):
-        return self.name
-
 
 class Employee(AbstractUser):
     """
@@ -120,7 +111,6 @@ class Employee(AbstractUser):
     phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
     picture = models.ImageField(verbose_name='imagen de perfil', blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
-    roles = models.ManyToManyField(EmployeeRole, verbose_name='roles')
     branch_office = models.ForeignKey('BranchOffice', default=1, on_delete=models.PROTECT, verbose_name='sucursal')
 
     REQUIRED_FIELDS = ["first_name", "last_name", "email"]
@@ -164,7 +154,8 @@ class BranchOffice(models.Model):
     administrator = models.ForeignKey(Employee, on_delete=models.PROTECT, null=True,
                                       verbose_name='administrador de la sucursal',
                                       related_name="administrated_branches",
-                                      limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
+                                      limit_choices_to=Q(groups__name=EmployeeGroup.ADMINISTRATOR) & ~Q(
+                                          username='root'))
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
     phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
     email = models.EmailField(verbose_name='correo electrónico', blank=True,

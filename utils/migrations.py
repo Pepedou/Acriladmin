@@ -7,23 +7,23 @@ from django.conf import settings
 from inventories.models import Product
 
 
-def load_employee_roles(apps, schema_editor):
+def load_employee_groups(apps, schema_editor):
     """
-    Loads the employee_roles.csv into the database.
+    Loads the employee_groups.csv into the database.
     """
-    new_employee_roles = []
-    employee_role_class = apps.get_model("back_office", "EmployeeRole")
+    new_employee_groups = []
+    employee_group_class = apps.get_model("auth", "Group")
 
     del schema_editor
 
-    with open(os.path.join(settings.BASE_DIR, "var/csv/employee_roles.csv")) as file:
+    with open(os.path.join(settings.BASE_DIR, "var/csv/employee_groups.csv")) as file:
         content = csv.DictReader(file, delimiter='|')
 
         for row in content:
-            employee_role = employee_role_class(name=row['name'], description=row['description'])
-            new_employee_roles.append(employee_role)
+            employee_group = employee_group_class(name=row['name'])
+            new_employee_groups.append(employee_group)
 
-    employee_role_class.objects.bulk_create(new_employee_roles)
+    employee_group_class.objects.bulk_create(new_employee_groups)
 
 
 def load_branch_offices(apps, schema_editor):
@@ -168,3 +168,27 @@ def load_product_prices(apps, schema_editor):
             product_prices.append(new_product_price)
 
     product_price_class.objects.bulk_create(product_prices)
+
+
+def load_employee_groups_relationships(apps, schema_editor):
+    """
+    Loads the employee-group relationships from the employee_groups_relationship.csv
+    file into the database.
+    """
+    employee_group_class = apps.get_model("auth", "Group")
+    employee_class = apps.get_model("back_office", "Employee")
+
+    del schema_editor
+
+    with open(os.path.join(settings.BASE_DIR,
+                           "var/csv/employee_groups_relationship.csv")) as file:
+        content = csv.DictReader(file, delimiter='|')
+
+        for row in content:
+            group = employee_group_class.objects.filter(name=row['group']).first()
+            employees_usernames = row['employees_usernames'].split(',')
+            employees = employee_class.objects.filter(username__in=employees_usernames)
+
+            for employee in employees:
+                employee.groups.add(group)
+                employee.save()
