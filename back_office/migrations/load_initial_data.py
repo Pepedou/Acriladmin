@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
+
 from utils import migrations as utils_migrations
 
 
@@ -12,7 +13,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(utils_migrations.load_employee_roles),
+        migrations.RunPython(utils_migrations.load_employee_groups),
         migrations.RunPython(utils_migrations.load_branch_offices),
-        migrations.RunPython(utils_migrations.load_employees)
+        migrations.RunPython(utils_migrations.load_employees),
+        migrations.RunPython(utils_migrations.load_employee_groups_relationships),
     ]

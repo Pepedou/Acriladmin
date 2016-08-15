@@ -1,9 +1,10 @@
 import django
-from back_office.models import Client, Employee, EmployeeRole, Address
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Q
 from geoposition.fields import GeopositionField
+
+from back_office.models import Client, Employee, EmployeeGroup, Address
 from inventories.models import Product, Material, DurableGood, Material, ProductsInventory
 
 
@@ -68,11 +69,11 @@ class Project(models.Model):
     description = models.CharField(max_length=100, blank=True, verbose_name='descripción')
     supervisor = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='projects_supervised',
                                    verbose_name='supervisor',
-                                   limit_choices_to=Q(roles__name=EmployeeRole.ADMINISTRATOR) & ~Q(username='root'))
+                                   limit_choices_to=Q(groups__name=EmployeeGroup.ADMINISTRATOR) & ~Q(username='root'))
     client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='cliente')
     sales_agent = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='projects_as_sales_agent',
                                     verbose_name='agente de ventas',
-                                    limit_choices_to=Q(roles__name=EmployeeRole.SALES_AGENT) & ~Q(username='root'))
+                                    limit_choices_to=Q(groups__name=EmployeeGroup.SALES_AGENT) & ~Q(username='root'))
     start_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de inicio')
     end_date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de finalización')
     vehicle = models.ForeignKey(DurableGood, null=True, blank=True, verbose_name='vehículo utilizado')
@@ -200,7 +201,7 @@ class SalesVisit(models.Model):
     A sales agent's visit to an existing or potential client.
     """
     sales_agent = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='agente de ventas',
-                                    limit_choices_to=Q(roles__name=EmployeeRole.SALES_AGENT) & ~Q(username='root'))
+                                    limit_choices_to=Q(groups__name=EmployeeGroup.SALES_AGENT) & ~Q(username='root'))
     client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name='cliente')
     address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección')
     position = GeopositionField(verbose_name='localización')
