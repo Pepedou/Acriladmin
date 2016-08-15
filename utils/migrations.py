@@ -1,7 +1,6 @@
 import csv
 import os
 from decimal import Decimal
-from distutils.util import grok_environment_error
 
 from django.conf import settings
 
@@ -37,7 +36,7 @@ def load_branch_employee_relationship(apps, schema_editor):
     del schema_editor
 
     with open(os.path.join(settings.BASE_DIR,
-                           "var/csv/branch_employees_relationship.csv")) as file:
+                           "var/csv/branch_employees.csv")) as file:
         content = csv.DictReader(file, delimiter='|')
 
         for row in content:
