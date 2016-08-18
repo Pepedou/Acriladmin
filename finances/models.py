@@ -273,6 +273,11 @@ class SaleProductItem(models.Model):
     to a Sale.
     """
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    special_length = models.DecimalField(max_digits=6, decimal_places=2, default=0,
+                                         verbose_name='longitud especial (m)')
+    special_width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura especial (m)')
+    special_thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0,
+                                            verbose_name='grosor especial (mm)')
     quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, verbose_name='venta')
 
