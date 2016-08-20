@@ -1,6 +1,24 @@
 from dal import autocomplete
-from django.forms import ModelForm
-from finances.models import Sale, SaleProductItem
+from django.core.exceptions import ValidationError
+from django.forms import ModelForm, BaseInlineFormSet
+
+from finances.models import Sale, SaleProductItem, ProductPrice
+
+
+class SaleProductItemInlineFormSet(BaseInlineFormSet):
+    """
+    Overrides BaseInlineFormSet to receive the request and pass it
+    to the SaleProductItemInlineForms as an extra kwarg in the
+    constructor.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super(SaleProductItemInlineFormSet, self).__init__(*args, **kwargs)
+
+    def _construct_form(self, i, **kwargs):
+        kwargs['request'] = self.request
+        return super(SaleProductItemInlineFormSet, self)._construct_form(i, **kwargs)
 
 
 class SaleProductItemInlineForm(ModelForm):
@@ -19,6 +37,62 @@ class SaleProductItemInlineForm(ModelForm):
                                                      'data-minimum-input-length': 1,
                                                  }),
         }
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super(SaleProductItemInlineForm, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        # TODO: Divide and document
+        cleaned_data = super(SaleProductItemInlineForm, self).clean()
+        inventory = self.request.user.branch_office.productsinventory
+        product = cleaned_data.get('product')
+        quantity = cleaned_data.get('quantity')
+        special_length = cleaned_data.get('special_length')
+        special_width = cleaned_data.get('special_width')
+        special_thickness = cleaned_data.get('special_thickness')
+
+        product_inventory_item = inventory.productinventoryitem_set.filter(product=product).first()
+
+        if product_inventory_item is None:
+            raise ValidationError({'product': 'El inventario elegido no cuenta con este producto.'})
+
+        if product_inventory_item.quantity < quantity:
+            raise ValidationError({
+                'product':
+                    'El inventario elegido sólo cuenta con {0}/{1} unidades de este producto.'.format(
+                        product_inventory_item.quantity,
+                        quantity
+                    )})
+
+        if ProductPrice.objects.filter(product=product).first() is None:
+            raise ValidationError({
+                'product': 'El producto no cuenta con un precio. Debe asignar un precio a este producto antes '
+                           'de poder hacer una venta.'
+            })
+
+        if special_length > 0 or special_width > 0 or special_thickness > 0:
+            errors = {}
+            if product.length < special_length:
+                errors.update({
+                    'special_length': 'La longitud especial solicitada es mayor que la '
+                                      'longitud del producto: {0}/{1}'.format(special_length, product.length)
+                })
+
+            if product.width < special_width:
+                errors.update({
+                    'special_width': 'La anchura especial solicitada es mayor que la '
+                                     'anchura del producto: {0}/{1}'.format(special_width, product.width)
+                })
+
+            if product.thickness < special_thickness:
+                errors.update({
+                    'special_thickness': 'El grosor especial solicitado es mayor que el '
+                                         'grosor del producto: {0}/{1}'.format(special_thickness, product.thickness)
+                })
+
+            if len(errors):
+                raise ValidationError(errors)
 
 
 class AddOrChangeSaleForm(ModelForm):

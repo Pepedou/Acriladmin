@@ -288,27 +288,6 @@ class SaleProductItem(models.Model):
     def __str__(self):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
 
-    def clean(self):
-        try:
-            products_inventory = self.sale.inventory
-            product_inventory_item = products_inventory.productinventoryitem_set.filter(product=self.product).first()
-
-            if product_inventory_item is None:
-                raise ValidationError('El inventario elegido no cuenta con este producto.')
-
-            if product_inventory_item.quantity < self.quantity:
-                raise ValidationError('El inventario elegido sólo cuenta con {0}/{1} unidades de este producto.'.format(
-                    product_inventory_item.quantity,
-                    self.quantity
-                ))
-
-            if ProductPrice.objects.filter(product=self.product).first() is None:
-                raise ValidationError(
-                    'El producto no cuenta con un precio. Debe asignar un precio a este producto antes '
-                    'de poder hacer una venta.')
-        except:
-            pass
-
     def save(self):
         if self.pk is not None:
             super(SaleProductItem, self).save()
