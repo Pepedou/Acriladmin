@@ -1,3 +1,5 @@
+import uuid
+
 import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -223,7 +225,7 @@ class Sale(models.Model):
             return
 
         if self.invoice is None:
-            self.invoice = Invoice(state=Invoice.STATE_GEN_BY_SALE)
+            self.invoice = Invoice(folio='AUTO{0}'.format(uuid.uuid4().hex), state=Invoice.STATE_GEN_BY_SALE)
             self.invoice.save()
 
         if self.payment_method is not Sale.PAYMENT_ON_DELIVERY:
