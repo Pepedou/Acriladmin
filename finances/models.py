@@ -287,31 +287,3 @@ class SaleProductItem(models.Model):
 
     def __str__(self):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
-
-    def save(self):
-        if self.pk is not None:
-            super(SaleProductItem, self).save()
-            return
-
-        products_inventory = self.sale.inventory
-        product_inventory_item = products_inventory.productinventoryitem_set.filter(product=self.product).first()
-        product_price = ProductPrice.objects.filter(product=self.product).first()
-
-        product_inventory_item.quantity -= self.quantity
-
-        item_charges = self.quantity * product_price.price
-
-        self.sale.subtotal += item_charges
-
-        if self.sale.invoice.state == Invoice.STATE_GEN_BY_SALE:
-            self.sale.invoice.total += self.sale.total
-
-        if self.sale.payment_method is not Sale.PAYMENT_ON_DELIVERY:
-            self.sale.transaction.amount += item_charges
-
-        with transaction.atomic():
-            self.sale.save()
-            self.sale.invoice.save()
-            self.sale.transaction.save()
-            product_inventory_item.save()
-            super(SaleProductItem, self).save()

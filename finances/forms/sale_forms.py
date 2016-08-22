@@ -1,8 +1,11 @@
 from dal import autocomplete
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import ModelForm, BaseInlineFormSet
 
-from finances.models import Sale, SaleProductItem, ProductPrice
+from finances.models import Sale, SaleProductItem, ProductPrice, Invoice
+from inventories.models import Product, ProductInventoryItem
+from utils.product_helpers import ScrapsToProductsConverter
 
 
 class SaleProductItemInlineFormSet(BaseInlineFormSet):
@@ -40,10 +43,12 @@ class SaleProductItemInlineForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
+        self.subproduct = None
+        self.scraps_products = []
+        self.has_subproduct = False
         super(SaleProductItemInlineForm, self).__init__(*args, **kwargs)
 
     def clean(self):
-        # TODO: Divide and document
         cleaned_data = super(SaleProductItemInlineForm, self).clean()
         inventory = self.request.user.branch_office.productsinventory
         product = cleaned_data.get('product')
@@ -93,6 +98,155 @@ class SaleProductItemInlineForm(ModelForm):
 
             if len(errors):
                 raise ValidationError(errors)
+
+    def save(self, commit=True):
+        if self.instance.pk is not None:
+            return super(SaleProductItemInlineForm, self).save(commit)
+
+        self.has_subproduct = self.instance.special_length > 0 or \
+                              self.instance.special_width > 0 or \
+                              self.instance.special_thickness > 0
+
+        if self.has_subproduct:
+            self._create_subproduct()
+            self._create_scraps_products()
+            sale_product_price = self._get_sale_product_price()
+        else:
+            sale_product_price = ProductPrice.objects.filter(product=self.instance.product).first()
+
+        self._assign_financial_information(sale_product_price)
+
+        return super(SaleProductItemInlineForm, self).save(commit)
+
+    def _create_subproduct(self):
+        """
+        Creates a new Product based on the Sale's special measurements.
+        The new Product is subtracted from the original Product's surface.
+        """
+        self.subproduct, _ = Product.objects.get_or_create(
+            description=self.instance.product.description + " [PEDACERÍA]",
+            search_description=self.instance.product.search_description + " [PEDACERÍA]",
+            line=self.instance.product.line,
+            engraving=self.instance.product.engraving,
+            color=self.instance.product.color,
+            length=self.instance.special_length,
+            width=self.instance.special_width,
+            thickness=self.instance.special_thickness,
+            is_composite=self.instance.product.is_composite,
+            defaults={
+                'sku': self.instance.product.sku + "_{0}*{1}*{2}PED".format(self.instance.special_width,
+                                                                            self.instance.special_length,
+                                                                            self.instance.special_thickness)
+            }
+        )
+
+    def _create_scraps_products(self):
+        """
+        Creates new Products from the original Product's scraps.
+        The way it does this is by calculating the remaining surface after
+        the subproduct has been subtracted from the original and dividing
+        it into new products. For each scraps Product, a Product Price
+        matching the original Product's price is created.
+        """
+        scraps_converter = ScrapsToProductsConverter(
+            self.instance.special_length, self.instance.special_width, self.instance.special_thickness,
+            self.instance.product
+        )
+
+        scraps_params = scraps_converter.get_products_params_from_scraps()
+
+        for params in scraps_params:
+            scraps_product, item_created = Product.objects.update_or_create(
+                sku=params['sku'],
+                defaults=params
+            )
+
+            original_product_price = ProductPrice.objects.filter(product=self.instance.product).first()
+
+            if item_created:
+                ProductPrice.objects.create(
+                    product=scraps_product,
+                    price=original_product_price.price,
+                    authorized_by=self.request.user
+                )
+
+            self.scraps_products.append(scraps_product)
+
+    def _get_sale_product_price(self):
+        """
+        Obtains the appropraite Product Price for the sale.
+        :return: The Sale's Product Price.
+        """
+        original_product_price = ProductPrice.objects.filter(product=self.instance.product).first()
+
+        sale_product_price, _ = ProductPrice.objects.get_or_create(
+            product=self.subproduct,
+            defaults={
+                'price': original_product_price.price,
+                'authorized_by': self.request.user
+            })
+
+        return sale_product_price
+
+    def _assign_financial_information(self, sale_product_price):
+        """
+        Calculates the Sale's subtotal based on the sale product's price
+        and the quantity requested. It also updates the Invoice's total
+        and creates a transaction, if the conditions are appropriate.
+        :param sale_product_price: The product's price.
+        """
+        item_charges = self.instance.quantity * sale_product_price.price
+
+        self.instance.sale.subtotal += item_charges
+
+        if self.instance.sale.invoice.state == Invoice.STATE_GEN_BY_SALE:
+            self.instance.sale.invoice.total += self.instance.sale.total
+
+        if self.instance.sale.payment_method is not Sale.PAYMENT_ON_DELIVERY:
+            self.instance.sale.transaction.amount += item_charges
+
+    def _save_m2m(self):
+        """
+        Saves entities related to the Sale.
+        """
+
+        with transaction.atomic():
+            self.instance.sale.save()
+            self.instance.sale.invoice.save()
+            self.instance.sale.transaction.save()
+
+            self._update_product_inventory_item()
+            self._update_scraps_products_inventory_items()
+
+        super(SaleProductItemInlineForm, self)._save_m2m()
+
+    def _update_product_inventory_item(self):
+        """
+        The amount of product requested in the Sale is removed
+        from the associated inventory.
+        """
+        products_inventory = self.request.user.branch_office.productsinventory
+        product_inventory_item = products_inventory.productinventoryitem_set.filter(
+            product=self.instance.product).first()
+
+        product_inventory_item.quantity -= self.instance.quantity
+        product_inventory_item.save()
+
+    def _update_scraps_products_inventory_items(self):
+        """
+        For each scraps product that was created as a consequence
+        of the subproduct's creation, an inventory item is created
+        or updated. It adds the scraps product to the associated
+        products inventory.
+        """
+        for scraps_product in self.scraps_products:
+            inventory_item, _ = ProductInventoryItem.objects.get_or_create(
+                product=scraps_product,
+                inventory=self.request.user.branch_office.productsinventory,
+            )
+
+            inventory_item.quantity += 1
+            inventory_item.save()
 
 
 class AddOrChangeSaleForm(ModelForm):
