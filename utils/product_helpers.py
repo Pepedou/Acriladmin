@@ -24,7 +24,7 @@ class ScrapsToProductsConverter:
 
         for measurement in scraps_measurements:
             products.append({
-                'sku': self.product.sku + "_{0}*{1}_PED".format(measurement['width'], measurement['length']),
+                'sku': self.product.sku + "_{}*{}_PED".format(measurement['width'], measurement['length']),
                 'description': self._get_description_for_scraps_product(measurement),
                 'search_description': self._get_search_description_for_scraps_product(measurement),
                 'line': self.product.line,
@@ -74,7 +74,7 @@ class ScrapsToProductsConverter:
         for which the description will be created.
         :return: The product's description.
         """
-        return self.product.description + " [Recortado a {0}*{1}]".format(
+        return self.product.description + " [RECORTADO A {:.2f}*{:.2f}]".format(
             scraps_measurement['width'], scraps_measurement['length']
         )
 
@@ -85,6 +85,6 @@ class ScrapsToProductsConverter:
         which the search description will be created.
         :return: The product's search description.
         """
-        return self.product.search_description + " [Recortado a {0}X{1}]".format(
+        return self.product.search_description + " [RECORTADO A {:.2f}X{:.2f}]".format(
             scraps_measurement['width'], scraps_measurement['length']
         )

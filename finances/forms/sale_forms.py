@@ -43,6 +43,7 @@ class SaleProductItemInlineForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
+        self.original_product = None
         self.subproduct = None
         self.scraps_products = []
         self.has_subproduct = False
@@ -103,6 +104,7 @@ class SaleProductItemInlineForm(ModelForm):
         if self.instance.pk is not None:
             return super(SaleProductItemInlineForm, self).save(commit)
 
+        self.original_product = self.instance.product
         self.has_subproduct = self.instance.special_length > 0 or \
                               self.instance.special_width > 0 or \
                               self.instance.special_thickness > 0
@@ -111,6 +113,7 @@ class SaleProductItemInlineForm(ModelForm):
             self._create_subproduct()
             self._create_scraps_products()
             sale_product_price = self._get_sale_product_price()
+            self.instance.product = self.subproduct
         else:
             sale_product_price = ProductPrice.objects.filter(product=self.instance.product).first()
 
@@ -124,19 +127,22 @@ class SaleProductItemInlineForm(ModelForm):
         The new Product is subtracted from the original Product's surface.
         """
         self.subproduct, _ = Product.objects.get_or_create(
-            description=self.instance.product.description + " [PEDACERÍA]",
-            search_description=self.instance.product.search_description + " [PEDACERÍA]",
-            line=self.instance.product.line,
-            engraving=self.instance.product.engraving,
-            color=self.instance.product.color,
+            description=self.original_product.description + " [RECORTADO A {:.2f}*{:.2f}]".format(
+                self.instance.special_width, self.instance.special_length
+            ),
+            search_description=self.original_product.search_description + " [RECORTADO A {:.2f}X{:.2f}]".format(
+                self.instance.special_width, self.instance.special_length
+            ),
+            line=self.original_product.line,
+            engraving=self.original_product.engraving,
+            color=self.original_product.color,
             length=self.instance.special_length,
             width=self.instance.special_width,
             thickness=self.instance.special_thickness,
-            is_composite=self.instance.product.is_composite,
+            is_composite=self.original_product.is_composite,
             defaults={
-                'sku': self.instance.product.sku + "_{0}*{1}*{2}PED".format(self.instance.special_width,
-                                                                            self.instance.special_length,
-                                                                            self.instance.special_thickness)
+                'sku': self.original_product.sku + "_{}*{}_PED".format(self.instance.special_width,
+                                                                       self.instance.special_length)
             }
         )
 
@@ -150,7 +156,7 @@ class SaleProductItemInlineForm(ModelForm):
         """
         scraps_converter = ScrapsToProductsConverter(
             self.instance.special_length, self.instance.special_width, self.instance.special_thickness,
-            self.instance.product
+            self.original_product
         )
 
         scraps_params = scraps_converter.get_products_params_from_scraps()
@@ -161,7 +167,7 @@ class SaleProductItemInlineForm(ModelForm):
                 defaults=params
             )
 
-            original_product_price = ProductPrice.objects.filter(product=self.instance.product).first()
+            original_product_price = ProductPrice.objects.filter(product=self.original_product).first()
 
             if item_created:
                 ProductPrice.objects.create(
@@ -177,7 +183,7 @@ class SaleProductItemInlineForm(ModelForm):
         Obtains the appropraite Product Price for the sale.
         :return: The Sale's Product Price.
         """
-        original_product_price = ProductPrice.objects.filter(product=self.instance.product).first()
+        original_product_price = ProductPrice.objects.filter(product=self.original_product).first()
 
         sale_product_price, _ = ProductPrice.objects.get_or_create(
             product=self.subproduct,
@@ -227,7 +233,7 @@ class SaleProductItemInlineForm(ModelForm):
         """
         products_inventory = self.request.user.branch_office.productsinventory
         product_inventory_item = products_inventory.productinventoryitem_set.filter(
-            product=self.instance.product).first()
+            product=self.original_product).first()
 
         product_inventory_item.quantity -= self.instance.quantity
         product_inventory_item.save()
