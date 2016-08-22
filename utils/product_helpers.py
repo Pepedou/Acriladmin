@@ -24,10 +24,9 @@ class ScrapsToProductsConverter:
 
         for measurement in scraps_measurements:
             products.append({
-                'sku': self.product.sku + "_{0}*{1}*{2}PED".format(measurement['width'], measurement['length'],
-                                                                   self.subproduct_thickness),
-                'description': self.product.description + " [PEDACERÍA]",
-                'search_description': self.product.search_description + " [PEDACERÍA]",
+                'sku': self.product.sku + "_{0}*{1}_PED".format(measurement['width'], measurement['length']),
+                'description': self._get_description_for_scraps_product(measurement),
+                'search_description': self._get_search_description_for_scraps_product(measurement),
                 'line': self.product.line,
                 'engraving': self.product.engraving,
                 'color': self.product.color,
@@ -67,3 +66,25 @@ class ScrapsToProductsConverter:
             })
 
         return scraps
+
+    def _get_description_for_scraps_product(self, scraps_measurement):
+        """
+        Creates the description for the provided scraps product.
+        :param scraps_measurement: The measurements of the product
+        for which the description will be created.
+        :return: The product's description.
+        """
+        return self.product.description + " [Recortado a {0}*{1}]".format(
+            scraps_measurement['width'], scraps_measurement['length']
+        )
+
+    def _get_search_description_for_scraps_product(self, scraps_measurement):
+        """
+        Creates the search description for the provided scraps product.
+        :param scraps_measurement: The measurements of the product for
+        which the search description will be created.
+        :return: The product's search description.
+        """
+        return self.product.search_description + " [Recortado a {0}X{1}]".format(
+            scraps_measurement['width'], scraps_measurement['length']
+        )
