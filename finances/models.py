@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Sum, F, Q
+from django.utils import timezone
 
 from back_office.models import Client, Employee, Address
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
@@ -225,7 +226,8 @@ class Sale(models.Model):
             return
 
         if self.invoice is None:
-            self.invoice = Invoice(folio='AUTO{0}'.format(uuid.uuid4().hex), state=Invoice.STATE_GEN_BY_SALE)
+            self.invoice = Invoice(folio='AUTO{0}_{1}'.format(str(timezone.now().date()), uuid.uuid4().hex),
+                                   state=Invoice.STATE_GEN_BY_SALE)
             self.invoice.save()
 
         if self.payment_method is not Sale.PAYMENT_ON_DELIVERY:
