@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import ModelForm, BaseInlineFormSet
 
-from finances.models import Sale, SaleProductItem, ProductPrice, Invoice
+from finances.models import Sale, SaleProductItem, ProductPrice, Invoice, Transaction
 from inventories.models import Product, ProductInventoryItem
 from utils.product_helpers import ScrapsToProductsConverter
 
@@ -99,6 +99,8 @@ class SaleProductItemInlineForm(ModelForm):
 
             if len(errors):
                 raise ValidationError(errors)
+
+        return cleaned_data
 
     def save(self, commit=True):
         if self.instance.pk is not None:
@@ -219,7 +221,9 @@ class SaleProductItemInlineForm(ModelForm):
         with transaction.atomic():
             self.instance.sale.save()
             self.instance.sale.invoice.save()
-            self.instance.sale.transaction.save()
+
+            if self.instance.sale.transaction is not None:
+                self.instance.sale.transaction.save()
 
             self._update_product_inventory_item()
             self._update_scraps_products_inventory_items()
@@ -298,8 +302,20 @@ class AddOrChangeSaleForm(ModelForm):
         type = cleaned_data['type']
         payment_method = cleaned_data['payment_method']
 
-        if  type == Sale.TYPE_COUNTER and payment_method == Sale.PAYMENT_ON_DELIVERY:
+        if type == Sale.TYPE_COUNTER and payment_method == Sale.PAYMENT_ON_DELIVERY:
             raise ValidationError({
                 'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
                                   'Para esto elija tipo de venta "Con entrega".'
             })
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        if self.instance.payment_method is not Sale.PAYMENT_ON_DELIVERY:
+            self.instance.transaction = Transaction.objects.create(invoice=self.instance.invoice,
+                                                                   payed_by=self.instance.client)
+            self.instance.invoice.is_closed = True
+            self.instance.invoice.transaction_set.add(self.instance.transaction)
+
+        return super(AddOrChangeSaleForm, self).save(commit)
+
