@@ -194,7 +194,7 @@ class Sale(models.Model):
                                          verbose_name='dirección de envío')
     payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
                                                       verbose_name='método de pago')
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura',
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name='factura',
                                 limit_choices_to=~Q(state=Invoice.STATE_CANCELLED) and Q(is_closed=False))
     transaction = models.OneToOneField(Transaction, on_delete=models.PROTECT, null=True, editable=False,
                                        verbose_name='transacción')
@@ -212,33 +212,6 @@ class Sale(models.Model):
 
     def __str__(self):
         return self.folio
-
-    def clean(self):
-        if self.type == Sale.TYPE_COUNTER and self.payment_method == Sale.PAYMENT_ON_DELIVERY:
-            raise ValidationError({
-                'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
-                                  'Para esto elija tipo de venta "Con entrega".'
-            })
-
-    def save(self):
-        if self.pk is not None:
-            super(Sale, self).save()
-            return
-
-        if self.invoice is None:
-            self.invoice = Invoice(folio='AUTO{0}_{1}'.format(str(timezone.now().date()), uuid.uuid4().hex),
-                                   state=Invoice.STATE_GEN_BY_SALE)
-            self.invoice.save()
-
-        if self.payment_method is not Sale.PAYMENT_ON_DELIVERY:
-            self.transaction = Transaction(invoice=self.invoice, payed_by=self.client)
-            self.transaction.save()
-            self.invoice.is_closed = True
-            self.invoice.transaction_set.add(self.transaction)
-
-        self.invoice.save()
-
-        super(Sale, self).save()
 
     def cancel(self):
         """
@@ -277,12 +250,12 @@ class SaleProductItem(models.Model):
     to a Sale.
     """
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     special_length = models.DecimalField(max_digits=6, decimal_places=2, default=0,
                                          verbose_name='longitud especial (m)')
     special_width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura especial (m)')
     special_thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0,
                                             verbose_name='grosor especial (mm)')
-    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, verbose_name='venta')
 
     class Meta:
