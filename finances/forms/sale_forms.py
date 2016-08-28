@@ -292,3 +292,14 @@ class AddOrChangeSaleForm(ModelForm):
         js = [
             "finances/scripts/addOrChangeSaleForm.js",
         ]
+
+    def clean(self):
+        cleaned_data = super(AddOrChangeSaleForm, self).clean()
+        type = cleaned_data['type']
+        payment_method = cleaned_data['payment_method']
+
+        if  type == Sale.TYPE_COUNTER and payment_method == Sale.PAYMENT_ON_DELIVERY:
+            raise ValidationError({
+                'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
+                                  'Para esto elija tipo de venta "Con entrega".'
+            })
