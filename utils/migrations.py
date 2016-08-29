@@ -114,8 +114,8 @@ def load_products_inventory(apps, schema_editor):
                                         engraving=row['GRABADO'].strip(),
                                         color=row['COLOR'].strip(),
                                         length=Decimal(row['LONGITUD']),
-                                        thickness=Decimal(row['ANCHO']),
-                                        width=Decimal(row['ESPESOR']),
+                                        width=Decimal(row['ANCHO']),
+                                        thickness=Decimal(row['ESPESOR']),
                                         is_composite=False)
 
             new_products.append(new_product)

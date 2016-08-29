@@ -1,4 +1,5 @@
 import os
+
 import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Acriladmin.settings")
@@ -74,7 +75,7 @@ def set_default_passwords_and_make_staff():
 
 def assign_group_permissions():
     """
-
+    Assigns default permissions for groups.
     """
     from django.contrib.auth.models import Group, Permission
 
@@ -89,7 +90,6 @@ def assign_group_permissions():
                 'change_sale',
                 'add_invoice',
                 'change_invoice',
-
             ])
         elif group.name == 'Jefe de almacén':
             perms = Permission.objects.filter(codename__in=[

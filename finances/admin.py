@@ -6,7 +6,7 @@ from reversion.admin import VersionAdmin
 import finances.models as models
 from back_office.models import EmployeeGroup
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
-from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm
+from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm, SaleProductItemInlineFormSet
 
 
 class TransactionInline(admin.StackedInline):
@@ -133,6 +133,7 @@ class SaleProductItemInline(admin.TabularInline):
     """
     model = models.SaleProductItem
     form = SaleProductItemInlineForm
+    formset = SaleProductItemInlineFormSet
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.state == models.Sale.STATE_CANCELLED:
@@ -142,6 +143,16 @@ class SaleProductItemInline(admin.TabularInline):
 
     def get_extra(self, request, obj=None, **kwargs):
         return 3 if obj is None else 0
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset_class = super(SaleProductItemInline, self).get_formset(request, obj, **kwargs)
+
+        class FormSetWithRequest(formset_class):
+            def __new__(cls, *args, **child_kwargs):
+                child_kwargs['request'] = request
+                return formset_class(*args, **child_kwargs)
+
+        return FormSetWithRequest
 
     def has_delete_permission(self, request, obj=None):
         return obj is None or obj.state != models.Sale.STATE_CANCELLED
@@ -222,8 +233,10 @@ class SaleAdmin(ModelAdmin):
     def save_related(self, request, form, formsets, change):
         obj = form.instance
         super(SaleAdmin, self).save_related(request, form, formsets, change)
-        obj.invoice.state = models.Invoice.STATE_VALID
-        obj.invoice.save()
+
+        if obj.invoice:
+            obj.invoice.state = models.Invoice.STATE_VALID
+            obj.invoice.save()
 
 
 admin.site.register(models.Invoice, InvoiceAdmin)

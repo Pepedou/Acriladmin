@@ -135,8 +135,8 @@ class Product(models.Model):
     engraving = models.CharField(max_length=45, verbose_name='grabado', blank=True)
     color = models.CharField(blank=True, max_length=20, verbose_name='color')
     length = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='longitud (m)')
-    thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='espesor (mm)')
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura (m)')
+    thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='espesor (mm)')
     is_composite = models.BooleanField(default=False, verbose_name='es compuesto')
 
     class Meta:

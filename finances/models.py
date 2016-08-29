@@ -1,8 +1,11 @@
+import uuid
+
 import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Sum, F, Q
+from django.utils import timezone
 
 from back_office.models import Client, Employee, Address
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
@@ -191,7 +194,7 @@ class Sale(models.Model):
                                          verbose_name='dirección de envío')
     payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
                                                       verbose_name='método de pago')
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True, verbose_name='factura',
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name='factura',
                                 limit_choices_to=~Q(state=Invoice.STATE_CANCELLED) and Q(is_closed=False))
     transaction = models.OneToOneField(Transaction, on_delete=models.PROTECT, null=True, editable=False,
                                        verbose_name='transacción')
@@ -209,32 +212,6 @@ class Sale(models.Model):
 
     def __str__(self):
         return self.folio
-
-    def clean(self):
-        if self.type == Sale.TYPE_COUNTER and self.payment_method == Sale.PAYMENT_ON_DELIVERY:
-            raise ValidationError({
-                'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
-                                  'Para esto elija tipo de venta "Con entrega".'
-            })
-
-    def save(self):
-        if self.pk is not None:
-            super(Sale, self).save()
-            return
-
-        if self.invoice is None:
-            self.invoice = Invoice(state=Invoice.STATE_GEN_BY_SALE)
-            self.invoice.save()
-
-        if self.payment_method is not Sale.PAYMENT_ON_DELIVERY:
-            self.transaction = Transaction(invoice=self.invoice, payed_by=self.client)
-            self.transaction.save()
-            self.invoice.is_closed = True
-            self.invoice.transaction_set.add(self.transaction)
-
-        self.invoice.save()
-
-        super(Sale, self).save()
 
     def cancel(self):
         """
@@ -274,6 +251,11 @@ class SaleProductItem(models.Model):
     """
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
     quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    special_length = models.DecimalField(max_digits=6, decimal_places=2, default=0,
+                                         verbose_name='longitud especial (m)')
+    special_width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura especial (m)')
+    special_thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0,
+                                            verbose_name='grosor especial (mm)')
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, verbose_name='venta')
 
     class Meta:
@@ -282,52 +264,3 @@ class SaleProductItem(models.Model):
 
     def __str__(self):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
-
-    def clean(self):
-        try:
-            products_inventory = self.sale.inventory
-            product_inventory_item = products_inventory.productinventoryitem_set.filter(product=self.product).first()
-
-            if product_inventory_item is None:
-                raise ValidationError('El inventario elegido no cuenta con este producto.')
-
-            if product_inventory_item.quantity < self.quantity:
-                raise ValidationError('El inventario elegido sólo cuenta con {0}/{1} unidades de este producto.'.format(
-                    product_inventory_item.quantity,
-                    self.quantity
-                ))
-
-            if ProductPrice.objects.filter(product=self.product).first() is None:
-                raise ValidationError(
-                    'El producto no cuenta con un precio. Debe asignar un precio a este producto antes '
-                    'de poder hacer una venta.')
-        except:
-            pass
-
-    def save(self):
-        if self.pk is not None:
-            super(SaleProductItem, self).save()
-            return
-
-        products_inventory = self.sale.inventory
-        product_inventory_item = products_inventory.productinventoryitem_set.filter(product=self.product).first()
-        product_price = ProductPrice.objects.filter(product=self.product).first()
-
-        product_inventory_item.quantity -= self.quantity
-
-        item_charges = self.quantity * product_price.price
-
-        self.sale.subtotal += item_charges
-
-        if self.sale.invoice.state == Invoice.STATE_GEN_BY_SALE:
-            self.sale.invoice.total += self.sale.total
-
-        if self.sale.payment_method is not Sale.PAYMENT_ON_DELIVERY:
-            self.sale.transaction.amount += item_charges
-
-        with transaction.atomic():
-            self.sale.save()
-            self.sale.invoice.save()
-            self.sale.transaction.save()
-            product_inventory_item.save()
-            super(SaleProductItem, self).save()
