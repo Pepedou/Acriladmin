@@ -1,0 +1,37 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n admin_urls admin_static admin_list %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+        &rsaquo;
+        <a href="{{ app_list }}">Inventarios</a>
+        &rsaquo; Detalle
+    </div>
+{% endblock %}
+
+{#{% block extrastyle %}#}
+{#    {{ block.super }}#}
+{#    <link rel="stylesheet" type="text/css" href="{% static "inventories/css/inventory.css" %}"/>#}
+{#    <link rel="stylesheet" type="text/css"#}
+{#          href="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.css"/>#}
+{#{% endblock %}#}
+
+{#{% block extrascripts %}#}
+{#    <script>#}
+{#        var PRODUCT_INV_ITEM_API_URL = APP_DOMAIN + "{{ product_inv_item_api_url }}";#}
+{#    </script>#}
+{#    <script type="text/javascript"#}
+{#            src="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.js"></script>#}
+{#    <script type="text/javascript" src="{% static "inventories/scripts/inventory.js" %}"></script>#}
+{#{% endblock %}#}
+
+{% block content %}
+    <div id="content-main">
+        <form action="{% url 'solver_result' %}" method="get">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="Enviar">
+        </form>
+    </div>
+{% endblock %}

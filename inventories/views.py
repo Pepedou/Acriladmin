@@ -6,13 +6,72 @@ from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.http import HttpResponseBadRequest
+from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
+from django.views.generic import View
 from rest_framework import viewsets
 
+from inventories.forms.solver_forms import SolverForm
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
     Product, Material, Consumable, DurableGood, ProductInventoryItem
 from inventories.serializers import ProductInventoryItemSerializer
+from inventories.solver import Surface, ProductSolver
+
+
+class ProductSolverView(View):
+    """
+
+    """
+    form_class = SolverForm
+    template_name = 'inventories/solver.html'
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ProductSolverView, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        form = self.form_class()
+        return render(request, self.template_name, {'form': form})
+
+
+class ProductSolverResultView(View):
+    form_class = SolverForm
+    template_name = 'inventories/solver_result.html'
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ProductSolverResultView, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        form = self.form_class(request.GET)
+
+        if form.is_valid():
+            inventory = request.user.branch_office.productsinventory
+
+            solver = ProductSolver(
+                inventory=inventory,
+                surface_area=Surface(width=form.cleaned_data['width'],
+                                     length=form.cleaned_data['length']),
+                product_lines=form.cleaned_data['product_lines'],
+                quantity=form.cleaned_data['quantity']
+            )
+
+            products, remaining = solver.get_products()
+
+            return render(request, self.template_name, {
+                'products': products,
+                'remaining': remaining,
+                'inventory': inventory,
+                'width': form.cleaned_data['width'],
+                'length': form.cleaned_data['length'],
+                'quantity': form.cleaned_data['quantity'],
+                'product_lines': ", ".join(
+                    [x[1] for x in Product.LINE_TYPES if str(x[0]) in form.cleaned_data['product_lines']]),
+            })
+        else:
+            return HttpResponseBadRequest()
 
 
 class ProductInventoryView(ListView):
