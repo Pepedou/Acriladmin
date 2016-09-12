@@ -1,0 +1,70 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n admin_urls admin_static admin_list %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+        &rsaquo;
+        <a href="{% url 'solver' %}">Solver de productos</a>
+        &rsaquo; Detalle
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div id="content-main">
+        <h2>Corte solicitado</h2>
+        <table>
+            <thead>
+            <th>Anchura (m)</th>
+            <th>Longitud (m)</th>
+            <th>Cantidad</th>
+            <th>Líneas</th>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{ width }}</td>
+                <td>{{ length }}</td>
+                <td>{{ quantity }}</td>
+                <td>{{ product_lines }}</td>
+            </tr>
+            </tbody>
+        </table>
+        {% if products %}
+            <h2>Resultados para inventario: {{ inventory }}</h2>
+            {% if remaining|length > 0 %}
+                <h2>NO EXISTEN suficientes productos para cubrir la cantidad solicitada.
+                    Faltarán {{ remaining }} piezas.</h2>
+            {% endif %}
+            <h5>Los siguientes productos son los más óptimos para obtener {{ quantity }} piezas del corte
+                solicitado.</h5>
+            {% if remaining|length > 0 %}
+                <h3>No se encontraron suficientes productos para cumplir con la petición. Sólo se pueden
+                    generar {{ quantity|subtract:remaining }} de {{ quantity }}.</h3>
+            {% endif %}
+            <table>
+                <thead>
+                <th>Producto</th>
+                <th>Cantidad actual</th>
+                <th>Cantidad restante</th>
+                <th>Orientación del corte</th>
+                <th>Estándar más cercano</th>
+                <th>Medidas del residuo</th>
+                </thead>
+                <tbody>
+                {% for result in products %}
+                    <tr>
+                        <td>{{ result.product_item.product }}</td>
+                        <td>{{ result.product_item.quantity }}</td>
+                        <td>{{ result.product_remaining }}</td>
+                        <td>{{ result.conf }}</td>
+                        <td>{{ result.closest_standard.standard }}</td>
+                        <td>{{ result.residue }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <h2>No se encontraron resultados para ese corte en el inventario: {{ inventory }}</h2>
+        {% endif %}
+    </div>
+{% endblock %}

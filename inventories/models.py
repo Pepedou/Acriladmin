@@ -138,6 +138,7 @@ class Product(models.Model):
     width = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='anchura (m)')
     thickness = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='espesor (mm)')
     is_composite = models.BooleanField(default=False, verbose_name='es compuesto')
+    is_scrap = models.BooleanField(default=False, editable=False, verbose_name='es pedacería')
 
     class Meta:
         verbose_name = 'producto'
