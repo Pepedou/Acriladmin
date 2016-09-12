@@ -17,7 +17,7 @@ from inventories.forms.solver_forms import SolverForm
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
     Product, Material, Consumable, DurableGood, ProductInventoryItem
 from inventories.serializers import ProductInventoryItemSerializer
-from inventories.solver import Surface, ProductSolver
+from inventories.solver import Surface, ProductCutOptimizer
 
 
 class ProductSolverView(View):
@@ -50,7 +50,7 @@ class ProductSolverResultView(View):
         if form.is_valid():
             inventory = request.user.branch_office.productsinventory
 
-            solver = ProductSolver(
+            solver = ProductCutOptimizer(
                 inventory=inventory,
                 surface_area=Surface(width=form.cleaned_data['width'],
                                      length=form.cleaned_data['length']),
@@ -58,7 +58,7 @@ class ProductSolverResultView(View):
                 quantity=form.cleaned_data['quantity']
             )
 
-            products, remaining = solver.get_products()
+            products, remaining = solver.get_candidate_products_for_surface()
 
             return render(request, self.template_name, {
                 'products': products,

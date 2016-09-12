@@ -10,22 +10,6 @@
     </div>
 {% endblock %}
 
-{#{% block extrastyle %}#}
-{#    {{ block.super }}#}
-{#    <link rel="stylesheet" type="text/css" href="{% static "inventories/css/inventory.css" %}"/>#}
-{#    <link rel="stylesheet" type="text/css"#}
-{#          href="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.css"/>#}
-{#{% endblock %}#}
-
-{#{% block extrascripts %}#}
-{#    <script>#}
-{#        var PRODUCT_INV_ITEM_API_URL = APP_DOMAIN + "{{ product_inv_item_api_url }}";#}
-{#    </script>#}
-{#    <script type="text/javascript"#}
-{#            src="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.js"></script>#}
-{#    <script type="text/javascript" src="{% static "inventories/scripts/inventory.js" %}"></script>#}
-{#{% endblock %}#}
-
 {% block content %}
     <div id="content-main">
         <h2>Corte solicitado</h2>
@@ -47,6 +31,12 @@
         </table>
         {% if products %}
             <h2>Resultados para inventario: {{ inventory }}</h2>
+            {% if remaining|length > 0 %}
+                <h2>NO EXISTEN suficientes productos para cubrir la cantidad solicitada.
+                    Faltarán {{ remaining }} piezas.</h2>
+            {% endif %}
+            <h5>Los siguientes productos son los más óptimos para obtener {{ quantity }} piezas del corte
+                solicitado.</h5>
             {% if remaining|length > 0 %}
                 <h3>No se encontraron suficientes productos para cumplir con la petición. Sólo se pueden
                     generar {{ quantity|subtract:remaining }} de {{ quantity }}.</h3>

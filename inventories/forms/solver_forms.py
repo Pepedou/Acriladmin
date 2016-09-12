@@ -1,4 +1,4 @@
-from django.forms import CheckboxSelectMultiple
+from django.forms import CheckboxSelectMultiple, BooleanField
 from django.forms import DecimalField, IntegerField, forms
 from django.forms import MultipleChoiceField
 
@@ -14,3 +14,7 @@ class SolverForm(forms.Form):
     quantity = IntegerField(max_value=10000, min_value=1, label='Cantidad')
     product_lines = MultipleChoiceField(choices=Product.LINE_TYPES, widget=CheckboxSelectMultiple,
                                         label='Líneas de producto')
+    select_all_product_lines = BooleanField(required=False, label='Todas')
+
+    class Media:
+        js = ['inventories/scripts/solver.js']

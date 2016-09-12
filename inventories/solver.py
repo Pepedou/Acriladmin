@@ -32,6 +32,12 @@ class Surface:
         return "{:.2f} X {:.2f}".format(self.width, self.length)
 
     def get_closest_standard(self):
+        """
+        Returns the Surface Area Standard that is closest to this
+        Surface Area.
+        :return: A dictionary with the standard and the sum of the
+        difference between this area and the standard.
+        """
         deltas_to_standards = []
 
         for standard_dict in Surface.STANDARDS:
@@ -54,9 +60,10 @@ class Surface:
         return min(deltas_to_standards, key=lambda item: item['deltas_sum'])
 
 
-class ProductSolver:
+class ProductCutOptimizer:
     """
-
+    Optimizes product cuts by obtaining the best suited candidates
+    for a specific surface area.
     """
 
     def __init__(self, inventory, surface_area, product_lines, quantity=1):
@@ -66,8 +73,15 @@ class ProductSolver:
         self.inventory = inventory
         self.available_inventory_items = None
 
-    def get_products(self):
-        products = []
+    def get_candidate_products_for_surface(self):
+        """
+        Returns an array of dictionaries with the best suited product inventory
+        items, the remaining quantities and residues. The best products are
+        the ones for which the distance to any one standard is shortest and are
+        scrap.
+        :return: A list of dictionaries and the amount remaining.
+        """
+        candidate_products = []
 
         self.available_inventory_items = ProductInventoryItem.objects.filter(
             product__width__gte=self.surface.width,
@@ -96,13 +110,21 @@ class ProductSolver:
                     result['product_remaining'] = 0
                     remaining -= min_product.quantity
 
-                products.append(result)
+                candidate_products.append(result)
             except IndexError:
-                return products, remaining
+                break
 
-        return products, remaining
+        candidate_products.sort(key=lambda x: -x['product_item'].product.is_scrap)
+
+        return candidate_products, remaining
 
     def _get_results(self):
+        """
+        Returns a sorted set of product inventory items for which the residue
+        to any one standard is shortest.
+        :return: List of dictionaries with the product item, closest standard, vertical or horizontal
+        configuration and product residue.
+        """
         results = []
 
         for inventory_item in self.available_inventory_items.all():
