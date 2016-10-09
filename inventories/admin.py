@@ -343,6 +343,60 @@ class ProductReimbursementAdmin(ModelAdmin):
             reimbursement.save()
 
 
+class PurchasedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a purchased product for the
+    PurchasedProduct's admin view.
+    """
+    model = models.PurchasedProduct
+
+
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the PurchaseOrder entity.
+    """
+
+    inlines = [PurchasedProductInLine]
+    readonly_fields = ('is_confirmed', 'date',)
+
+
+class EnteredProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a entered product for the
+    ProductEntry's admin view.
+    """
+    model = models.EnteredProduct
+
+
+class ProductEntryAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductEntry entity.
+    """
+
+    inlines = [EnteredProductInLine]
+    readonly_fields = ('inventory', 'is_confirmed', 'date',)
+
+
+class RemovedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a removed product for the
+    ProductRemoval's admin view.
+    """
+    model = models.RemovedProduct
+
+
+class ProductRemovalAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductRemoval entity.
+    """
+
+    inlines = [RemovedProductInLine]
+    readonly_fields = ('inventory', 'is_confirmed', 'user', 'date',)
+
+
 admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
@@ -357,3 +411,6 @@ admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
 admin.site.register(models.DurableGoodsInventory, DurableGoodsInventoryAdmin)
 admin.site.register(models.ProductTransfer, ProductTransferAdmin)
 admin.site.register(models.ProductReimbursement, ProductReimbursementAdmin)
+admin.site.register(models.PurchaseOrder, PurchaseOrderAdmin)
+admin.site.register(models.ProductEntry, ProductEntryAdmin)
+admin.site.register(models.ProductRemoval, ProductRemovalAdmin)
