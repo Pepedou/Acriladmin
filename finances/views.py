@@ -32,7 +32,7 @@ class InvoiceAutocomplete(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated():
             query_set = Invoice.objects.none()
         elif self.q:
-            query_set = Invoice.objects.filter(Q(id__icontains=self.q) | Q(external_id__icontains=self.q))
+            query_set = Invoice.objects.filter(Q(folio__icontains=self.q))
         else:
             query_set = Invoice.objects.all()
 
