@@ -428,6 +428,8 @@ class ProductTransfer(models.Model):
     sale = models.ForeignKey('finances.Sale', on_delete=models.CASCADE, null=True, blank=True,
                              limit_choices_to=Q(state=1),
                              verbose_name='venta cancelada relacionada')
+    date_created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='fecha de creación')
+    date_reviewed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de revisión')
 
     class Meta:
         verbose_name = 'transferencia de productos'
@@ -456,6 +458,7 @@ class ProductTransfer(models.Model):
             target_inventory_item.quantity += self.quantity
 
             self.transfer_has_been_made = True
+            self.date_reviewed = django.utils.timezone.now
 
             with transaction.atomic():
                 target_inventory_item.save()

@@ -221,7 +221,8 @@ class ProductTransferAdmin(ModelAdmin):
     to the ProductTransfer entity.
     """
     form = AddOrChangeProductTransferForm
-    list_display = ('source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed',)
+    list_display = (
+    'source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed', 'date_created', 'date_reviewed',)
 
     readonly_fields = ("product", "source_branch", "target_branch", "quantity",)
 
