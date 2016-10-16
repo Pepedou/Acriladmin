@@ -20,6 +20,7 @@ class AddOrChangeProductTransferForm(ModelForm):
         target_branch = cleaned_data.get('target_branch')
         product = cleaned_data.get('product')
         quantity = cleaned_data.get('quantity')
+        confirmed_quantity = cleaned_data.get('confirmed_quantity')
         is_confirmed = cleaned_data.get('is_confirmed')
         rejection_reason = cleaned_data.get('rejection_reason')
 
@@ -55,6 +56,12 @@ class AddOrChangeProductTransferForm(ModelForm):
                 target_branch.productsinventory
             except ProductsInventory.DoesNotExist:
                 raise forms.ValidationError('La sucursal de destino no cuenta con un inventario de productos.')
+
+        if quantity == 0:
+            raise forms.ValidationError("La cantidad a transferir debe ser mayor a 0.")
+
+        if is_confirmed and confirmed_quantity > quantity:
+            raise forms.ValidationError('La cantidad confirmada no puede ser mayor a la recibida.')
 
         return cleaned_data
 

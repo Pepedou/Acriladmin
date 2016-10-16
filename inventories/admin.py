@@ -227,14 +227,14 @@ class ProductTransferAdmin(ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj is None:
-            return 'is_confirmed', 'rejection_reason',
+            return 'is_confirmed', 'rejection_reason', 'confirmed_quantity',
         elif request.user != obj.target_branch.productsinventory.supervisor and not request.user.is_superuser \
                 or obj.is_confirmed:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason',)
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity',)
         elif obj.rejection_reason is None:
             return self.readonly_fields
         else:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason',)
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity',)
 
     def get_actions(self, request):
         actions = super(ProductTransferAdmin, self).get_actions(request)
