@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
 
-from back_office.models import Employee, Client, BranchOffice, EmployeeGroup
+from back_office.models import Employee, Client, BranchOffice, EmployeeGroup, Provider
 
 
 class SIPrefix:
@@ -547,3 +547,126 @@ class ReturnedProduct(models.Model):
         with transaction.atomic():
             inventory_item.save()
             super(ReturnedProduct, self).save()
+
+
+class PurchaseOrder(models.Model):
+    """
+    A Purchase Order represents an entry of certain products
+    given by a provider to a user's inventory.
+    """
+
+    provider = models.ForeignKey(Provider, on_delete=models.PROTECT, verbose_name='proveedor')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
+    invoice_folio = models.CharField(max_length=30, verbose_name='folio factura')
+    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+
+    class Meta:
+        verbose_name = 'orden de compra'
+        verbose_name_plural = 'órdenes de compra'
+
+    def __str__(self):
+        return "P{0}".format(str(self.pk).zfill(9))
+
+
+class PurchasedProduct(models.Model):
+    """
+    A product belonging to a Purchase Order.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, verbose_name='orden de compra')
+
+    class Meta:
+        verbose_name = 'producto comprado'
+        verbose_name_plural = 'productos comprados'
+
+    def __str__(self):
+        return str(self.product)
+
+
+class ProductEntry(models.Model):
+    """
+    An addition of Product to a specific Inventory. It's related to a
+    Purchase Order and a Provider.
+    """
+
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, verbose_name='orden de compra')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
+    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+
+    class Meta:
+        verbose_name = 'ingreso de producto'
+        verbose_name_plural = 'ingresos de producto'
+
+    def __str__(self):
+        return str(self.date)
+
+
+class EnteredProduct(models.Model):
+    """
+    The quantity of a Product that has been entered to an inventory
+    through a Product Entry.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    product_entry = models.ForeignKey(ProductEntry, on_delete=models.CASCADE, verbose_name='ingreso')
+
+    class Meta:
+        verbose_name = 'producto ingresado'
+        verbose_name_plural = 'productos ingresados'
+
+    def __str__(self):
+        return str(self.product)
+
+
+class ProductRemoval(models.Model):
+    """
+    A Product's removal from an inventory due to it being
+    in bad conditions.
+    """
+
+    CAUSE_INTERNAL = 0
+    CAUSE_PROVIDER = 1
+    CAUSE_TRANSFER = 2
+    CAUSE_TYPES = (
+        (CAUSE_INTERNAL, "Interna"),
+        (CAUSE_PROVIDER, "Proveedor"),
+        (CAUSE_TRANSFER, "Transferencia"),
+    )
+
+    cause = models.PositiveSmallIntegerField(choices=CAUSE_TYPES, default=CAUSE_INTERNAL, verbose_name='causa')
+    provider = models.ForeignKey(Provider, on_delete=models.PROTECT, null=True, blank=True, verbose_name='proveedor')
+    product_transfer = models.ForeignKey(ProductTransfer, on_delete=models.PROTECT, null=True, blank=True,
+                                         verbose_name='transferencia de producto')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
+    user = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='usuario')
+    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+
+    class Meta:
+        verbose_name = 'merma de producto'
+        verbose_name_plural = 'mermas de producto'
+
+    def __str__(self):
+        return str(self.date)
+
+
+class RemovedProduct(models.Model):
+    """
+    The quantity of a Product that has been removed from an inventory
+    through a Product Removal.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    product_removal = models.ForeignKey(ProductRemoval, on_delete=models.CASCADE, verbose_name='salida')
+
+    class Meta:
+        verbose_name = 'producto retirado'
+        verbose_name_plural = 'productos retirados'
+
+    def __str__(self):
+        return str(self.product)
