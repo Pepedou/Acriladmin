@@ -7,7 +7,7 @@ from django.db import models, transaction
 from django.db.models import Sum, F, Q
 from django.utils import timezone
 
-from back_office.models import Client, Employee, Address
+from back_office.models import Client, Employee, Address, EmployeeGroup
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
 from operations.models import Service, Repair, Project
 
@@ -205,6 +205,10 @@ class Sale(models.Model):
     shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
                                                 default=0)
     discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0)
+    driver = models.ForeignKey(Employee, null=True, blank=True,
+                               limit_choices_to={'groups__name__contains': EmployeeGroup.DRIVER},
+                               on_delete=models.PROTECT,
+                               verbose_name='chofer')
 
     class Meta:
         verbose_name = 'venta'

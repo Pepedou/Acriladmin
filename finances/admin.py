@@ -170,7 +170,7 @@ class SaleAdmin(ModelAdmin):
     actions = ['cancel_sales']
     fieldsets = (
         ('Datos', {
-            'fields': ('client', 'shipping_address', 'type', 'payment_method', 'state')
+            'fields': ('client', 'shipping_address', 'type', 'driver', 'payment_method', 'state')
         }),
         ('Montos', {
             'fields': ('date', 'invoice', 'subtotal', 'shipping_and_handling',

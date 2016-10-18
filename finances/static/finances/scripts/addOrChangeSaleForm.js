@@ -7,6 +7,8 @@ var shippingInput;
 var discountInput;
 var discountPercentageInput;
 var totalParagraph;
+var saleTypeSelect;
+var driverSelect;
 
 $(document).ready(function () {
     subtotalInput = $("#id_subtotal");
@@ -14,6 +16,8 @@ $(document).ready(function () {
     discountInput = $("#id_discount");
     discountPercentageInput = $("#id_discount_percentage");
     totalParagraph = $("label:contains('Monto:')").next("p");
+    saleTypeSelect = $("#id_type");
+    driverSelect = $(".field-driver");
 
     totalParagraph.css("font-weight", "bold");
 
@@ -36,6 +40,10 @@ $(document).ready(function () {
         updateDiscount();
         updateTotal();
     });
+
+    saleTypeSelect.on("change", null, null, setDriverSelectVisibility);
+
+    setDriverSelectVisibility();
 });
 
 function updateDiscountPercentage() {
@@ -86,4 +94,13 @@ function updateDiscount() {
     var discount = subtotal * (discountPercentage / 100);
 
     discountInput.val(Math.floor(discount));
+}
+
+/**
+ * Shows or hides the driver's select depending on the selected option
+ * in the sale type select.
+ */
+function setDriverSelectVisibility() {
+    var shouldShow = saleTypeSelect.find(":selected").text() === "Con entrega";
+    if (shouldShow) driverSelect.show(); else driverSelect.hide();
 }
