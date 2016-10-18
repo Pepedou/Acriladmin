@@ -195,7 +195,7 @@ class Sale(models.Model):
     payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
                                                       verbose_name='método de pago')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name='factura',
-                                limit_choices_to=~Q(state=Invoice.STATE_CANCELLED) and Q(is_closed=False))
+                                limit_choices_to=~Q(state=Invoice.STATE_CANCELLED))
     transaction = models.OneToOneField(Transaction, on_delete=models.PROTECT, null=True, editable=False,
                                        verbose_name='transacción')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, editable=False,
