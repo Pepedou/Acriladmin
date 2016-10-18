@@ -640,6 +640,15 @@ class ProductRemoval(models.Model):
         (CAUSE_TRANSFER, "Transferencia"),
     )
 
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmada"),
+        (STATUS_CANCELLED, "Cancelada"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
     cause = models.PositiveSmallIntegerField(choices=CAUSE_TYPES, default=CAUSE_INTERNAL, verbose_name='causa')
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, null=True, blank=True, verbose_name='proveedor')
     product_transfer = models.ForeignKey(ProductTransfer, on_delete=models.PROTECT, null=True, blank=True,
@@ -647,7 +656,7 @@ class ProductRemoval(models.Model):
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
     user = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='usuario')
-    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
 
     class Meta:
         verbose_name = 'merma de producto'

@@ -12,7 +12,9 @@ from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeReturnedProductTabularInlineForm
+from inventories.forms.productremoval_forms import AddOrChangeProductRemovalForm
 from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
+from inventories.forms.removedproduct_forms import RemovedProductForm, RemovedProductFormset
 
 
 class ProductComponentInLine(admin.TabularInline):
@@ -222,7 +224,7 @@ class ProductTransferAdmin(ModelAdmin):
     """
     form = AddOrChangeProductTransferForm
     list_display = (
-    'source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed', 'date_created', 'date_reviewed',)
+        'source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed', 'date_created', 'date_reviewed',)
 
     readonly_fields = ("product", "source_branch", "target_branch", "quantity",)
 
@@ -379,6 +381,10 @@ class ProductEntryAdmin(admin.ModelAdmin):
     inlines = [EnteredProductInLine]
     readonly_fields = ('inventory', 'is_confirmed', 'date',)
 
+    def save_model(self, request, obj, form, change):
+        obj.inventory = request.user.branch_office.productsinventory
+        super(ProductEntryAdmin, self).save_model(request, obj, form, change)
+
 
 class RemovedProductInLine(admin.TabularInline):
     """
@@ -386,6 +392,18 @@ class RemovedProductInLine(admin.TabularInline):
     ProductRemoval's admin view.
     """
     model = models.RemovedProduct
+    form = RemovedProductForm
+    formset = RemovedProductFormset
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset_class = super(RemovedProductInLine, self).get_formset(request, obj, **kwargs)
+
+        class FormSetWithRequest(formset_class):
+            def __new__(cls, *args, **child_kwargs):
+                child_kwargs['request'] = request
+                return formset_class(*args, **child_kwargs)
+
+        return FormSetWithRequest
 
 
 class ProductRemovalAdmin(admin.ModelAdmin):
@@ -394,22 +412,27 @@ class ProductRemovalAdmin(admin.ModelAdmin):
     to the ProductRemoval entity.
     """
 
+    form = AddOrChangeProductRemovalForm
     inlines = [RemovedProductInLine]
-    readonly_fields = ('inventory', 'is_confirmed', 'user', 'date',)
+    list_display = 'inventory', 'user', 'cause', 'status', 'date',
+    list_filter = 'inventory', 'cause', 'status', 'date',
+    readonly_fields = 'inventory', 'status', 'user', 'date',
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return self.readonly_fields + 'cause', 'provider', 'product_transfer',
+        else:
+            return self.readonly_fields
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.inventory = request.user.branch_office.productsinventory
+        super(ProductRemovalAdmin, self).save_model(request, obj, form, change)
 
 
 admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
-admin.site.register(models.Material)
-admin.site.register(models.MaterialInventoryItem, InventoryItemAdmin)
-admin.site.register(models.MaterialsInventory, MaterialsInventoryAdmin)
-admin.site.register(models.Consumable)
-admin.site.register(models.ConsumableInventoryItem, InventoryItemAdmin)
-admin.site.register(models.ConsumablesInventory, ConsumablesInventoryAdmin)
-admin.site.register(models.DurableGood)
-admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
-admin.site.register(models.DurableGoodsInventory, DurableGoodsInventoryAdmin)
 admin.site.register(models.ProductTransfer, ProductTransferAdmin)
 admin.site.register(models.ProductReimbursement, ProductReimbursementAdmin)
 admin.site.register(models.PurchaseOrder, PurchaseOrderAdmin)
