@@ -420,7 +420,7 @@ class ProductTransfer(models.Model):
                                       related_name='product_transfers_as_target_branch',
                                       verbose_name='sucursal de destino')
     quantity = models.PositiveIntegerField(verbose_name='cantidad')
-    confirmed_quantity = models.PositiveIntegerField(verbose_name='cantidad confirmada')
+    confirmed_quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad confirmada')
     is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
     transfer_has_been_made = models.BooleanField(default=False, editable=False)
     rejection_reason = models.PositiveSmallIntegerField(null=True, blank=True, choices=REJECTION_REASONS,
