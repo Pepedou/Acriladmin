@@ -425,9 +425,6 @@ class ProductTransfer(models.Model):
     transfer_has_been_made = models.BooleanField(default=False, editable=False)
     rejection_reason = models.PositiveSmallIntegerField(null=True, blank=True, choices=REJECTION_REASONS,
                                                         verbose_name='motivo de rechazo')
-    sale = models.ForeignKey('finances.Sale', on_delete=models.CASCADE, null=True, blank=True,
-                             limit_choices_to=Q(state=1),
-                             verbose_name='venta cancelada relacionada')
     date_created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='fecha de creación')
     date_reviewed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de revisión')
 
