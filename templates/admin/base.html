@@ -24,7 +24,10 @@
 
 <!-- Container -->
 <div id="container">
-
+    <form method="post" action="{% url 'productremoval_review' 5 %}">
+        {% csrf_token %}
+        <input type="submit" value="dale">
+    </form>
     {% if not is_popup %}
         <!-- Header -->
         <div id="header">

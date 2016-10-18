@@ -9,4 +9,6 @@ urlpatterns = [
     url(r'^durable_good/(?P<pk>\d+)/$', views.DurableGoodInventoryView.as_view(), name='durable_goods_inventory'),
     url(r'^solver/$', views.ProductSolverView.as_view(), name='solver'),
     url(r'^solver/result/$', views.ProductSolverResultView.as_view(), name='solver_result'),
+    url(r'^productremovalreview/(?P<product_removal_id>\d+)/$', views.ProductRemovalReviewView.as_view(),
+        name='productremoval_review')
 ]
