@@ -1,6 +1,9 @@
+import sys
+
 import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.db.models import Q
 
@@ -154,6 +157,13 @@ class Product(models.Model):
         :return: Queryset with the products that match the condition.
         """
         return Product.objects.filter(productprice__isnull=True)
+
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_product_change', args=[str(self.id)])
 
 
 class Material(models.Model):
@@ -587,6 +597,29 @@ class PurchaseOrder(models.Model):
         return PurchaseOrder.objects.filter(branch_office__administrator=user,
                                             status=PurchaseOrder.STATUS_PENDING)
 
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_purchaseorder_change', args=[str(self.id)])
+
+    def confirm(self):
+        """
+        Confirms a purchase order. Sets its status to
+        CONFIRMED.
+        """
+        self.status = PurchaseOrder.STATUS_CONFIRMED
+        self.save()
+
+    def cancel(self):
+        """
+        Cancels a purchase order. Sets its status to
+        CANCELLED.
+        """
+        self.status = PurchaseOrder.STATUS_CANCELLED
+        self.save()
+
 
 class PurchasedProduct(models.Model):
     """
@@ -641,6 +674,56 @@ class ProductEntry(models.Model):
         """
         return ProductEntry.objects.filter(inventory__supervisor=user,
                                            status=ProductEntry.STATUS_PENDING)
+
+    def confirm(self):
+        """
+        Confirms this product entry. Sets the status as CONFIRMED and
+        removes and adds the products to the inventory.
+        """
+        with transaction.atomic():
+            self.status = ProductEntry.STATUS_CONFIRMED
+            self.save()
+
+            for entered_product in self.enteredproduct_set.all():
+                inventory_item = self.inventory.productinventoryitem_set.filter(product=entered_product.product).first()
+
+                if inventory_item is None:
+                    inventory_item = ProductInventoryItem()
+                    inventory_item.product = entered_product.product
+                    inventory_item.quantity = entered_product.quantity
+                else:
+                    inventory_item.quantity += entered_product.quantity
+
+                inventory_item.save()
+
+    def get_confirm_url(self):
+        """
+
+        :return:
+        """
+        return reverse('productmovconfirmorcancel', args=[self.__class__.__name__, str(self.id), 'confirm'])
+
+    def cancel(self):
+        """
+        Cancels this product entry. Sets the status as CANCELLED.
+        :return:
+        """
+        self.status = ProductEntry.STATUS_CANCELLED
+        self.save()
+
+    def get_cancel_url(self):
+        """
+
+        :return:
+        """
+        return reverse('productmovconfirmorcancel', args=[self.__class__.__name__, str(self.id), 'cancel'])
+
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_productentry_change', args=[str(self.id)])
 
 
 class EnteredProduct(models.Model):
@@ -711,6 +794,36 @@ class ProductRemoval(models.Model):
         return ProductRemoval.objects.filter(inventory__supervisor=user,
                                              status=ProductRemoval.STATUS_PENDING)
 
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_productremoval_change', args=[str(self.id)])
+
+    def confirm(self):
+        """
+        Confirms this product removal. It sets its status to CONFIRMED
+        and removes the products from the inventory.
+        """
+        with transaction.atomic():
+            self.status = ProductRemoval.STATUS_CONFIRMED
+            self.save()
+
+            for removed_product in self.removedproduct_set.all():
+                inventory_item = self.inventory.productinventoryitem_set.filter(product=removed_product.product)
+
+                if inventory_item:
+                    inventory_item.quantity -= removed_product.quantity
+                    inventory_item.save()
+
+    def cancel(self):
+        """
+        Cancels this product removal. Sets its status to CANCELLED.
+        """
+        self.status = ProductRemoval.STATUS_CANCELLED
+        self.save()
+
 
 class RemovedProduct(models.Model):
     """
@@ -728,3 +841,13 @@ class RemovedProduct(models.Model):
 
     def __str__(self):
         return str(self.product)
+
+
+def string_to_model_class(string: str):
+    """
+    Returns the class belonging to this module
+    that matches the given string.
+    :param string: The class' name.
+    :return: The class.
+    """
+    return getattr(sys.modules[__name__], string)
