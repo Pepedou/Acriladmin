@@ -362,7 +362,11 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     """
 
     inlines = [PurchasedProductInLine]
-    readonly_fields = ('is_confirmed', 'date',)
+    readonly_fields = ('branch_office', 'status', 'date',)
+
+    def save_model(self, request, obj, form, change):
+        obj.branch_office = request.user.branch_office
+        super(PurchaseOrderAdmin, self).save_model(request, obj, form, change)
 
 
 class EnteredProductInLine(admin.TabularInline):
@@ -380,7 +384,7 @@ class ProductEntryAdmin(admin.ModelAdmin):
     """
 
     inlines = [EnteredProductInLine]
-    readonly_fields = ('inventory', 'is_confirmed', 'date',)
+    readonly_fields = ('inventory', 'status', 'date',)
 
     def save_model(self, request, obj, form, change):
         obj.inventory = request.user.branch_office.productsinventory

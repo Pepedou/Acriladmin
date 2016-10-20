@@ -122,6 +122,15 @@ class Employee(AbstractUser):
     def __str__(self):
         return self.get_full_name()
 
+    def belongs_to_group(self, group):
+        """
+        Determines if the Employee belongs to the given group.
+        :param group: The group.
+        :return: True if the user belongs to the group,
+        False otherwise.
+        """
+        return group in [x.name for x in self.groups.all()]
+
 
 class Client(models.Model):
     """

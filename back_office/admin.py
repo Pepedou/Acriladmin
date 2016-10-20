@@ -8,11 +8,12 @@ from reversion.admin import VersionAdmin
 
 import back_office.models as models
 from back_office.forms.employee_forms import AddOrChangeEmployeeForm
+from inventories.models import ProductEntry, ProductRemoval, PurchaseOrder
 
 
 class CustomAdminSite(AdminSite):
     """
-
+    Custom Admin site. It's used to give extra content to the Index page.
     """
 
     @never_cache
@@ -24,8 +25,41 @@ class CustomAdminSite(AdminSite):
 
         :return: A dictionary with extra content for the index view.
         """
-        must_show_pending_items = True
-        return {'must_show_pending_items': must_show_pending_items}
+        user = request.user
+
+        pending_items = self.get_pending_items(user)
+
+        return {'pending_items': pending_items}
+
+    @staticmethod
+    def get_pending_items(user: models.Employee):
+        """
+        Returns a dictionary with the pending items
+        for a user to review on its index page.
+        :param user: The user for which the pending items are
+        needed.
+        :return: The dictionary with the pending items.
+        """
+        pending_items = {}
+        inventory_supervisor = None
+        is_user_admin = user.belongs_to_group(models.EmployeeGroup.ADMINISTRATOR)
+
+        if user.belongs_to_group(models.EmployeeGroup.WAREHOUSE_CHIEF):
+            inventory_supervisor = user
+        elif is_user_admin:
+            inventory_supervisor = user.branch_office.productsinventory.branch
+
+        if is_user_admin:
+            pending_items.update({'pending_purchase_orders':
+                                      PurchaseOrder.get_pending_purchase_orders_for_user(user)})
+
+        if inventory_supervisor:
+            pending_items.update({'pending_product_entries':
+                                      ProductEntry.get_pending_product_entries_for_user(user)})
+            pending_items.update({'pending_product_removals':
+                                      ProductRemoval.get_pending_product_removals_for_user(user)})
+
+        return pending_items
 
 
 class AddressAdmin(VersionAdmin):

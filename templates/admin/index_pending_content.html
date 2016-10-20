@@ -1,0 +1,52 @@
+{% if pending_items.pending_purchase_orders %}
+    <h2>Órdenes de compra pendientes</h2>
+    {% for order in pending_items.pending_purchase_orders %}
+        <h3>Orden de compra {{ order }} por:</h3>
+        <ul class="actionlist">
+            {% for purchased_product in order.purchasedproduct_set.all %}
+                <li>
+                    {{ purchased_product.quantity }} x
+                    <span class="quiet">
+                        {{ purchased_product.product }}
+                    </span>
+                </li>
+            {% endfor %}
+            <div class="pending-confirm"/>
+            <div class="pending-cancel"/>
+        </ul>
+    {% endfor %}
+{% endif %}
+
+{% if pending_items.pending_product_entries %}
+    <h2>Ingresos de producto pendientes</h2>
+    {% for entry in pending_items.pending_product_entries %}
+        <h3>{{ entry.purchase_order }} {{ entry.inventory }}</h3>
+        <ul class="actionlist">
+            {% for entered_product in entry.enteredproduct_set.all %}
+                <li>
+                    {{ entered_product.quantity }} x
+                    <span class="quiet">
+                        {{ entered_product.product }}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+{% endif %}
+
+{% if pending_items.pending_product_removals %}
+    <h2>Merma de producto pendiente</h2>
+    {% for product_removal in pending_items.pending_product_removals %}
+        <h3>{{ product_removal }}:</h3>
+        <ul class="actionlist">
+            {% for removed_product in product_removal.removedproduct_set.all %}
+                <li>
+                    {{ removed_product.quantity }} x
+                    <span class="quiet">
+                        {{ removed_product.product }}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+{% endif %}

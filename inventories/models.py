@@ -555,10 +555,20 @@ class PurchaseOrder(models.Model):
     given by a provider to a user's inventory.
     """
 
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmado"),
+        (STATUS_CANCELLED, "Cancelado"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, verbose_name='proveedor')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
     invoice_folio = models.CharField(max_length=30, verbose_name='folio factura')
-    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+    branch_office = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, editable=False, verbose_name='sucursal')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
 
     class Meta:
         verbose_name = 'orden de compra'
@@ -566,6 +576,16 @@ class PurchaseOrder(models.Model):
 
     def __str__(self):
         return "P{0}".format(str(self.pk).zfill(9))
+
+    @staticmethod
+    def get_pending_purchase_orders_for_user(user: Employee):
+        """
+        Returns the set of product entries that are pending.
+        :param user: The user for which the entries are needed.
+        :return: A list with the product entries.
+        """
+        return PurchaseOrder.objects.filter(branch_office__administrator=user,
+                                            status=PurchaseOrder.STATUS_PENDING)
 
 
 class PurchasedProduct(models.Model):
@@ -591,17 +611,36 @@ class ProductEntry(models.Model):
     Purchase Order and a Provider.
     """
 
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmado"),
+        (STATUS_CANCELLED, "Cancelado"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, verbose_name='orden de compra')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
-    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
 
     class Meta:
         verbose_name = 'ingreso de producto'
         verbose_name_plural = 'ingresos de producto'
 
     def __str__(self):
-        return str(self.date)
+        return "Ingreso para orden de compra {0}".format(str(self.purchase_order))
+
+    @staticmethod
+    def get_pending_product_entries_for_user(user: Employee):
+        """
+        Returns the set of product entries that are pending.
+        :param user: The user for which the entries are needed.
+        :return: A list with the product entries.
+        """
+        return ProductEntry.objects.filter(inventory__supervisor=user,
+                                           status=ProductEntry.STATUS_PENDING)
 
 
 class EnteredProduct(models.Model):
@@ -660,7 +699,17 @@ class ProductRemoval(models.Model):
         verbose_name_plural = 'mermas de producto'
 
     def __str__(self):
-        return str(self.date)
+        return "{0} - {1}".format(str(self.inventory), str(self.user))
+
+    @staticmethod
+    def get_pending_product_removals_for_user(user: Employee):
+        """
+        Returns the set of product removals that are pending.
+        :param user: The user for which the removals are needed.
+        :return: A list with the product removals.
+        """
+        return ProductRemoval.objects.filter(inventory__supervisor=user,
+                                             status=ProductRemoval.STATUS_PENDING)
 
 
 class RemovedProduct(models.Model):
