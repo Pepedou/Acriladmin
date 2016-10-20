@@ -376,6 +376,30 @@ class EnteredProductInLine(admin.TabularInline):
     """
     model = models.EnteredProduct
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return 0
+        else:
+            return super(EnteredProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return False
+        else:
+            return super(EnteredProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return False
+        else:
+            return super(EnteredProductInLine, self).has_delete_permission(request, obj)
+
 
 class ProductEntryAdmin(admin.ModelAdmin):
     """
@@ -384,11 +408,25 @@ class ProductEntryAdmin(admin.ModelAdmin):
     """
 
     inlines = [EnteredProductInLine]
+    list_display = ('date', 'inventory', 'purchase_order', 'status',)
+    list_filter = ('inventory', 'status', 'date',)
     readonly_fields = ('inventory', 'status', 'date',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return self.readonly_fields + ('purchase_order',)
+        else:
+            return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
         obj.inventory = request.user.branch_office.productsinventory
         super(ProductEntryAdmin, self).save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return False
+        else:
+            return super(ProductEntryAdmin, self).has_delete_permission(request, obj)
 
 
 class RemovedProductInLine(admin.TabularInline):
