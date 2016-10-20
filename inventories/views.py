@@ -9,16 +9,17 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from django.views.generic import View
 from rest_framework import viewsets
 
+from back_office.admin import admin_site
 from back_office.models import EmployeeGroup
 from inventories.forms.solver_forms import SolverForm
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
-    Product, Material, Consumable, DurableGood, ProductInventoryItem, ProductRemoval
+    Product, Material, Consumable, DurableGood, ProductInventoryItem, ProductRemoval, string_to_model_class
 from inventories.serializers import ProductInventoryItemSerializer
 from inventories.solver import Surface, ProductCutOptimizer
 
@@ -516,3 +517,27 @@ class ProductRemovalReviewView(View):
                 ))
 
                 continue
+
+
+class ProductMovementConfirmOrCancelView(View):
+    """
+
+    """
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ProductMovementConfirmOrCancelView, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request, model, pk, action):
+        try:
+            model_class = string_to_model_class(model)
+            obj = get_object_or_404(model_class, pk=pk)
+
+            if action == "confirm":
+                obj.confirm()
+            elif action == "cancel":
+                obj.cancel()
+
+            return redirect(reverse('admin:index'))
+        except:
+            return HttpResponseBadRequest()

@@ -1,18 +1,20 @@
 {% if pending_items.pending_purchase_orders %}
     <h2>Órdenes de compra pendientes</h2>
     {% for order in pending_items.pending_purchase_orders %}
-        <h3>Orden de compra {{ order }} por:</h3>
+        <h3>Orden de compra <a href="{{ order.get_absolute_url }}">{{ order }}</a> por:</h3>
         <ul class="actionlist">
             {% for purchased_product in order.purchasedproduct_set.all %}
                 <li>
                     {{ purchased_product.quantity }} x
                     <span class="quiet">
-                        {{ purchased_product.product }}
+                        <a href="{{ purchased_product.product.get_absolute_url }}">
+                            {{ purchased_product.product }}
+                        </a>
                     </span>
                 </li>
             {% endfor %}
-            <div class="pending-confirm"/>
-            <div class="pending-cancel"/>
+            <input onclick="" type="button" value="Confirmar"/>
+            <input type="button" value="Cancelar"/>
         </ul>
     {% endfor %}
 {% endif %}
@@ -26,11 +28,17 @@
                 <li>
                     {{ entered_product.quantity }} x
                     <span class="quiet">
-                        {{ entered_product.product }}
+                        <a href="{{ entered_product.product.get_absolute_url }}">
+                            {{ entered_product.product }}
+                        </a>
                     </span>
                 </li>
             {% endfor %}
         </ul>
+        <input type="button" value="Confirmar"
+               onclick="window.location.href = 'http://localhost:8000{{ entry.get_confirm_url }}';"/>
+        <input type="button" value="Cancelar"
+               onclick="window.location.href = 'http://localhost:8000{{ entry.get_cancel_url }}';"/>
     {% endfor %}
 {% endif %}
 
@@ -43,7 +51,9 @@
                 <li>
                     {{ removed_product.quantity }} x
                     <span class="quiet">
-                        {{ removed_product.product }}
+                        <a href="{{ removed_product.product.get_absolute_url }}">
+                            {{ removed_product.product }}
+                        </a>
                     </span>
                 </li>
             {% endfor %}
