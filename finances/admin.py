@@ -4,6 +4,7 @@ from django.db.models import Sum, F
 from reversion.admin import VersionAdmin
 
 import finances.models as models
+from back_office.admin import admin_site
 from back_office.models import EmployeeGroup
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm, SaleProductItemInlineFormSet
@@ -239,9 +240,9 @@ class SaleAdmin(ModelAdmin):
             obj.invoice.save()
 
 
-admin.site.register(models.Invoice, InvoiceAdmin)
-admin.site.register(models.ProductPrice, ProductPriceAdmin)
-admin.site.register(models.MaterialCost, MaterialCostAdmin)
-admin.site.register(models.Transaction, TransactionAdmin)
-admin.site.register(models.RepairCost, RepairCostAdmin)
-admin.site.register(models.Sale, SaleAdmin)
+admin_site.register(models.Invoice, InvoiceAdmin)
+admin_site.register(models.ProductPrice, ProductPriceAdmin)
+admin_site.register(models.MaterialCost, MaterialCostAdmin)
+admin_site.register(models.Transaction, TransactionAdmin)
+admin_site.register(models.RepairCost, RepairCostAdmin)
+admin_site.register(models.Sale, SaleAdmin)

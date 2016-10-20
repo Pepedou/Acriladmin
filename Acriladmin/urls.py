@@ -14,10 +14,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from django.conf.urls import url, include
-from django.contrib import admin
 from django.views.generic import RedirectView
 from rest_framework import routers
 
+from back_office.admin import admin_site
 from back_office.views import AddressAutocomplete, ClientAutocomplete
 from finances import views as fin_views
 from finances.views import InvoiceAutocomplete
@@ -32,7 +32,7 @@ router.register(r'inventories/productinventoryitem', inv_views.ProductInventoryI
 
 urlpatterns = [
     url(r'^$', RedirectView.as_view(url='/admin/', permanent=False)),
-    url(r'^admin/', admin.site.urls),
+    url(r'^admin/', admin_site.urls),
     url(r'^api/', include(router.urls)),
     url(r'^inventories/', include(inventories_urls)),
     url(r'^select2/', include('django_select2.urls')),

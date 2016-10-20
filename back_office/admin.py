@@ -1,11 +1,31 @@
 from cities_light.admin import CountryAdmin, CityAdmin, RegionAdmin
 from django.contrib import admin
+from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.views.decorators.cache import never_cache
 from reversion.admin import VersionAdmin
 
 import back_office.models as models
 from back_office.forms.employee_forms import AddOrChangeEmployeeForm
+
+
+class CustomAdminSite(AdminSite):
+    """
+
+    """
+
+    @never_cache
+    def index(self, request, extra_context=None):
+        return super(CustomAdminSite, self).index(request, self.get_extra_content(request))
+
+    def get_extra_content(self, request):
+        """
+
+        :return: A dictionary with extra content for the index view.
+        """
+        must_show_pending_items = True
+        return {'must_show_pending_items': must_show_pending_items}
 
 
 class AddressAdmin(VersionAdmin):
@@ -123,16 +143,14 @@ class CustomCityAdmin(CityAdmin):
         return {}
 
 
-admin.site.register(models.Address, AddressAdmin)
-admin.site.unregister(Group)
-admin.site.register(Group, GroupAdmin)
-admin.site.register(models.Employee, EmployeeAdmin)
-admin.site.register(models.Client, VersionAdmin)
-admin.site.register(models.BranchOffice, BranchOfficeAdmin)
-admin.site.unregister(models.Country)
-admin.site.register(models.Country, CustomCountryAdmin)
-admin.site.unregister(models.Region)
-admin.site.register(models.Region, CustomRegionAdmin)
-admin.site.unregister(models.City)
-admin.site.register(models.City, CustomCityAdmin)
-admin.site.register(models.Provider)
+admin_site = CustomAdminSite()
+
+admin_site.register(models.Address, AddressAdmin)
+admin_site.register(Group, GroupAdmin)
+admin_site.register(models.Employee, EmployeeAdmin)
+admin_site.register(models.Client, VersionAdmin)
+admin_site.register(models.BranchOffice, BranchOfficeAdmin)
+admin_site.register(models.Country, CustomCountryAdmin)
+admin_site.register(models.Region, CustomRegionAdmin)
+admin_site.register(models.City, CustomCityAdmin)
+admin_site.register(models.Provider)

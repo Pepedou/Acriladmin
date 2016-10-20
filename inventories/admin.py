@@ -5,6 +5,7 @@ from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
 import inventories.models as models
+from back_office.admin import admin_site
 from inventories.forms.inventory_item_forms import TabularInLineConsumableInventoryItemForm, \
     TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
@@ -226,18 +227,18 @@ class ProductTransferAdmin(ModelAdmin):
     list_display = (
         'source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed', 'date_created', 'date_reviewed',)
 
-    readonly_fields = ("product", "source_branch", "target_branch", "quantity",)
+    readonly_fields = ("product", "target_branch", "quantity",)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is None:
-            return 'is_confirmed', 'rejection_reason', 'confirmed_quantity',
+            return 'is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',
         elif request.user != obj.target_branch.productsinventory.supervisor and not request.user.is_superuser \
                 or obj.is_confirmed:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity',)
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',)
         elif obj.rejection_reason is None:
-            return self.readonly_fields
+            return self.readonly_fields + ('source_branch',)
         else:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity',)
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',)
 
     def get_actions(self, request):
         actions = super(ProductTransferAdmin, self).get_actions(request)
@@ -430,11 +431,11 @@ class ProductRemovalAdmin(admin.ModelAdmin):
         super(ProductRemovalAdmin, self).save_model(request, obj, form, change)
 
 
-admin.site.register(models.Product, ProductAdmin)
-admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
-admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
-admin.site.register(models.ProductTransfer, ProductTransferAdmin)
-admin.site.register(models.ProductReimbursement, ProductReimbursementAdmin)
-admin.site.register(models.PurchaseOrder, PurchaseOrderAdmin)
-admin.site.register(models.ProductEntry, ProductEntryAdmin)
-admin.site.register(models.ProductRemoval, ProductRemovalAdmin)
+admin_site.register(models.Product, ProductAdmin)
+admin_site.register(models.ProductInventoryItem, InventoryItemAdmin)
+admin_site.register(models.ProductsInventory, ProductsInventoryAdmin)
+admin_site.register(models.ProductTransfer, ProductTransferAdmin)
+admin_site.register(models.ProductReimbursement, ProductReimbursementAdmin)
+admin_site.register(models.PurchaseOrder, PurchaseOrderAdmin)
+admin_site.register(models.ProductEntry, ProductEntryAdmin)
+admin_site.register(models.ProductRemoval, ProductRemovalAdmin)
