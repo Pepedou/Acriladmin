@@ -521,23 +521,41 @@ class ProductRemovalReviewView(View):
 
 class ProductMovementConfirmOrCancelView(View):
     """
-
+    This view is used to confirm or cancel one of three different models:
+    PurchaseOrder, ProductEntry or ProductRemoval.
     """
 
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         return super(ProductMovementConfirmOrCancelView, self).dispatch(request, *args, **kwargs)
 
-    def get(self, request, model, pk, action):
+    def post(self, request):
+        """
+        Responds to POST requests.
+        This view is used to confirm or cancel one of three different models:
+        PurchaseOrder, ProductEntry or ProductRemoval. The model's class name
+        is provided in the request, along with the primary key and the action
+        to perform: confirmation or cancellation.
+        :param request: The HTTP request.
+        :return: A JSON response.
+        """
         try:
-            model_class = string_to_model_class(model)
-            obj = get_object_or_404(model_class, pk=pk)
+            model_class = string_to_model_class(request.POST.get('model'))
+            obj = get_object_or_404(model_class, pk=request.POST.get('pk'))
+            action = request.POST.get('action')
+
+            if not model_class or not obj or not action:
+                raise Exception("El servidor no recibió los parámetros esperados.")
 
             if action == "confirm":
                 obj.confirm()
+                success = obj.status == model_class.STATUS_CONFIRMED
+                message = obj.ajax_message_for_confirmation
             elif action == "cancel":
                 obj.cancel()
+                success = obj.status == model_class.STATUS_CANCELLED
+                message = obj.ajax_message_for_cancellation
 
-            return redirect(reverse('admin:index'))
-        except:
-            return HttpResponseBadRequest()
+            return JsonResponse({'success': success, 'message': message})
+        except Exception as ex:
+            return JsonResponse({'success': False, 'message': str(ex)})

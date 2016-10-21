@@ -11,8 +11,7 @@ urlpatterns = [
     url(r'^solver/result/$', views.ProductSolverResultView.as_view(), name='solver_result'),
     url(r'^productremovalreview/(?P<product_removal_id>\d+)/$', views.ProductRemovalReviewView.as_view(),
         name='productremoval_review'),
-    url(r'^productmovementconfirmation/(?P<model>\w+)/(?P<pk>\d+)/(?P<action>\w+)/$',
-        views.ProductMovementConfirmOrCancelView.as_view(),
+    url(r'^productmovementconfirmation/$', views.ProductMovementConfirmOrCancelView.as_view(),
         name='productmovconfirmorcancel')
 
 ]
