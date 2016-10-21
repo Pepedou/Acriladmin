@@ -1,15 +1,12 @@
-import uuid
-
 import django
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Sum, F, Q
 from django.utils import timezone
 
 from back_office.models import Client, Employee, Address, EmployeeGroup
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
-from operations.models import Service, Repair, Project
+from operations.models import Repair, Project
 
 
 class Invoice(models.Model):

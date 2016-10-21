@@ -8,22 +8,6 @@ from operations.forms.project_materials_inline_forms import ProjectMaterialsInLi
 from operations.forms.project_products_inline_forms import ProjectProductsInLineForm
 
 
-class WorkOrderAdmin(VersionAdmin):
-    """
-    Specifies the details for the admin app in regard
-    to the WorkOrder entity.
-    """
-    readonly_fields = ('authorized_by',)
-
-    def save_model(self, request, obj, form, change):
-        """
-        Overrides the default save method for the WorkOrder model.
-        It sets the authorized_by field to the requesting user.
-        """
-        obj.authorized_by = request.user
-        obj.save()
-
-
 class ProjectProductsInLine(admin.TabularInline):
     """
     Tabular inline for the Products shown in the Project admin page.
@@ -110,8 +94,6 @@ class ProjectEstimationAdmin(VersionAdmin):
         obj.save()
 
 
-admin_site.register(models.WorkOrder, WorkOrderAdmin)
-admin_site.register(models.Service)
 admin_site.register(models.Repair)
 admin_site.register(models.Project, ProjectAdmin)
 admin_site.register(models.ProjectEstimation, ProjectEstimationAdmin)
