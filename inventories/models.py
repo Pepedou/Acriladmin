@@ -1,6 +1,7 @@
 import sys
 
 import django
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -584,6 +585,11 @@ class PurchaseOrder(models.Model):
         verbose_name = 'orden de compra'
         verbose_name_plural = 'órdenes de compra'
 
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(PurchaseOrder, self).__init__(*args, **kwargs)
+
     def __str__(self):
         return "P{0}".format(str(self.pk).zfill(9))
 
@@ -612,6 +618,21 @@ class PurchaseOrder(models.Model):
         self.status = PurchaseOrder.STATUS_CONFIRMED
         self.save()
 
+        self.ajax_message_for_confirmation = "Se confirmó la orden {0}.".format(str(self))
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
     def cancel(self):
         """
         Cancels a purchase order. Sets its status to
@@ -619,6 +640,21 @@ class PurchaseOrder(models.Model):
         """
         self.status = PurchaseOrder.STATUS_CANCELLED
         self.save()
+
+        self.ajax_message_for_cancellation = "Se canceló la orden {0}.".format(str(self))
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
 
 class PurchasedProduct(models.Model):
@@ -662,6 +698,11 @@ class ProductEntry(models.Model):
         verbose_name = 'ingreso de producto'
         verbose_name_plural = 'ingresos de producto'
 
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(ProductEntry, self).__init__(*args, **kwargs)
+
     def __str__(self):
         return "Ingreso para orden de compra {0}".format(str(self.purchase_order))
 
@@ -680,9 +721,13 @@ class ProductEntry(models.Model):
         Confirms this product entry. Sets the status as CONFIRMED and
         removes and adds the products to the inventory.
         """
+
         with transaction.atomic():
             self.status = ProductEntry.STATUS_CONFIRMED
             self.save()
+
+            self.ajax_message_for_confirmation = "Se confirmó el ingreso para la orden {0}.\n".format(
+                str(self.purchase_order))
 
             for entered_product in self.enteredproduct_set.all():
                 inventory_item = self.inventory.productinventoryitem_set.filter(product=entered_product.product).first()
@@ -691,17 +736,31 @@ class ProductEntry(models.Model):
                     inventory_item = ProductInventoryItem()
                     inventory_item.product = entered_product.product
                     inventory_item.quantity = entered_product.quantity
+
+                    old_quantity = 0
                 else:
+                    old_quantity = inventory_item.quantity
                     inventory_item.quantity += entered_product.quantity
+
+                new_quantity = inventory_item.quantity
+
+                self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(entered_product.product),
+                                                                                    old_quantity, new_quantity)
 
                 inventory_item.save()
 
-    def get_confirm_url(self):
+    def get_confirm_params_for_ajax_request(self):
         """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
 
-        :return:
-        """
-        return reverse('productmovconfirmorcancel', args=[self.__class__.__name__, str(self.id), 'confirm'])
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
     def cancel(self):
         """
@@ -711,12 +770,20 @@ class ProductEntry(models.Model):
         self.status = ProductEntry.STATUS_CANCELLED
         self.save()
 
-    def get_cancel_url(self):
-        """
+        self.ajax_message_for_cancellation = "Ingreso para orden {0} cancelado.".format(str(self.purchase_order))
 
-        :return:
+    def get_cancel_params_for_ajax_request(self):
         """
-        return reverse('productmovconfirmorcancel', args=[self.__class__.__name__, str(self.id), 'cancel'])
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
     def get_absolute_url(self):
         """
@@ -781,6 +848,11 @@ class ProductRemoval(models.Model):
         verbose_name = 'merma de producto'
         verbose_name_plural = 'mermas de producto'
 
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(ProductRemoval, self).__init__(*args, **kwargs)
+
     def __str__(self):
         return "{0} - {1}".format(str(self.inventory), str(self.user))
 
@@ -810,12 +882,35 @@ class ProductRemoval(models.Model):
             self.status = ProductRemoval.STATUS_CONFIRMED
             self.save()
 
+            self.ajax_message_for_confirmation = "Se confirmó la merma {0}.\n".format(str(self))
+
             for removed_product in self.removedproduct_set.all():
                 inventory_item = self.inventory.productinventoryitem_set.filter(product=removed_product.product)
 
                 if inventory_item:
+                    old_quantity = inventory_item.quantity
+
                     inventory_item.quantity -= removed_product.quantity
                     inventory_item.save()
+
+                    new_quantity = inventory_item.quantity
+
+                    self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(removed_product.product),
+                                                                                        old_quantity,
+                                                                                        new_quantity)
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
     def cancel(self):
         """
@@ -823,6 +918,19 @@ class ProductRemoval(models.Model):
         """
         self.status = ProductRemoval.STATUS_CANCELLED
         self.save()
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
 
 class RemovedProduct(models.Model):
