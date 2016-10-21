@@ -48,7 +48,7 @@ class Invoice(models.Model):
 
         return amount_paid >= self.total
 
-    def save(self):
+    def save(self, **kwargs):
         related_transactions_sum = self.transaction_set.aggregate(sum=Sum(F('amount')))['sum']
 
         if related_transactions_sum is not None:
