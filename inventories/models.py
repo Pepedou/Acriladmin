@@ -1,10 +1,14 @@
+import sys
+from datetime import datetime
+
 import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.db.models import Q
 
-from back_office.models import Employee, Client, BranchOffice, EmployeeGroup
+from back_office.models import Employee, Client, BranchOffice, EmployeeGroup, Provider
 
 
 class SIPrefix:
@@ -154,6 +158,13 @@ class Product(models.Model):
         :return: Queryset with the products that match the condition.
         """
         return Product.objects.filter(productprice__isnull=True)
+
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_product_change', args=[str(self.id)])
 
 
 class Material(models.Model):
@@ -419,14 +430,14 @@ class ProductTransfer(models.Model):
     target_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
                                       related_name='product_transfers_as_target_branch',
                                       verbose_name='sucursal de destino')
-    quantity = models.PositiveIntegerField(verbose_name='cantidad')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    confirmed_quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad confirmada')
     is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
     transfer_has_been_made = models.BooleanField(default=False, editable=False)
     rejection_reason = models.PositiveSmallIntegerField(null=True, blank=True, choices=REJECTION_REASONS,
                                                         verbose_name='motivo de rechazo')
-    sale = models.ForeignKey('finances.Sale', on_delete=models.CASCADE, null=True, blank=True,
-                             limit_choices_to=Q(state=1),
-                             verbose_name='venta cancelada relacionada')
+    date_created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='fecha de creación')
+    date_reviewed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de revisión')
 
     class Meta:
         verbose_name = 'transferencia de productos'
@@ -455,6 +466,7 @@ class ProductTransfer(models.Model):
             target_inventory_item.quantity += self.quantity
 
             self.transfer_has_been_made = True
+            self.date_reviewed = datetime.now()
 
             with transaction.atomic():
                 target_inventory_item.save()
@@ -525,9 +537,9 @@ class ReturnedProduct(models.Model):
                            'para poder completar la devolución.'
             })
 
-    def save(self):
+    def save(self, **kwargs):
         if self.pk is not None:
-            super(ReturnedProduct, self).save()
+            super(ReturnedProduct, self).save(**kwargs)
             return
 
         inventory = self.reimbursement.inventory
@@ -545,4 +557,405 @@ class ReturnedProduct(models.Model):
 
         with transaction.atomic():
             inventory_item.save()
-            super(ReturnedProduct, self).save()
+            super(ReturnedProduct, self).save(**kwargs)
+
+
+class PurchaseOrder(models.Model):
+    """
+    A Purchase Order represents an entry of certain products
+    given by a provider to a user's inventory.
+    """
+
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmado"),
+        (STATUS_CANCELLED, "Cancelado"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
+    provider = models.ForeignKey(Provider, on_delete=models.PROTECT, verbose_name='proveedor')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
+    invoice_folio = models.CharField(max_length=30, verbose_name='folio factura')
+    branch_office = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, editable=False, verbose_name='sucursal')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
+
+    class Meta:
+        verbose_name = 'orden de compra'
+        verbose_name_plural = 'órdenes de compra'
+
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(PurchaseOrder, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        return "P{0}".format(str(self.pk).zfill(9))
+
+    @staticmethod
+    def get_pending_purchase_orders_for_user(user: Employee):
+        """
+        Returns the set of product entries that are pending.
+        :param user: The user for which the entries are needed.
+        :return: A list with the product entries.
+        """
+        return PurchaseOrder.objects.filter(branch_office__administrator=user,
+                                            status=PurchaseOrder.STATUS_PENDING)
+
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_purchaseorder_change', args=[str(self.id)])
+
+    def confirm(self):
+        """
+        Confirms a purchase order. Sets its status to
+        CONFIRMED.
+        """
+        self.status = PurchaseOrder.STATUS_CONFIRMED
+        self.save()
+
+        self.ajax_message_for_confirmation = "Se confirmó la orden {0}.".format(str(self))
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def cancel(self):
+        """
+        Cancels a purchase order. Sets its status to
+        CANCELLED.
+        """
+        self.status = PurchaseOrder.STATUS_CANCELLED
+        self.save()
+
+        self.ajax_message_for_cancellation = "Se canceló la orden {0}.".format(str(self))
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+
+class PurchasedProduct(models.Model):
+    """
+    A product belonging to a Purchase Order.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, verbose_name='orden de compra')
+
+    class Meta:
+        verbose_name = 'producto comprado'
+        verbose_name_plural = 'productos comprados'
+
+    def __str__(self):
+        return str(self.product)
+
+
+class ProductEntry(models.Model):
+    """
+    An addition of Product to a specific Inventory. It's related to a
+    Purchase Order and a Provider.
+    """
+
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmado"),
+        (STATUS_CANCELLED, "Cancelado"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, verbose_name='orden de compra')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
+
+    class Meta:
+        verbose_name = 'ingreso de producto'
+        verbose_name_plural = 'ingresos de producto'
+
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(ProductEntry, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        return "Ingreso para orden de compra {0}".format(str(self.purchase_order))
+
+    @staticmethod
+    def get_pending_product_entries_for_user(user: Employee):
+        """
+        Returns the set of product entries that are pending.
+        :param user: The user for which the entries are needed.
+        :return: A list with the product entries.
+        """
+        return ProductEntry.objects.filter(inventory__supervisor=user,
+                                           status=ProductEntry.STATUS_PENDING)
+
+    def confirm(self):
+        """
+        Confirms this product entry. Sets the status as CONFIRMED and
+        removes and adds the products to the inventory.
+        """
+
+        with transaction.atomic():
+            self.status = ProductEntry.STATUS_CONFIRMED
+            self.save()
+
+            self.ajax_message_for_confirmation = "Se confirmó el ingreso para la orden {0}.\n".format(
+                str(self.purchase_order))
+
+            for entered_product in self.enteredproduct_set.all():
+                inventory_item = self.inventory.productinventoryitem_set.filter(product=entered_product.product).first()
+
+                if inventory_item is None:
+                    inventory_item = ProductInventoryItem()
+                    inventory_item.product = entered_product.product
+                    inventory_item.quantity = entered_product.quantity
+
+                    old_quantity = 0
+                else:
+                    old_quantity = inventory_item.quantity
+                    inventory_item.quantity += entered_product.quantity
+
+                new_quantity = inventory_item.quantity
+
+                self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(entered_product.product),
+                                                                                    old_quantity, new_quantity)
+
+                inventory_item.save()
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def cancel(self):
+        """
+        Cancels this product entry. Sets the status as CANCELLED.
+        :return:
+        """
+        self.status = ProductEntry.STATUS_CANCELLED
+        self.save()
+
+        self.ajax_message_for_cancellation = "Ingreso para orden {0} cancelado.".format(str(self.purchase_order))
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_productentry_change', args=[str(self.id)])
+
+
+class EnteredProduct(models.Model):
+    """
+    The quantity of a Product that has been entered to an inventory
+    through a Product Entry.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    product_entry = models.ForeignKey(ProductEntry, on_delete=models.CASCADE, verbose_name='ingreso')
+
+    class Meta:
+        verbose_name = 'producto ingresado'
+        verbose_name_plural = 'productos ingresados'
+
+    def __str__(self):
+        return str(self.product)
+
+
+class ProductRemoval(models.Model):
+    """
+    A Product's removal from an inventory due to it being
+    in bad conditions.
+    """
+
+    CAUSE_INTERNAL = 0
+    CAUSE_PROVIDER = 1
+    CAUSE_TRANSFER = 2
+    CAUSE_TYPES = (
+        (CAUSE_INTERNAL, "Interna"),
+        (CAUSE_PROVIDER, "Proveedor"),
+        (CAUSE_TRANSFER, "Transferencia"),
+    )
+
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmada"),
+        (STATUS_CANCELLED, "Cancelada"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
+    cause = models.PositiveSmallIntegerField(choices=CAUSE_TYPES, default=CAUSE_INTERNAL, verbose_name='causa')
+    provider = models.ForeignKey(Provider, on_delete=models.PROTECT, null=True, blank=True, verbose_name='proveedor')
+    product_transfer = models.ForeignKey(ProductTransfer, on_delete=models.PROTECT, null=True, blank=True,
+                                         verbose_name='transferencia de producto')
+    inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
+    user = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='usuario')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
+
+    class Meta:
+        verbose_name = 'merma de producto'
+        verbose_name_plural = 'mermas de producto'
+
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(ProductRemoval, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        return "{0} - {1}".format(str(self.inventory), str(self.user))
+
+    @staticmethod
+    def get_pending_product_removals_for_user(user: Employee):
+        """
+        Returns the set of product removals that are pending.
+        :param user: The user for which the removals are needed.
+        :return: A list with the product removals.
+        """
+        return ProductRemoval.objects.filter(inventory__supervisor=user,
+                                             status=ProductRemoval.STATUS_PENDING)
+
+    def get_absolute_url(self):
+        """
+        Returns the admin's change URL for this model.
+        :return: The URL.
+        """
+        return reverse('admin:inventories_productremoval_change', args=[str(self.id)])
+
+    def confirm(self):
+        """
+        Confirms this product removal. It sets its status to CONFIRMED
+        and removes the products from the inventory.
+        """
+        with transaction.atomic():
+            self.status = ProductRemoval.STATUS_CONFIRMED
+            self.save()
+
+            self.ajax_message_for_confirmation = "Se confirmó la merma {0}.\n".format(str(self))
+
+            for removed_product in self.removedproduct_set.all():
+                inventory_item = self.inventory.productinventoryitem_set.filter(product=removed_product.product)
+
+                if inventory_item:
+                    old_quantity = inventory_item.quantity
+
+                    inventory_item.quantity -= removed_product.quantity
+                    inventory_item.save()
+
+                    new_quantity = inventory_item.quantity
+
+                    self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(removed_product.product),
+                                                                                        old_quantity,
+                                                                                        new_quantity)
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def cancel(self):
+        """
+        Cancels this product removal. Sets its status to CANCELLED.
+        """
+        self.status = ProductRemoval.STATUS_CANCELLED
+        self.save()
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+
+class RemovedProduct(models.Model):
+    """
+    The quantity of a Product that has been removed from an inventory
+    through a Product Removal.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    product_removal = models.ForeignKey(ProductRemoval, on_delete=models.CASCADE, verbose_name='salida')
+
+    class Meta:
+        verbose_name = 'producto retirado'
+        verbose_name_plural = 'productos retirados'
+
+    def __str__(self):
+        return str(self.product)
+
+
+def string_to_model_class(string: str):
+    """
+    Returns the class belonging to this module
+    that matches the given string.
+    :param string: The class' name.
+    :return: The class.
+    """
+    return getattr(sys.modules[__name__], string)

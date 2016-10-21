@@ -5,17 +5,21 @@ from dal import autocomplete
 from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from django.views.generic import View
 from rest_framework import viewsets
 
+from back_office.admin import admin_site
+from back_office.models import EmployeeGroup
 from inventories.forms.solver_forms import SolverForm
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
-    Product, Material, Consumable, DurableGood, ProductInventoryItem
+    Product, Material, Consumable, DurableGood, ProductInventoryItem, ProductRemoval, string_to_model_class
 from inventories.serializers import ProductInventoryItemSerializer
 from inventories.solver import Surface, ProductCutOptimizer
 
@@ -332,7 +336,8 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             search_terms = self.q.split(',')
             search_terms_queries = reduce(operator.and_,
-                                          (Q(search_description__icontains=x.strip()) for x in search_terms))
+                                          (Q(search_description__icontains=x.strip())
+                                           for x in search_terms))
             query_set = Product.objects.filter(search_terms_queries | Q(sku=self.q))
         else:
             query_set = Product.objects.all()
@@ -404,3 +409,45 @@ class ProductInventoryItemViewSet(viewsets.ModelViewSet):
     """
     queryset = ProductInventoryItem.objects.all()
     serializer_class = ProductInventoryItemSerializer
+
+
+class ProductMovementConfirmOrCancelView(View):
+    """
+    This view is used to confirm or cancel one of three different models:
+    PurchaseOrder, ProductEntry or ProductRemoval.
+    """
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ProductMovementConfirmOrCancelView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request):
+        """
+        Responds to POST requests.
+        This view is used to confirm or cancel one of three different models:
+        PurchaseOrder, ProductEntry or ProductRemoval. The model's class name
+        is provided in the request, along with the primary key and the action
+        to perform: confirmation or cancellation.
+        :param request: The HTTP request.
+        :return: A JSON response.
+        """
+        try:
+            model_class = string_to_model_class(request.POST.get('model'))
+            obj = get_object_or_404(model_class, pk=request.POST.get('pk'))
+            action = request.POST.get('action')
+
+            if not model_class or not obj or not action:
+                raise Exception("El servidor no recibió los parámetros esperados.")
+
+            if action == "confirm":
+                obj.confirm()
+                success = obj.status == model_class.STATUS_CONFIRMED
+                message = obj.ajax_message_for_confirmation
+            elif action == "cancel":
+                obj.cancel()
+                success = obj.status == model_class.STATUS_CANCELLED
+                message = obj.ajax_message_for_cancellation
+
+            return JsonResponse({'success': success, 'message': message})
+        except Exception as ex:
+            return JsonResponse({'success': False, 'message': str(ex)})

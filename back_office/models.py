@@ -122,6 +122,15 @@ class Employee(AbstractUser):
     def __str__(self):
         return self.get_full_name()
 
+    def belongs_to_group(self, group):
+        """
+        Determines if the Employee belongs to the given group.
+        :param group: The group.
+        :return: True if the user belongs to the group,
+        False otherwise.
+        """
+        return group in [x.name for x in self.groups.all()]
+
 
 class Client(models.Model):
     """
@@ -135,7 +144,7 @@ class Client(models.Model):
     email = models.EmailField(verbose_name='correo electrónico', blank=True,
                               validators=[EmailValidator(message="Correo electrónico inválido.")])
     picture = models.ImageField(verbose_name='imagen', blank=True)
-    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, verbose_name='dirección', null=True, blank=True)
     client_since = models.DateField(verbose_name='antigüedad', auto_now_add=True)
 
     class Meta:
@@ -156,7 +165,7 @@ class BranchOffice(models.Model):
                                       related_name="administrated_branches",
                                       limit_choices_to=Q(groups__name=EmployeeGroup.ADMINISTRATOR) & ~Q(
                                           username='root'))
-    address = models.ForeignKey(Address, on_delete=models.PROTECT, verbose_name='dirección', null=True, blank=True)
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, verbose_name='dirección', null=True, blank=True)
     phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
     email = models.EmailField(verbose_name='correo electrónico', blank=True,
                               validators=[EmailValidator(message="Correo electrónico inválido.")])
@@ -166,6 +175,27 @@ class BranchOffice(models.Model):
     class Meta:
         verbose_name = 'sucursal'
         verbose_name_plural = 'sucursales'
+
+    def __str__(self):
+        return self.name
+
+
+class Provider(models.Model):
+    """
+    One of Acrilfrasa's providers.
+    """
+
+    name = models.CharField(max_length=100, verbose_name='nombre')
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='dirección')
+    phone = models.CharField(verbose_name='teléfono', max_length=15, blank=True, validators=[phone_regex_validator])
+    website = models.URLField(verbose_name='sitio web', max_length=45, blank=True,
+                              validators=[URLValidator(message="URL inválida.")])
+    email = models.EmailField(verbose_name='correo electrónico', blank=True,
+                              validators=[EmailValidator(message="Correo electrónico inválido.")])
+
+    class Meta:
+        verbose_name = 'proveedor'
+        verbose_name_plural = 'proveedores'
 
     def __str__(self):
         return self.name

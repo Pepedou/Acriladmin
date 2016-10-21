@@ -8,40 +8,6 @@ from back_office.models import Client, Employee, EmployeeGroup, Address
 from inventories.models import Product, Material, DurableGood, Material, ProductsInventory
 
 
-class WorkOrder(models.Model):
-    """
-    An order that authorizes the manufacture of a product.
-    """
-    product_definition = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
-    amount = models.PositiveIntegerField(default=1, verbose_name='cantidad')
-    authorized_by = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='autorizado por',
-                                      limit_choices_to=~Q(username='root'))
-    authorization_datetime = models.DateTimeField(default=django.utils.timezone.now,
-                                                  verbose_name='fecha de autorización')
-
-    class Meta:
-        verbose_name = 'orden de trabajo'
-        verbose_name_plural = 'órdenes de trabajo'
-
-    def __str__(self):
-        return str(self.id).zfill(9)
-
-
-class Service(models.Model):
-    """
-    A service provided by Acrilfrasa to a customer.
-    """
-    name = models.CharField(max_length=45, verbose_name='nombre')
-    description = models.CharField(max_length=100, blank=True, verbose_name='descripción')
-
-    class Meta:
-        verbose_name = 'servicio'
-        verbose_name_plural = 'servicios'
-
-    def __str__(self):
-        return self.name
-
-
 class Repair(models.Model):
     """
     A repair made on a durable good.

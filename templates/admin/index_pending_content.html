@@ -1,0 +1,94 @@
+{% load admin_static %}
+{% block extrahead %}
+    <script type="application/javascript" src="{% static 'inventories/scripts/index_pending_content.js' %}"></script>
+    <script type="application/javascript" src="{% static 'inventories/scripts/jquery.modal.min.js' %}"></script>
+{% endblock %}
+{% block extrastyle %}
+    <link rel="stylesheet" type="text/css"
+          href="{% static "inventories/css/jquery.modal.min.css" %}"/>
+{% endblock %}
+
+<div id="alertModal" style="display:none;">
+    <p id="alertContent"></p>
+</div>
+
+{% if pending_items.pending_purchase_orders %}
+    <div class="section">
+        <h2>Órdenes de compra pendientes</h2>
+        {% for order in pending_items.pending_purchase_orders %}
+            <div class="row">
+                <h3>Orden de compra <a href="{{ order.get_absolute_url }}">{{ order }}</a> por:</h3>
+                <ul class="actionlist">
+                    {% for purchased_product in order.purchasedproduct_set.all %}
+                        <li>
+                            {{ purchased_product.quantity }} x
+                            <span class="quiet">
+                        <a href="{{ purchased_product.product.get_absolute_url }}">
+                            {{ purchased_product.product }}
+                        </a>
+                    </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="button" value="Confirmar"
+                       onclick="confirmOrCancelInventoryMovement({{ order.get_confirm_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+                <input type="button" value="Cancelar"
+                       onclick="confirmOrCancelInventoryMovement({{ order.get_cancel_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if pending_items.pending_product_entries %}
+    <div class="section">
+        <h2>Ingresos de producto pendientes</h2>
+        {% for entry in pending_items.pending_product_entries %}
+            <div class="row">
+                <h3>{{ entry.purchase_order }} {{ entry.inventory }}</h3>
+                <ul class="actionlist">
+                    {% for entered_product in entry.enteredproduct_set.all %}
+                        <li>
+                            {{ entered_product.quantity }} x
+                            <span class="quiet">
+                        <a href="{{ entered_product.product.get_absolute_url }}">
+                            {{ entered_product.product }}
+                        </a>
+                    </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="button" value="Confirmar"
+                       onclick="confirmOrCancelInventoryMovement({{ entry.get_confirm_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+                <input type="button" value="Cancelar"
+                       onclick="confirmOrCancelInventoryMovement({{ entry.get_cancel_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if pending_items.pending_product_removals %}
+    <div class="section">
+        <h2>Merma de producto pendiente</h2>
+        {% for product_removal in pending_items.pending_product_removals %}
+            <div class="row">
+                <h3>{{ product_removal }}:</h3>
+                <ul class="actionlist">
+                    {% for removed_product in product_removal.removedproduct_set.all %}
+                        <li>
+                            {{ removed_product.quantity }} x
+                            <span class="quiet">
+                        <a href="{{ removed_product.product.get_absolute_url }}">
+                            {{ removed_product.product }}
+                        </a>
+                    </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="button" value="Confirmar"
+                       onclick="confirmOrCancelInventoryMovement({{ product_removal.get_confirm_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+                <input type="button" value="Cancelar"
+                       onclick="confirmOrCancelInventoryMovement({{ product_removal.get_cancel_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}

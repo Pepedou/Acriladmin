@@ -1,15 +1,12 @@
-import uuid
-
 import django
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Sum, F, Q
 from django.utils import timezone
 
-from back_office.models import Client, Employee, Address
+from back_office.models import Client, Employee, Address, EmployeeGroup
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
-from operations.models import Service, Repair, Project
+from operations.models import Repair, Project
 
 
 class Invoice(models.Model):
@@ -51,7 +48,7 @@ class Invoice(models.Model):
 
         return amount_paid >= self.total
 
-    def save(self):
+    def save(self, **kwargs):
         related_transactions_sum = self.transaction_set.aggregate(sum=Sum(F('amount')))['sum']
 
         if related_transactions_sum is not None:
@@ -195,7 +192,7 @@ class Sale(models.Model):
     payment_method = models.PositiveSmallIntegerField(choices=PAYMENT_TYPES, default=PAYMENT_CASH,
                                                       verbose_name='método de pago')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name='factura',
-                                limit_choices_to=~Q(state=Invoice.STATE_CANCELLED) and Q(is_closed=False))
+                                limit_choices_to=~Q(state=Invoice.STATE_CANCELLED))
     transaction = models.OneToOneField(Transaction, on_delete=models.PROTECT, null=True, editable=False,
                                        verbose_name='transacción')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, editable=False,
@@ -205,6 +202,10 @@ class Sale(models.Model):
     shipping_and_handling = models.DecimalField(verbose_name='manejo y envío', max_digits=10, decimal_places=2,
                                                 default=0)
     discount = models.DecimalField(verbose_name='descuento', max_digits=10, decimal_places=2, default=0)
+    driver = models.ForeignKey(Employee, null=True, blank=True,
+                               limit_choices_to={'groups__name__contains': EmployeeGroup.DRIVER},
+                               on_delete=models.PROTECT,
+                               verbose_name='chofer')
 
     class Meta:
         verbose_name = 'venta'

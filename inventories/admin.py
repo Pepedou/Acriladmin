@@ -5,6 +5,7 @@ from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
 import inventories.models as models
+from back_office.admin import admin_site
 from inventories.forms.inventory_item_forms import TabularInLineConsumableInventoryItemForm, \
     TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
@@ -12,7 +13,9 @@ from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
 from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
 from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeReturnedProductTabularInlineForm
+from inventories.forms.productremoval_forms import AddOrChangeProductRemovalForm
 from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
+from inventories.forms.removedproduct_forms import RemovedProductForm, RemovedProductFormset
 
 
 class ProductComponentInLine(admin.TabularInline):
@@ -221,20 +224,21 @@ class ProductTransferAdmin(ModelAdmin):
     to the ProductTransfer entity.
     """
     form = AddOrChangeProductTransferForm
-    list_display = ('source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed',)
+    list_display = (
+        'source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed', 'date_created', 'date_reviewed',)
 
-    readonly_fields = ("product", "source_branch", "target_branch", "quantity",)
+    readonly_fields = ("product", "target_branch", "quantity",)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is None:
-            return 'is_confirmed', 'rejection_reason',
+            return 'is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',
         elif request.user != obj.target_branch.productsinventory.supervisor and not request.user.is_superuser \
                 or obj.is_confirmed:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason',)
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',)
         elif obj.rejection_reason is None:
-            return self.readonly_fields
+            return self.readonly_fields + ('source_branch',)
         else:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason',)
+            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',)
 
     def get_actions(self, request):
         actions = super(ProductTransferAdmin, self).get_actions(request)
@@ -261,7 +265,7 @@ class ProductTransferAdmin(ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.source_branch = request.user.branch_office
-        obj.save()
+        super(ProductTransferAdmin, self).save_model(request, obj, form, change)
 
 
 class ReturnedProductInLine(admin.TabularInline):
@@ -343,17 +347,205 @@ class ProductReimbursementAdmin(ModelAdmin):
             reimbursement.save()
 
 
-admin.site.register(models.Product, ProductAdmin)
-admin.site.register(models.ProductInventoryItem, InventoryItemAdmin)
-admin.site.register(models.ProductsInventory, ProductsInventoryAdmin)
-admin.site.register(models.Material)
-admin.site.register(models.MaterialInventoryItem, InventoryItemAdmin)
-admin.site.register(models.MaterialsInventory, MaterialsInventoryAdmin)
-admin.site.register(models.Consumable)
-admin.site.register(models.ConsumableInventoryItem, InventoryItemAdmin)
-admin.site.register(models.ConsumablesInventory, ConsumablesInventoryAdmin)
-admin.site.register(models.DurableGood)
-admin.site.register(models.DurableGoodInventoryItem, InventoryItemAdmin)
-admin.site.register(models.DurableGoodsInventory, DurableGoodsInventoryAdmin)
-admin.site.register(models.ProductTransfer, ProductTransferAdmin)
-admin.site.register(models.ProductReimbursement, ProductReimbursementAdmin)
+class PurchasedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a purchased product for the
+    PurchasedProduct's admin view.
+    """
+    model = models.PurchasedProduct
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return 0
+        else:
+            return super(PurchasedProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return False
+        else:
+            return super(PurchasedProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return False
+        else:
+            return super(PurchasedProductInLine, self).has_delete_permission(request, obj)
+
+
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the PurchaseOrder entity.
+    """
+
+    inlines = [PurchasedProductInLine]
+    list_display = ('date', 'branch_office', 'provider', 'status',)
+    list_filter = ('branch_office', 'status', 'date',)
+    readonly_fields = ('branch_office', 'status', 'date',)
+
+    def save_model(self, request, obj, form, change):
+        obj.branch_office = request.user.branch_office
+        super(PurchaseOrderAdmin, self).save_model(request, obj, form, change)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return self.readonly_fields + ('provider', 'invoice_folio',)
+        else:
+            return self.readonly_fields
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return False
+        else:
+            return super(PurchaseOrderAdmin, self).has_delete_permission(request, obj)
+
+
+class EnteredProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a entered product for the
+    ProductEntry's admin view.
+    """
+    model = models.EnteredProduct
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return 0
+        else:
+            return super(EnteredProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return False
+        else:
+            return super(EnteredProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return False
+        else:
+            return super(EnteredProductInLine, self).has_delete_permission(request, obj)
+
+
+class ProductEntryAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductEntry entity.
+    """
+
+    inlines = [EnteredProductInLine]
+    list_display = ('date', 'inventory', 'purchase_order', 'status',)
+    list_filter = ('inventory', 'status', 'date',)
+    readonly_fields = ('inventory', 'status', 'date',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return self.readonly_fields + ('purchase_order',)
+        else:
+            return self.readonly_fields
+
+    def save_model(self, request, obj, form, change):
+        obj.inventory = request.user.branch_office.productsinventory
+        super(ProductEntryAdmin, self).save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductEntry.STATUS_PENDING:
+            return False
+        else:
+            return super(ProductEntryAdmin, self).has_delete_permission(request, obj)
+
+
+class RemovedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a removed product for the
+    ProductRemoval's admin view.
+    """
+    model = models.RemovedProduct
+    form = RemovedProductForm
+    formset = RemovedProductFormset
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset_class = super(RemovedProductInLine, self).get_formset(request, obj, **kwargs)
+
+        class FormSetWithRequest(formset_class):
+            def __new__(cls, *args, **child_kwargs):
+                child_kwargs['request'] = request
+                return formset_class(*args, **child_kwargs)
+
+        return FormSetWithRequest
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return 0
+        else:
+            return super(RemovedProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return False
+        else:
+            return super(RemovedProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return False
+        else:
+            return super(RemovedProductInLine, self).has_delete_permission(request, obj)
+
+
+class ProductRemovalAdmin(admin.ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductRemoval entity.
+    """
+
+    form = AddOrChangeProductRemovalForm
+    inlines = [RemovedProductInLine]
+    list_display = 'inventory', 'user', 'cause', 'status', 'date',
+    list_filter = 'inventory', 'cause', 'status', 'date',
+    readonly_fields = 'inventory', 'status', 'user', 'date',
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return self.readonly_fields + ('cause', 'provider', 'product_transfer',)
+        else:
+            return self.readonly_fields
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.inventory = request.user.branch_office.productsinventory
+        super(ProductRemovalAdmin, self).save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return False
+        else:
+            return super(ProductRemovalAdmin, self).has_delete_permission(request, obj)
+
+
+admin_site.register(models.Product, ProductAdmin)
+admin_site.register(models.ProductInventoryItem, InventoryItemAdmin)
+admin_site.register(models.ProductsInventory, ProductsInventoryAdmin)
+admin_site.register(models.ProductTransfer, ProductTransferAdmin)
+admin_site.register(models.ProductReimbursement, ProductReimbursementAdmin)
+admin_site.register(models.PurchaseOrder, PurchaseOrderAdmin)
+admin_site.register(models.ProductEntry, ProductEntryAdmin)
+admin_site.register(models.ProductRemoval, ProductRemovalAdmin)

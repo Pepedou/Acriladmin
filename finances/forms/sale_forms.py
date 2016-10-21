@@ -299,14 +299,16 @@ class AddOrChangeSaleForm(ModelForm):
 
     def clean(self):
         cleaned_data = super(AddOrChangeSaleForm, self).clean()
-        type = cleaned_data['type']
-        payment_method = cleaned_data['payment_method']
+        sale_type = cleaned_data.get('type')
+        payment_method = cleaned_data.get('payment_method')
+        driver = cleaned_data.get('driver')
 
-        if type == Sale.TYPE_COUNTER and payment_method == Sale.PAYMENT_ON_DELIVERY:
-            raise ValidationError({
-                'payment_method': 'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
-                                  'Para esto elija tipo de venta "Con entrega".'
-            })
+        if sale_type == Sale.TYPE_COUNTER and payment_method == Sale.PAYMENT_ON_DELIVERY:
+            self.add_error('payment_method',
+                           'No se puede elegir pago "Contra entrega" si el tipo de venta es "Mostrador". '
+                           'Para esto elija tipo de venta "Con entrega".')
+        elif sale_type == Sale.TYPE_SHIPPING and driver is None:
+            self.add_error('driver', "Si el tipo de venta es Con entrega, se debe especificar un conductor.")
 
         return cleaned_data
 
@@ -318,4 +320,3 @@ class AddOrChangeSaleForm(ModelForm):
             self.instance.invoice.transaction_set.add(self.instance.transaction)
 
         return super(AddOrChangeSaleForm, self).save(commit)
-

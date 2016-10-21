@@ -1,25 +1,11 @@
-import operations.models as models
 from django.contrib import admin
+from reversion.admin import VersionAdmin
+
+import operations.models as models
+from back_office.admin import admin_site
 from operations.forms.project_forms import AddOrChangeProjectForm
 from operations.forms.project_materials_inline_forms import ProjectMaterialsInLineForm
 from operations.forms.project_products_inline_forms import ProjectProductsInLineForm
-from reversion.admin import VersionAdmin
-
-
-class WorkOrderAdmin(VersionAdmin):
-    """
-    Specifies the details for the admin app in regard
-    to the WorkOrder entity.
-    """
-    readonly_fields = ('authorized_by',)
-
-    def save_model(self, request, obj, form, change):
-        """
-        Overrides the default save method for the WorkOrder model.
-        It sets the authorized_by field to the requesting user.
-        """
-        obj.authorized_by = request.user
-        obj.save()
 
 
 class ProjectProductsInLine(admin.TabularInline):
@@ -108,10 +94,8 @@ class ProjectEstimationAdmin(VersionAdmin):
         obj.save()
 
 
-admin.site.register(models.WorkOrder, WorkOrderAdmin)
-admin.site.register(models.Service)
-admin.site.register(models.Repair)
-admin.site.register(models.Project, ProjectAdmin)
-admin.site.register(models.ProjectEstimation, ProjectEstimationAdmin)
-admin.site.register(models.ProjectVisit)
-admin.site.register(models.SalesVisit)
+admin_site.register(models.Repair)
+admin_site.register(models.Project, ProjectAdmin)
+admin_site.register(models.ProjectEstimation, ProjectEstimationAdmin)
+admin_site.register(models.ProjectVisit)
+admin_site.register(models.SalesVisit)

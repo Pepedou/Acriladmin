@@ -1,11 +1,65 @@
 from cities_light.admin import CountryAdmin, CityAdmin, RegionAdmin
 from django.contrib import admin
+from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.views.decorators.cache import never_cache
 from reversion.admin import VersionAdmin
 
 import back_office.models as models
 from back_office.forms.employee_forms import AddOrChangeEmployeeForm
+from inventories.models import ProductEntry, ProductRemoval, PurchaseOrder
+
+
+class CustomAdminSite(AdminSite):
+    """
+    Custom Admin site. It's used to give extra content to the Index page.
+    """
+
+    @never_cache
+    def index(self, request, extra_context=None):
+        return super(CustomAdminSite, self).index(request, self.get_extra_content(request))
+
+    def get_extra_content(self, request):
+        """
+        Returns additional content for the index context.
+        :return: A dictionary with extra content for the index view.
+        """
+        user = request.user
+
+        pending_items = self.get_pending_items(user)
+
+        return {'pending_items': pending_items}
+
+    @staticmethod
+    def get_pending_items(user: models.Employee):
+        """
+        Returns a dictionary with the pending items
+        for a user to review on its index page.
+        :param user: The user for which the pending items are
+        needed.
+        :return: The dictionary with the pending items.
+        """
+        pending_items = {}
+        inventory_supervisor = None
+        is_user_admin = user.belongs_to_group(models.EmployeeGroup.ADMINISTRATOR)
+
+        if user.belongs_to_group(models.EmployeeGroup.WAREHOUSE_CHIEF):
+            inventory_supervisor = user
+        elif is_user_admin:
+            inventory_supervisor = user.branch_office.productsinventory.branch
+
+        if is_user_admin:
+            pending_items.update({'pending_purchase_orders':
+                                      PurchaseOrder.get_pending_purchase_orders_for_user(user)})
+
+        if inventory_supervisor:
+            pending_items.update({'pending_product_entries':
+                                      ProductEntry.get_pending_product_entries_for_user(user)})
+            pending_items.update({'pending_product_removals':
+                                      ProductRemoval.get_pending_product_removals_for_user(user)})
+
+        return pending_items
 
 
 class AddressAdmin(VersionAdmin):
@@ -123,15 +177,14 @@ class CustomCityAdmin(CityAdmin):
         return {}
 
 
-admin.site.register(models.Address, AddressAdmin)
-admin.site.unregister(Group)
-admin.site.register(Group, GroupAdmin)
-admin.site.register(models.Employee, EmployeeAdmin)
-admin.site.register(models.Client, VersionAdmin)
-admin.site.register(models.BranchOffice, BranchOfficeAdmin)
-admin.site.unregister(models.Country)
-admin.site.register(models.Country, CustomCountryAdmin)
-admin.site.unregister(models.Region)
-admin.site.register(models.Region, CustomRegionAdmin)
-admin.site.unregister(models.City)
-admin.site.register(models.City, CustomCityAdmin)
+admin_site = CustomAdminSite()
+
+admin_site.register(models.Address, AddressAdmin)
+admin_site.register(Group, GroupAdmin)
+admin_site.register(models.Employee, EmployeeAdmin)
+admin_site.register(models.Client, VersionAdmin)
+admin_site.register(models.BranchOffice, BranchOfficeAdmin)
+admin_site.register(models.Country, CustomCountryAdmin)
+admin_site.register(models.Region, CustomRegionAdmin)
+admin_site.register(models.City, CustomCityAdmin)
+admin_site.register(models.Provider)
