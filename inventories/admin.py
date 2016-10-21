@@ -265,7 +265,7 @@ class ProductTransferAdmin(ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.source_branch = request.user.branch_office
-        obj.save()
+        super(ProductTransferAdmin, self).save_model(request, obj, form, change)
 
 
 class ReturnedProductInLine(admin.TabularInline):

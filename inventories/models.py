@@ -1,7 +1,7 @@
 import sys
+from datetime import datetime
 
 import django
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -430,8 +430,8 @@ class ProductTransfer(models.Model):
     target_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
                                       related_name='product_transfers_as_target_branch',
                                       verbose_name='sucursal de destino')
-    quantity = models.PositiveIntegerField(verbose_name='cantidad')
-    confirmed_quantity = models.PositiveIntegerField(default=0, verbose_name='cantidad confirmada')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
+    confirmed_quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad confirmada')
     is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
     transfer_has_been_made = models.BooleanField(default=False, editable=False)
     rejection_reason = models.PositiveSmallIntegerField(null=True, blank=True, choices=REJECTION_REASONS,
@@ -466,7 +466,7 @@ class ProductTransfer(models.Model):
             target_inventory_item.quantity += self.quantity
 
             self.transfer_has_been_made = True
-            self.date_reviewed = django.utils.timezone.now
+            self.date_reviewed = datetime.now()
 
             with transaction.atomic():
                 target_inventory_item.save()
@@ -537,9 +537,9 @@ class ReturnedProduct(models.Model):
                            'para poder completar la devolución.'
             })
 
-    def save(self):
+    def save(self, **kwargs):
         if self.pk is not None:
-            super(ReturnedProduct, self).save()
+            super(ReturnedProduct, self).save(**kwargs)
             return
 
         inventory = self.reimbursement.inventory
@@ -557,7 +557,7 @@ class ReturnedProduct(models.Model):
 
         with transaction.atomic():
             inventory_item.save()
-            super(ReturnedProduct, self).save()
+            super(ReturnedProduct, self).save(**kwargs)
 
 
 class PurchaseOrder(models.Model):
