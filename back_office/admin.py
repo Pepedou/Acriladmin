@@ -22,7 +22,7 @@ class CustomAdminSite(AdminSite):
 
     def get_extra_content(self, request):
         """
-
+        Returns additional content for the index context.
         :return: A dictionary with extra content for the index view.
         """
         user = request.user

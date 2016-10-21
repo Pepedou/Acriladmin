@@ -354,6 +354,30 @@ class PurchasedProductInLine(admin.TabularInline):
     """
     model = models.PurchasedProduct
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return 0
+        else:
+            return super(PurchasedProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return False
+        else:
+            return super(PurchasedProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return False
+        else:
+            return super(PurchasedProductInLine, self).has_delete_permission(request, obj)
+
 
 class PurchaseOrderAdmin(admin.ModelAdmin):
     """
@@ -362,11 +386,25 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     """
 
     inlines = [PurchasedProductInLine]
+    list_display = ('date', 'branch_office', 'provider', 'status',)
+    list_filter = ('branch_office', 'status', 'date',)
     readonly_fields = ('branch_office', 'status', 'date',)
 
     def save_model(self, request, obj, form, change):
         obj.branch_office = request.user.branch_office
         super(PurchaseOrderAdmin, self).save_model(request, obj, form, change)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return self.readonly_fields + ('provider', 'invoice_folio',)
+        else:
+            return self.readonly_fields
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.PurchaseOrder.STATUS_PENDING:
+            return False
+        else:
+            return super(PurchaseOrderAdmin, self).has_delete_permission(request, obj)
 
 
 class EnteredProductInLine(admin.TabularInline):
@@ -448,6 +486,30 @@ class RemovedProductInLine(admin.TabularInline):
 
         return FormSetWithRequest
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return 0
+        else:
+            return super(RemovedProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return False
+        else:
+            return super(RemovedProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return False
+        else:
+            return super(RemovedProductInLine, self).has_delete_permission(request, obj)
+
 
 class ProductRemovalAdmin(admin.ModelAdmin):
     """
@@ -463,7 +525,7 @@ class ProductRemovalAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
-            return self.readonly_fields + 'cause', 'provider', 'product_transfer',
+            return self.readonly_fields + ('cause', 'provider', 'product_transfer',)
         else:
             return self.readonly_fields
 
@@ -471,6 +533,12 @@ class ProductRemovalAdmin(admin.ModelAdmin):
         obj.user = request.user
         obj.inventory = request.user.branch_office.productsinventory
         super(ProductRemovalAdmin, self).save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
+            return False
+        else:
+            return super(ProductRemovalAdmin, self).has_delete_permission(request, obj)
 
 
 admin_site.register(models.Product, ProductAdmin)
