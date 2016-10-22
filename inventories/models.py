@@ -6,7 +6,9 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
+from django.db.models import F
 from django.db.models import Q
+from django.db.models import Sum
 
 from back_office.models import Employee, Client, BranchOffice, EmployeeGroup, Provider
 
@@ -780,6 +782,8 @@ class PurchaseOrder(models.Model):
     invoice_folio = models.CharField(max_length=30, verbose_name='folio factura')
     branch_office = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, editable=False, verbose_name='sucursal')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
+    are_products_received = models.BooleanField(default=False, editable=False,
+                                                verbose_name='se han recibido los productos')
 
     class Meta:
         verbose_name = 'orden de compra'
@@ -855,6 +859,15 @@ class PurchaseOrder(models.Model):
         action = 'cancel'
 
         return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def save_base(self, raw=False, force_insert=False,
+                  force_update=False, using=None, update_fields=None):
+        related_product_entries_sum = self.productentry_set.aggregate(sum=Sum(F('quantity')))['sum']
+        purchased_products_sum = self.purchasedproduct_set.aggregate(sum=Sum(F('quantity')))['sum']
+
+        self.are_products_received = related_product_entries_sum >= purchased_products_sum
+
+        super(PurchaseOrder, self).save_base(raw, force_insert, force_update, using, update_fields)
 
 
 class PurchasedProduct(models.Model):
