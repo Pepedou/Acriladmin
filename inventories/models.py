@@ -446,6 +446,61 @@ class ProductTransferShipment(models.Model):
     def __str__(self):
         return "{0}: {1}".format(str(self.product), str(self.quantity))
 
+    def confirm(self):
+        """
+        Confirms this product shipment. It sets its status to CONFIRMED
+        and removes the products from the inventory.
+        """
+        with transaction.atomic():
+            self.status = ProductTransferShipment.STATUS_CONFIRMED
+            self.save()
+
+            for transferred_product in self.transferredproduct_set.all():
+                inventory_item = self.source_branch.productsinventory.productinventoryitem_set.filter(
+                    product=transferred_product.product).first()
+
+                if not inventory_item:
+                    raise ValueError('{0} no existe en el inventario {1}.'.format(str(
+                        transferred_product.product),
+                        str(self.source_branch.productsinventory)))
+
+                inventory_item.quantity -= transferred_product.quantity
+                inventory_item.save()
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def cancel(self):
+        """
+        Cancels this product transfer shipment. Sets its status to CANCELLED
+        and no products are removed from the inventory.
+        """
+        self.status = ProductRemoval.STATUS_CANCELLED
+        self.save()
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
 
 class TransferredProduct(models.Model):
     """
@@ -495,6 +550,85 @@ class ProductTransferReception(models.Model):
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING,
                                               verbose_name='estado')
+
+    def confirm(self):
+        """
+        Confirms this product reception. It sets its status to CONFIRMED
+        and adds the confirmed products to the inventory. The unconfirmed
+        products are added as ProductRemovals.
+        """
+        useless_products = []
+        inventory = None
+
+        with transaction.atomic():
+            self.status = ProductTransferReception.STATUS_CONFIRMED
+            self.save()
+
+            for received_product in self.receivedproduct_set.all():
+                inventory = self.receiving_branch.productsinventory
+                inventory_item = inventory.productinventoryitem_set.filter(product=received_product.product).first()
+
+                if not inventory_item:
+                    inventory_item = ProductInventoryItem()
+                    inventory_item.product = received_product.product
+                    inventory_item.quantity = received_product.accepted_quantity
+                else:
+                    inventory_item.quantity += received_product.accepted_quantity
+
+                inventory_item.save()
+
+                if received_product.received_quantity != received_product.accepted_quantity:
+                    useless_product_quantity = received_product.received_quantity - received_product.accepted_quantity
+
+                    removed_product = RemovedProduct()
+                    removed_product.product = received_product.product
+                    removed_product.quantity = useless_product_quantity
+
+                    useless_products.append(removed_product)
+
+            if any(useless_products):
+                product_removal = ProductRemoval()
+                product_removal.cause = ProductRemoval.CAUSE_TRANSFER
+                product_removal.product_transfer_reception = self
+                product_removal.inventory = inventory
+                product_removal.user = self.received_by_user
+                product_removal.status = ProductRemoval.STATUS_CONFIRMED
+                product_removal.removedproduct_set = useless_products
+                product_removal.save()
+
+    def get_confirm_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'confirm'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    def cancel(self):
+        """
+        Cancels this product transfer shipment. Sets its status to CANCELLED
+        and no products are removed from the inventory.
+        """
+        self.status = ProductTransferReception.STATUS_CANCELLED
+        self.save()
+
+    def get_cancel_params_for_ajax_request(self):
+        """
+        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+        AJAX call.
+        :return: A dictionary with the parameters.
+        """
+        url = reverse('productmovconfirmorcancel')
+        model = self.__class__.__name__
+        pk = self.pk
+        action = 'cancel'
+
+        return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
 
 class ReceivedProduct(models.Model):

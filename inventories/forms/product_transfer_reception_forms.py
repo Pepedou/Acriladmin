@@ -53,6 +53,10 @@ class ReceivedProductInlineForm(ModelForm):
         accepted_quantity = cleaned_data.get('accepted_quantity')
         rejection_reason = cleaned_data.get('rejection_reason')
 
+        if accepted_quantity > received_quantity:
+            self.add_error('accepted_quantity', 'No se puede aceptar una cantidad superior '
+                                                'a la recibida.')
+
         if rejection_reason and received_quantity == accepted_quantity:
             self.add_error('rejection_reason', 'Si la cantidad recibida es igual '
                                                'a la cantidad aceptada, no debe haber '
