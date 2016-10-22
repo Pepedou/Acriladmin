@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime
 
 import django
 from django.contrib.auth.models import User
@@ -408,11 +407,101 @@ class DurableGoodInventoryItem(models.Model):
         return "{0}: {1}".format(self.durable_good, self.quantity)
 
 
-class ProductTransfer(models.Model):
+class ProductTransferShipment(models.Model):
     """
-    A transfer between two branches of a product.
+    A shipment for the product's transfer between branches.
     """
 
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmado"),
+        (STATUS_CANCELLED, "Cancelado"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
+    source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                      editable=False,
+                                      related_name='product_transfers_as_source_branch',
+                                      verbose_name='sucursal de origen')
+    target_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                      related_name='product_transfers_as_target_branch',
+                                      verbose_name='sucursal de destino')
+    shipped_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                        related_name='shipped_product_transfers',
+                                        verbose_name='enviado por')
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                          related_name='confirmed_product_transfers',
+                                          verbose_name='confirmado por')
+    date_shipped = models.DateTimeField(verbose_name='fecha de envío')
+    date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING,
+                                              verbose_name='estado')
+
+    class Meta:
+        verbose_name = 'envío de transferencia de productos'
+        verbose_name_plural = 'envíos transferencia de productos'
+
+    def __str__(self):
+        return "{0}: {1}".format(str(self.product), str(self.quantity))
+
+
+class TransferredProduct(models.Model):
+    """
+    The quantity of a product shipped in a product
+    transfer shipment.
+    """
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad')
+    product_transfer_shipment = models.ForeignKey(ProductTransferShipment, on_delete=models.CASCADE,
+                                                  verbose_name='envío')
+
+    class Meta:
+        verbose_name = 'producto transferido'
+        verbose_name_plural = 'productos transferidos'
+
+    def __str__(self):
+        return str(self.product)
+
+
+class ProductTransferReception(models.Model):
+    """
+    The reception of a product transfer.
+    """
+    STATUS_CONFIRMED = 0
+    STATUS_CANCELLED = 1
+    STATUS_PENDING = 2
+    STATUS_TYPES = (
+        (STATUS_CONFIRMED, "Confirmada"),
+        (STATUS_CANCELLED, "Cancelada"),
+        (STATUS_PENDING, "Pendiente"),
+    )
+
+    sending_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                       editable=False,
+                                       related_name='product_transfers_as_sending_branch',
+                                       verbose_name='sucursal que envía')
+    receiving_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                         related_name='product_transfers_as_receiving_branch',
+                                         verbose_name='sucursal receptora')
+    received_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                         related_name='received_product_transfers',
+                                         verbose_name='recibido por')
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                          related_name='confirmed_product_receptions',
+                                          verbose_name='confirmado por')
+    date_received = models.DateTimeField(verbose_name='fecha de recepción')
+    date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
+    status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING,
+                                              verbose_name='estado')
+
+
+class ReceivedProduct(models.Model):
+    """
+    The received and accepted quantity of a product
+    received in product transfer.
+    """
     REJECTION_QUANTITY_MISMATCH = 0
     REJECTION_MATERIAL_MISMATCH = 1
     REJECTION_POOR_CONDITION = 2
@@ -422,58 +511,20 @@ class ProductTransfer(models.Model):
         (REJECTION_MATERIAL_MISMATCH, "El material se encuentra en mal estado.")
     )
 
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='producto')
-    source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                      editable=False,
-                                      related_name='product_transfers_as_source_branch',
-                                      verbose_name='sucursal de origen')
-    target_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                      related_name='product_transfers_as_target_branch',
-                                      verbose_name='sucursal de destino')
-    quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad')
-    confirmed_quantity = models.PositiveIntegerField(default=1, verbose_name='cantidad confirmada')
-    is_confirmed = models.BooleanField(default=False, verbose_name='confirmada')
-    transfer_has_been_made = models.BooleanField(default=False, editable=False)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='producto')
+    received_quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad recibida')
+    accepted_quantity = models.PositiveSmallIntegerField(default=1, verbose_name='cantidad aceptada')
+    product_transfer_reception = models.ForeignKey(ProductTransferReception, on_delete=models.CASCADE,
+                                                   verbose_name='recepción')
     rejection_reason = models.PositiveSmallIntegerField(null=True, blank=True, choices=REJECTION_REASONS,
                                                         verbose_name='motivo de rechazo')
-    date_created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='fecha de creación')
-    date_reviewed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de revisión')
 
     class Meta:
-        verbose_name = 'transferencia de productos'
-        verbose_name_plural = 'transferencias de productos'
+        verbose_name = 'producto recibido'
+        verbose_name_plural = 'productos recibidos'
 
     def __str__(self):
-        return "{0}: {1}".format(str(self.product), str(self.quantity))
-
-    def save(self, *args, **kwargs):
-        if self.is_confirmed and not self.transfer_has_been_made:
-            source_inventory = self.source_branch.productsinventory
-            target_inventory = self.target_branch.productsinventory
-
-            source_inventory_item = source_inventory.productinventoryitem_set.filter(product=self.product).first()
-            target_inventory_items = target_inventory.productinventoryitem_set.filter(product=self.product)
-
-            source_inventory_item.quantity -= self.quantity
-
-            if target_inventory_items.count() == 0:
-                target_inventory_item = ProductInventoryItem()
-                target_inventory_item.product = self.product
-                target_inventory_item.inventory = target_inventory
-            else:
-                target_inventory_item = target_inventory_items.first()
-
-            target_inventory_item.quantity += self.quantity
-
-            self.transfer_has_been_made = True
-            self.date_reviewed = datetime.now()
-
-            with transaction.atomic():
-                target_inventory_item.save()
-                source_inventory_item.save()
-                super(ProductTransfer, self).save(*args, **kwargs)
-        else:
-            super(ProductTransfer, self).save(*args, **kwargs)
+        return str(self.product)
 
 
 class ProductReimbursement(models.Model):
@@ -837,8 +888,9 @@ class ProductRemoval(models.Model):
 
     cause = models.PositiveSmallIntegerField(choices=CAUSE_TYPES, default=CAUSE_INTERNAL, verbose_name='causa')
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, null=True, blank=True, verbose_name='proveedor')
-    product_transfer = models.ForeignKey(ProductTransfer, on_delete=models.PROTECT, null=True, blank=True,
-                                         verbose_name='transferencia de producto')
+    product_transfer_reception = models.ForeignKey(ProductTransferReception, on_delete=models.PROTECT, null=True,
+                                                   blank=True,
+                                                   verbose_name='recepción de transferencia de producto')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
     date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
     user = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='usuario')
