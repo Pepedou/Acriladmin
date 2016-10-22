@@ -1,3 +1,4 @@
+import datetime
 import sys
 
 import django
@@ -431,7 +432,7 @@ class ProductTransferShipment(models.Model):
     shipped_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
                                         related_name='shipped_product_transfers',
                                         verbose_name='enviado por')
-    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='confirmed_product_transfers',
                                           verbose_name='confirmado por')
     date_shipped = models.DateTimeField(verbose_name='fecha de envío')
@@ -441,10 +442,10 @@ class ProductTransferShipment(models.Model):
 
     class Meta:
         verbose_name = 'envío de transferencia de productos'
-        verbose_name_plural = 'envíos transferencia de productos'
+        verbose_name_plural = 'envíos de transferencia de productos'
 
     def __str__(self):
-        return "{0}: {1}".format(str(self.product), str(self.quantity))
+        return "Transferencia a {0}".format(str(self.target_branch))
 
     def confirm(self):
         """
@@ -453,6 +454,7 @@ class ProductTransferShipment(models.Model):
         """
         with transaction.atomic():
             self.status = ProductTransferShipment.STATUS_CONFIRMED
+            self.date_confirmed = datetime.datetime.now()
             self.save()
 
             for transferred_product in self.transferredproduct_set.all():
@@ -486,6 +488,7 @@ class ProductTransferShipment(models.Model):
         and no products are removed from the inventory.
         """
         self.status = ProductRemoval.STATUS_CANCELLED
+        self.date_confirmed = datetime.datetime.now()
         self.save()
 
     def get_cancel_params_for_ajax_request(self):
@@ -534,16 +537,16 @@ class ProductTransferReception(models.Model):
     )
 
     sending_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                       editable=False,
                                        related_name='product_transfers_as_sending_branch',
                                        verbose_name='sucursal que envía')
     receiving_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
+                                         editable=False,
                                          related_name='product_transfers_as_receiving_branch',
                                          verbose_name='sucursal receptora')
     received_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
                                          related_name='received_product_transfers',
                                          verbose_name='recibido por')
-    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='confirmed_product_receptions',
                                           verbose_name='confirmado por')
     date_received = models.DateTimeField(verbose_name='fecha de recepción')
@@ -562,6 +565,7 @@ class ProductTransferReception(models.Model):
 
         with transaction.atomic():
             self.status = ProductTransferReception.STATUS_CONFIRMED
+            self.date_confirmed = datetime.datetime.now()
             self.save()
 
             for received_product in self.receivedproduct_set.all():
@@ -615,6 +619,7 @@ class ProductTransferReception(models.Model):
         and no products are removed from the inventory.
         """
         self.status = ProductTransferReception.STATUS_CANCELLED
+        self.date_confirmed = datetime.datetime.now()
         self.save()
 
     def get_cancel_params_for_ajax_request(self):
@@ -629,6 +634,10 @@ class ProductTransferReception(models.Model):
         action = 'cancel'
 
         return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+    class Meta:
+        verbose_name = 'recepción de transferencia de productos'
+        verbose_name_plural = 'recepciones de transferencias de productos'
 
 
 class ReceivedProduct(models.Model):

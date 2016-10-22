@@ -53,7 +53,7 @@ class TransferredProductInlineForm(ModelForm):
         quantity = cleaned_data.get('quantity')
         source_inventory = self.request.user.branch_office.productsinventory
 
-        product_inventory_item = self.productinventoryitem_set.filter(product=product).first()
+        product_inventory_item = source_inventory.productinventoryitem_set.filter(product=product).first()
 
         if not product_inventory_item:
             self.add_error('product', 'El inventario {0} no cuenta con este producto.'.format(str(source_inventory)))
