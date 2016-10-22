@@ -660,6 +660,12 @@ class ReceivedProduct(models.Model):
     def __str__(self):
         return str(self.product)
 
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.rejection_reason:
+            self.accepted_quantity = self.received_quantity
+        super(ReceivedProduct, self).save(force_insert, force_update, using, update_fields)
+
 
 class ProductReimbursement(models.Model):
     """
