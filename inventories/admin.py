@@ -6,10 +6,12 @@ from reversion.admin import VersionAdmin
 
 import inventories.models as models
 from back_office.admin import admin_site
+from inventories.forms.entered_product_forms import EnteredProductInlineForm
 from inventories.forms.inventory_item_forms import TabularInLineConsumableInventoryItemForm, \
     TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
+from inventories.forms.product_purchase_forms import PurchasedProductInlineForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
 from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineForm
 from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineFormset
@@ -242,6 +244,30 @@ class TransferredProductInLine(admin.TabularInline):
 
         return FormsetWithRequest
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return 'product', 'quantity',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return 0
+        else:
+            return super(TransferredProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return False
+        else:
+            return super(TransferredProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return False
+        else:
+            return super(TransferredProductInLine, self).has_delete_permission(request, obj)
+
 
 class ProductTransferShipmentAdmin(ModelAdmin):
     """
@@ -251,10 +277,14 @@ class ProductTransferShipmentAdmin(ModelAdmin):
     form = AddOrChangeProductTransferShipmentForm
     inlines = [TransferredProductInLine]
     readonly_fields = ('source_branch', 'shipped_by_user', 'confirmed_by_user', 'date_confirmed', 'status',)
+    list_display = ('source_branch', 'target_branch', 'date_shipped', 'date_confirmed', 'status',)
+    list_filter = ('source_branch', 'target_branch', 'date_shipped', 'status',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.status != models.ProductTransferShipment.STATUS_PENDING:
-            return self.readonly_fields + ('target_branch', '')
+            return self.readonly_fields + ('target_branch', 'date_shipped',)
+        else:
+            return self.readonly_fields
 
     def has_delete_permission(self, request, obj=None):
         if obj is not None and obj.status != models.ProductTransferShipment.STATUS_PENDING:
@@ -298,6 +328,8 @@ class ProductTransferReceptionAdmin(ModelAdmin):
     form = AddOrChangeProductTransferShipmentForm
     inlines = [ReceivedProductInLine]
     readonly_fields = ('receiving_branch', 'received_by_user', 'confirmed_by_user', 'date_confirmed', 'status',)
+    list_display = ('sending_branch', 'receiving_branch', 'date_received', 'date_confirmed', 'status',)
+    list_display = ('sending_branch', 'receiving_branch', 'date_received', 'status',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.status != models.ProductTransferReception.STATUS_PENDING:
@@ -401,6 +433,7 @@ class PurchasedProductInLine(admin.TabularInline):
     Describes the inline render of a purchased product for the
     PurchasedProduct's admin view.
     """
+    form = PurchasedProductInlineForm
     model = models.PurchasedProduct
 
     def get_readonly_fields(self, request, obj=None):
@@ -462,6 +495,7 @@ class EnteredProductInLine(admin.TabularInline):
     ProductEntry's admin view.
     """
     model = models.EnteredProduct
+    form = EnteredProductInlineForm
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductEntry.STATUS_PENDING:
