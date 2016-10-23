@@ -330,7 +330,7 @@ class ProductTransferReceptionAdmin(ModelAdmin):
     form = AddOrChangeProductTransferReceptionForm
     inlines = [ReceivedProductInLine]
     readonly_fields = ('confirmed_by_user', 'date_confirmed', 'status',)
-    list_display = ('product_transfer_shipment', 'date_received', 'date_confirmed', 'status',)
+    list_display = ('folio', 'product_transfer_shipment', 'date_received', 'date_confirmed', 'status',)
     list_filter = ('product_transfer_shipment', 'date_received', 'status',)
 
     def get_formsets_with_inlines(self, request, obj=None):

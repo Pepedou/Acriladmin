@@ -538,6 +538,14 @@ class ProductTransferReception(models.Model):
         (STATUS_PENDING, "Pendiente"),
     )
 
+    @property
+    def folio(self):
+        """
+        Returns the formatted ID.
+        :return: The string.
+        """
+        return "R{0}".format(str(self.id).zfill(9))
+
     product_transfer_shipment = models.ForeignKey(ProductTransferShipment, on_delete=models.CASCADE,
                                                   limit_choices_to={'status': ProductTransferShipment.STATUS_CONFIRMED},
                                                   verbose_name='transferencia')
@@ -557,7 +565,7 @@ class ProductTransferReception(models.Model):
         verbose_name_plural = 'recepciones de transferencias de productos'
 
     def __str__(self):
-        return "R{0}".format(str(self.id).zfill(9))
+        return self.folio
 
     def confirm(self):
         """
