@@ -1,4 +1,5 @@
 from dal import autocomplete
+from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
@@ -40,7 +41,7 @@ class ReceivedProductInlineForm(ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.request = kwargs.pop('request', None)
+        self.request = kwargs.pop('request')
         super(ReceivedProductInlineForm, self).__init__(*args, **kwargs)
 
     def clean(self):
@@ -70,6 +71,24 @@ class AddOrChangeProductTransferReceptionForm(ModelForm):
     Custom form for adding or changing a product transfer reception.
     """
 
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request')
+        super(AddOrChangeProductTransferReceptionForm, self).__init__(*args, **kwargs)
+
     class Meta:
         model = ProductTransferReception
         fields = '__all__'
+
+    def clean_product_transfer_shipment(self):
+        product_transfer_shipment = self.cleaned_data.get('product_transfer_shipment')
+        receiving_branch = self.request.user.branch_office
+
+        if not product_transfer_shipment:
+            raise ValidationError('No se encuentra la transferencia de producto.')
+
+        if receiving_branch != product_transfer_shipment.target_branch:
+            self.add_error('product_transfer_shipment', 'Esta transferencia está dirigida a {0}, no a {1}.'.format(
+                str(product_transfer_shipment.target_branch), str(receiving_branch)
+            ))
+
+        return product_transfer_shipment

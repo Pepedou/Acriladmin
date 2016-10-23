@@ -13,7 +13,8 @@ from inventories.forms.inventory_item_forms import TabularInLineConsumableInvent
 from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_purchase_forms import PurchasedProductInlineForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
-from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineForm
+from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineForm, \
+    AddOrChangeProductTransferReceptionForm
 from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineFormset
 from inventories.forms.product_transfer_shipment_forms import AddOrChangeProductTransferShipmentForm, \
     TransferredProductInlineForm, TransferredProductInlineFormset
@@ -325,15 +326,15 @@ class ProductTransferReceptionAdmin(ModelAdmin):
     Specifies the details for the admin app in regard
     to the ProductTransferReception entity.
     """
-    form = AddOrChangeProductTransferShipmentForm
+    form = AddOrChangeProductTransferReceptionForm
     inlines = [ReceivedProductInLine]
-    readonly_fields = ('receiving_branch', 'received_by_user', 'confirmed_by_user', 'date_confirmed', 'status',)
-    list_display = ('sending_branch', 'receiving_branch', 'date_received', 'date_confirmed', 'status',)
-    list_display = ('sending_branch', 'receiving_branch', 'date_received', 'status',)
+    readonly_fields = ('confirmed_by_user', 'date_confirmed', 'status',)
+    list_display = ('product_transfer_shipment', 'date_received', 'date_confirmed', 'status',)
+    list_filter = ('product_transfer_shipment', 'date_received', 'status',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.status != models.ProductTransferReception.STATUS_PENDING:
-            return self.readonly_fields + ('sending_branch', 'date_received',)
+            return self.readonly_fields + ('date_received',)
         else:
             return self.readonly_fields
 
@@ -345,8 +346,19 @@ class ProductTransferReceptionAdmin(ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.received_by_user = request.user
-        obj.receiving_branch = request.user.branch_office
         super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form_class = super(ProductTransferReceptionAdmin, self).get_form(request, obj, **kwargs)
+
+        class FormWithRequest(form_class):
+            """Subclass to add request"""
+
+            def __new__(cls, *args, **kwargs2):
+                kwargs2['request'] = request
+                return form_class(*args, **kwargs2)
+
+        return FormWithRequest
 
 
 class ReturnedProductInLine(admin.TabularInline):

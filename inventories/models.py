@@ -538,13 +538,9 @@ class ProductTransferReception(models.Model):
         (STATUS_PENDING, "Pendiente"),
     )
 
-    sending_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                       related_name='product_transfers_as_sending_branch',
-                                       verbose_name='sucursal que envía')
-    receiving_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
-                                         editable=False,
-                                         related_name='product_transfers_as_receiving_branch',
-                                         verbose_name='sucursal receptora')
+    product_transfer_shipment = models.ForeignKey(ProductTransferShipment, on_delete=models.CASCADE,
+                                                  limit_choices_to={'status': ProductTransferShipment.STATUS_CONFIRMED},
+                                                  verbose_name='transferencia')
     received_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
                                          related_name='received_product_transfers',
                                          verbose_name='recibido por')
