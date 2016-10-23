@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
@@ -332,6 +333,12 @@ class ProductTransferReceptionAdmin(ModelAdmin):
     list_display = ('product_transfer_shipment', 'date_received', 'date_confirmed', 'status',)
     list_filter = ('product_transfer_shipment', 'date_received', 'status',)
 
+    def get_formsets_with_inlines(self, request, obj=None):
+        if not obj:
+            return []
+        else:
+            return super(ProductTransferReceptionAdmin, self).get_formsets_with_inlines(request, obj)
+
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.status != models.ProductTransferReception.STATUS_PENDING:
             return self.readonly_fields + ('date_received',)
@@ -346,7 +353,24 @@ class ProductTransferReceptionAdmin(ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.received_by_user = request.user
-        super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
+
+        if not change:
+            with transaction.atomic():
+                super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
+
+                transfer = obj.product_transfer_shipment
+
+                for transferred_product in transfer.transferredproduct_set.all():
+                    received_product = models.ReceivedProduct()
+                    received_product.product = transferred_product.product
+                    received_product.accepted_quantity = transferred_product.quantity
+                    received_product.received_quantity = transferred_product.quantity
+                    received_product.product_transfer_reception = obj
+                    received_product.save()
+
+                    obj.receivedproduct_set.add(received_product)
+        else:
+            super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
 
     def get_form(self, request, obj=None, **kwargs):
         form_class = super(ProductTransferReceptionAdmin, self).get_form(request, obj, **kwargs)

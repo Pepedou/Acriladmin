@@ -447,7 +447,7 @@ class ProductTransferShipment(models.Model):
         verbose_name_plural = 'envíos de transferencia de productos'
 
     def __str__(self):
-        return "Transferencia a {0}".format(str(self.target_branch))
+        return "E{0}".format(str(self.id).zfill(9))
 
     def confirm(self):
         """
@@ -551,6 +551,13 @@ class ProductTransferReception(models.Model):
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING,
                                               verbose_name='estado')
+
+    class Meta:
+        verbose_name = 'recepción de transferencia de producto'
+        verbose_name_plural = 'recepciones de transferencias de productos'
+
+    def __str__(self):
+        return "R{0}".format(str(self.id).zfill(9))
 
     def confirm(self):
         """
