@@ -627,6 +627,7 @@ class ProductTransferReception(models.Model):
             self.status = ProductTransferReception.STATUS_CONFIRMED
             self.date_confirmed = datetime.datetime.now()
             self.product_transfer_shipment.status = ProductTransferShipment.STATUS_RECEIVED
+            self.product_transfer_shipment.save()
             self.save()
 
             self.ajax_message_for_confirmation = "Se confirmó la recepción {0}.\n".format(str(self))
@@ -699,6 +700,7 @@ class ProductTransferReception(models.Model):
         self.status = ProductTransferReception.STATUS_CANCELLED
         self.date_confirmed = datetime.datetime.now()
         self.product_transfer_shipment.status = ProductTransferShipment.STATUS_REJECTED
+        self.product_transfer_shipment.save()
         self.save()
 
         self.ajax_message_for_cancellation = "Se canceló la recepción {0}".format(self)

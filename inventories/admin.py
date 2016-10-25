@@ -333,6 +333,30 @@ class ReceivedProductInLine(admin.TabularInline):
 
         return FormsetWithRequest
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return 'product', 'accepted_quantity', 'received_quantity', 'rejection_reason',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return 0
+        else:
+            return super(ReceivedProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return False
+        else:
+            return super(ReceivedProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return False
+        else:
+            return super(ReceivedProductInLine, self).has_delete_permission(request, obj)
+
 
 class ProductTransferReceptionAdmin(ModelAdmin):
     """
@@ -353,7 +377,7 @@ class ProductTransferReceptionAdmin(ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj is not None and obj.status != models.ProductTransferReception.STATUS_PENDING:
-            return self.readonly_fields + ('date_received',)
+            return self.readonly_fields + ('date_received', 'product_transfer_shipment',)
         else:
             return self.readonly_fields
 
