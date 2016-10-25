@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
-from inventories.models import ReceivedProduct, ProductTransferReception
+from inventories.models import ReceivedProduct, ProductTransferReception, ProductTransferShipment
 
 
 class ReceivedProductInlineFormset(BaseInlineFormSet):
@@ -77,6 +77,8 @@ class AddOrChangeProductTransferReceptionForm(ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request')
         super(AddOrChangeProductTransferReceptionForm, self).__init__(*args, **kwargs)
+        self.fields['product_transfer_shipment'].queryset = ProductTransferShipment.objects.filter(
+            target_branch=self.request.user.branch_office)
 
     class Meta:
         model = ProductTransferReception
