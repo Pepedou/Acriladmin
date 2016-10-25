@@ -457,8 +457,9 @@ class ProductTransferShipment(models.Model):
         :param user: The user for which the removals are needed.
         :return: A list with the product removals.
         """
-        return ProductTransferShipment.objects.filter(source_branch__productsinventory__supervisor=user,
-                                                      status=ProductRemoval.STATUS_PENDING)
+        return ProductTransferShipment.objects.filter(Q(source_branch__administrator=user) |
+                                                      Q(source_branch__productsinventory__supervisor=user),
+                                                      status=ProductTransferShipment.STATUS_PENDING)
 
     def __init__(self, *args, **kwargs):
         self.ajax_message_for_confirmation = ""
@@ -489,7 +490,7 @@ class ProductTransferShipment(models.Model):
                         transferred_product.product),
                         str(self.source_branch.productsinventory)))
 
-                old_quantity = transferred_product.quantity
+                old_quantity = inventory_item.quantity
 
                 inventory_item.quantity -= transferred_product.quantity
                 inventory_item.save()
@@ -602,8 +603,9 @@ class ProductTransferReception(models.Model):
         :return: A list with the product removals.
         """
         return ProductTransferReception.objects.filter(
-            product_transfer_shipment__target_branch__productsinventory__supervisor=user,
-            status=ProductRemoval.STATUS_PENDING)
+            Q(product_transfer_shipment__target_branch__administrator=user) |
+            Q(product_transfer_shipment__target_branch__productsinventory__supervisor=user),
+            status=ProductTransferReception.STATUS_PENDING)
 
     def __init__(self, *args, **kwargs):
         self.ajax_message_for_confirmation = ""
@@ -877,7 +879,8 @@ class PurchaseOrder(models.Model):
         :param user: The user for which the entries are needed.
         :return: A list with the product entries.
         """
-        return PurchaseOrder.objects.filter(branch_office__administrator=user,
+        return PurchaseOrder.objects.filter(Q(branch_office__administrator=user) |
+                                            Q(branch_office__productsinventory__supervisor=user),
                                             status=PurchaseOrder.STATUS_PENDING)
 
     def get_absolute_url(self):
@@ -999,7 +1002,8 @@ class ProductEntry(models.Model):
         :param user: The user for which the entries are needed.
         :return: A list with the product entries.
         """
-        return ProductEntry.objects.filter(inventory__supervisor=user,
+        return ProductEntry.objects.filter(Q(inventory__supervisor=user) |
+                                           Q(inventory__branch__administrator=user),
                                            status=ProductEntry.STATUS_PENDING)
 
     def confirm(self):
@@ -1159,7 +1163,8 @@ class ProductRemoval(models.Model):
         :param user: The user for which the removals are needed.
         :return: A list with the product removals.
         """
-        return ProductRemoval.objects.filter(inventory__supervisor=user,
+        return ProductRemoval.objects.filter(Q(inventory__supervisor=user) |
+                                             Q(inventory__branch__administrator=user),
                                              status=ProductRemoval.STATUS_PENDING)
 
     def get_absolute_url(self):

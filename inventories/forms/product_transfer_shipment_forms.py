@@ -46,13 +46,13 @@ class TransferredProductInlineForm(ModelForm):
 
     def clean(self):
         cleaned_data = super(TransferredProductInlineForm, self).clean()
-
-        if any(self.errors):
-            return cleaned_data
-
         product = cleaned_data.get('product')
         quantity = cleaned_data.get('quantity')
         source_inventory = self.request.user.branch_office.productsinventory
+        are_fields_readonly = not product or not quantity
+
+        if any(self.errors) or are_fields_readonly:
+            return cleaned_data
 
         product_inventory_item = source_inventory.productinventoryitem_set.filter(product=product).first()
 
@@ -78,4 +78,5 @@ class AddOrChangeProductTransferShipmentForm(ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request')
         super(AddOrChangeProductTransferShipmentForm, self).__init__(*args, **kwargs)
-        self.fields['target_branch'].queryset = BranchOffice.objects.exclude(pk=self.request.user.branch_office.pk)
+        if 'target_branch' in self.fields:
+            self.fields['target_branch'].queryset = BranchOffice.objects.exclude(pk=self.request.user.branch_office.pk)

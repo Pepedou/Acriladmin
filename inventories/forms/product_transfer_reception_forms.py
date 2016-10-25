@@ -77,8 +77,9 @@ class AddOrChangeProductTransferReceptionForm(ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request')
         super(AddOrChangeProductTransferReceptionForm, self).__init__(*args, **kwargs)
-        self.fields['product_transfer_shipment'].queryset = ProductTransferShipment.objects.filter(
-            target_branch=self.request.user.branch_office)
+        if 'product_transfer_shipment' in self.fields:
+            self.fields['product_transfer_shipment'].queryset = ProductTransferShipment.objects.filter(
+                target_branch=self.request.user.branch_office, status=ProductTransferShipment.STATUS_CONFIRMED)
 
     class Meta:
         model = ProductTransferReception
