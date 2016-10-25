@@ -294,6 +294,18 @@ class ProductTransferShipmentAdmin(ModelAdmin):
         else:
             return True
 
+    def get_form(self, request, obj=None, **kwargs):
+        form_class = super(ProductTransferShipmentAdmin, self).get_form(request, obj, **kwargs)
+
+        class FormClassWithRequest(form_class):
+            """Subclass the form to pass the request."""
+
+            def __new__(cls, *args, **kwargs2):
+                kwargs2['request'] = request
+                return form_class(*args, **kwargs2)
+
+        return FormClassWithRequest
+
     def save_model(self, request, obj, form, change):
         obj.shipped_by_user = request.user
         obj.source_branch = request.user.branch_office

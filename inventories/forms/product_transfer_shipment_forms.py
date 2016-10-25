@@ -2,6 +2,7 @@ from dal import autocomplete
 from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
+from back_office.models import BranchOffice
 from inventories.models import ProductTransferShipment, TransferredProduct
 
 
@@ -73,3 +74,8 @@ class AddOrChangeProductTransferShipmentForm(ModelForm):
     class Meta:
         model = ProductTransferShipment
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request')
+        super(AddOrChangeProductTransferShipmentForm, self).__init__(*args, **kwargs)
+        self.fields['target_branch'].queryset = BranchOffice.objects.exclude(pk=self.request.user.branch_office.pk)
