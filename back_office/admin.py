@@ -8,7 +8,8 @@ from reversion.admin import VersionAdmin
 
 import back_office.models as models
 from back_office.forms.employee_forms import AddOrChangeEmployeeForm
-from inventories.models import ProductEntry, ProductRemoval, PurchaseOrder
+from inventories.models import ProductEntry, ProductRemoval, PurchaseOrder, ProductTransferShipment, \
+    ProductTransferReception
 
 
 class CustomAdminSite(AdminSite):
@@ -49,15 +50,20 @@ class CustomAdminSite(AdminSite):
         elif is_user_admin:
             inventory_supervisor = user.branch_office.productsinventory.branch
 
-        if is_user_admin:
-            pending_items.update({'pending_purchase_orders':
-                                      PurchaseOrder.get_pending_purchase_orders_for_user(user)})
+        pending_items.update({'pending_purchase_orders':
+                                  PurchaseOrder.get_pending_purchase_orders_for_user(user)})
 
         if inventory_supervisor:
             pending_items.update({'pending_product_entries':
-                                      ProductEntry.get_pending_product_entries_for_user(user)})
-            pending_items.update({'pending_product_removals':
-                                      ProductRemoval.get_pending_product_removals_for_user(user)})
+                                      ProductEntry.get_pending_product_entries_for_user(user),
+                                  'pending_product_removals':
+                                      ProductRemoval.get_pending_product_removals_for_user(user),
+                                  'pending_product_transfer_shipments':
+                                      ProductTransferShipment.get_pending_product_transfer_shipments_for_user(
+                                          user),
+                                  'pending_product_transfer_receptions':
+                                      ProductTransferReception.get_pending_product_transfer_receptions_for_user(
+                                          user)})
 
         return pending_items
 

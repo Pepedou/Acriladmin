@@ -62,6 +62,10 @@ class ReceivedProductInlineForm(ModelForm):
             self.add_error('rejection_reason', 'Si la cantidad recibida es igual a la cantidad aceptada, '
                                                'no debe haber un motivo de rechazo.')
 
+        if accepted_quantity < received_quantity and rejection_reason is None:
+            self.add_error('rejection_reason', 'Debe especificar un motivo de rechazo si no va a '
+                                               'aceptar toda la cantidad recibida.')
+
         return cleaned_data
 
 

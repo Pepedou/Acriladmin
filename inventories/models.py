@@ -446,6 +446,21 @@ class ProductTransferShipment(models.Model):
         verbose_name = 'envío de transferencia de productos'
         verbose_name_plural = 'envíos de transferencia de productos'
 
+    @staticmethod
+    def get_pending_product_transfer_shipments_for_user(user: Employee):
+        """
+        Returns the set of product transfer shipments that are pending.
+        :param user: The user for which the removals are needed.
+        :return: A list with the product removals.
+        """
+        return ProductTransferShipment.objects.filter(source_branch__productsinventory__supervisor=user,
+                                                      status=ProductRemoval.STATUS_PENDING)
+
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(ProductTransferShipment, self).__init__(*args, **kwargs)
+
     def __str__(self):
         return "E{0}".format(str(self.id).zfill(9))
 
@@ -564,6 +579,22 @@ class ProductTransferReception(models.Model):
         verbose_name = 'recepción de transferencia de producto'
         verbose_name_plural = 'recepciones de transferencias de productos'
 
+    @staticmethod
+    def get_pending_product_transfer_receptions_for_user(user: Employee):
+        """
+        Returns the set of product transfer receptions that are pending.
+        :param user: The user for which the removals are needed.
+        :return: A list with the product removals.
+        """
+        return ProductTransferReception.objects.filter(
+            product_transfer_shipment__target_branch__productsinventory__supervisor=user,
+            status=ProductRemoval.STATUS_PENDING)
+
+    def __init__(self, *args, **kwargs):
+        self.ajax_message_for_confirmation = ""
+        self.ajax_message_for_cancellation = ""
+        super(ProductTransferReception, self).__init__(*args, **kwargs)
+
     def __str__(self):
         return self.folio
 
@@ -573,45 +604,61 @@ class ProductTransferReception(models.Model):
         and adds the confirmed products to the inventory. The unconfirmed
         products are added as ProductRemovals.
         """
-        useless_products = []
-        inventory = None
+        product_removal = None
 
         with transaction.atomic():
             self.status = ProductTransferReception.STATUS_CONFIRMED
             self.date_confirmed = datetime.datetime.now()
             self.save()
 
+            self.ajax_message_for_confirmation = "Se confirmó la recepción {0}.\n".format(str(self))
+
             for received_product in self.receivedproduct_set.all():
-                inventory = self.receiving_branch.productsinventory
+                inventory = self.product_transfer_shipment.target_branch.productsinventory
                 inventory_item = inventory.productinventoryitem_set.filter(product=received_product.product).first()
 
                 if not inventory_item:
                     inventory_item = ProductInventoryItem()
                     inventory_item.product = received_product.product
                     inventory_item.quantity = received_product.accepted_quantity
+                    old_quantity = 0
+                    new_quantity = inventory_item.quantity
                 else:
+                    old_quantity = inventory_item.quantity
                     inventory_item.quantity += received_product.accepted_quantity
+                    new_quantity = inventory_item.quantity
 
                 inventory_item.save()
+
+                self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(received_product.product),
+                                                                                    old_quantity, new_quantity)
 
                 if received_product.received_quantity != received_product.accepted_quantity:
                     useless_product_quantity = received_product.received_quantity - received_product.accepted_quantity
 
+                    if product_removal is None:
+                        product_removal = ProductRemoval()
+                        product_removal.cause = ProductRemoval.CAUSE_TRANSFER
+                        product_removal.product_transfer_reception = self
+                        product_removal.inventory = inventory
+                        product_removal.user = self.received_by_user
+                        product_removal.status = ProductRemoval.STATUS_CONFIRMED
+                        product_removal.save()
+
                     removed_product = RemovedProduct()
                     removed_product.product = received_product.product
                     removed_product.quantity = useless_product_quantity
+                    removed_product.product_removal = product_removal
+                    removed_product.save()
 
-                    useless_products.append(removed_product)
+                    product_removal.removedproduct_set.add(removed_product)
 
-            if any(useless_products):
-                product_removal = ProductRemoval()
-                product_removal.cause = ProductRemoval.CAUSE_TRANSFER
-                product_removal.product_transfer_reception = self
-                product_removal.inventory = inventory
-                product_removal.user = self.received_by_user
-                product_removal.status = ProductRemoval.STATUS_CONFIRMED
-                product_removal.removedproduct_set = useless_products
-                product_removal.save()
+            if product_removal:
+                self.ajax_message_for_confirmation += "Se generó la merma {0}.\n".format(product_removal)
+
+                for removed_product in product_removal.removedproduct_set.all():
+                    self.ajax_message_for_confirmation += "{0}: {1}\n".format(str(removed_product),
+                                                                              removed_product.quantity)
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -634,6 +681,8 @@ class ProductTransferReception(models.Model):
         self.status = ProductTransferReception.STATUS_CANCELLED
         self.date_confirmed = datetime.datetime.now()
         self.save()
+
+        self.ajax_message_for_cancellation = "Se canceló la recepción {0}".format(self)
 
     def get_cancel_params_for_ajax_request(self):
         """
@@ -684,7 +733,7 @@ class ReceivedProduct(models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
-        if not self.rejection_reason:
+        if self.rejection_reason is None:
             self.accepted_quantity = self.received_quantity
         super(ReceivedProduct, self).save(force_insert, force_update, using, update_fields)
 
@@ -1059,9 +1108,18 @@ class ProductRemoval(models.Model):
         (STATUS_PENDING, "Pendiente"),
     )
 
+    @property
+    def folio(self):
+        """
+        This object's ID formatted.
+        :return: The string with the ID.
+        """
+        return
+
     cause = models.PositiveSmallIntegerField(choices=CAUSE_TYPES, default=CAUSE_INTERNAL, verbose_name='causa')
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, null=True, blank=True, verbose_name='proveedor')
-    product_transfer_reception = models.ForeignKey(ProductTransferReception, on_delete=models.PROTECT, null=True,
+    product_transfer_reception = models.ForeignKey(ProductTransferReception, on_delete=models.PROTECT,
+                                                   null=True,
                                                    blank=True,
                                                    verbose_name='recepción de transferencia de producto')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')

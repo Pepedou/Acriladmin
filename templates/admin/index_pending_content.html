@@ -92,3 +92,58 @@
         {% endfor %}
     </div>
 {% endif %}
+
+{% if pending_items.pending_product_transfer_shipments %}
+    <div class="section">
+        <h2>Envíos de productos pendientes</h2>
+        {% for product_transfer_shipment in pending_items.pending_product_transfer_shipments %}
+            <div class="row">
+                <h3>{{ product_transfer_shipment }}:</h3>
+                <ul class="actionlist">
+                    {% for transferred_product in product_transfer_shipment.transferredproduct_set.all %}
+                        <li>
+                            {{ transferred_product.quantity }} x
+                            <span class="quiet">
+                        <a href="{{ transferred_product.product.get_absolute_url }}">
+                            {{ transferred_product.product }}
+                        </a>
+                    </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="button" value="Confirmar"
+                       onclick="confirmOrCancelInventoryMovement({{ product_transfer_shipment.get_confirm_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+                <input type="button" value="Cancelar"
+                       onclick="confirmOrCancelInventoryMovement({{ product_transfer_shipment.get_cancel_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+
+{% if pending_items.pending_product_transfer_receptions %}
+    <div class="section">
+        <h2>Recepciones pendientes de productos</h2>
+        {% for product_transfer_reception in pending_items.pending_product_transfer_receptions %}
+            <div class="row">
+                <h3>{{ product_transfer_reception }}:</h3>
+                <ul class="actionlist">
+                    {% for received_product in product_transfer_reception.receivedproduct_set.all %}
+                        <li>
+                            {{ received_product.accepted_quantity }}/{{ received_product.received_quantity }} x
+                            <span class="quiet">
+                        <a href="{{ received_product.product.get_absolute_url }}">
+                            {{ received_product.product }}
+                        </a>
+                    </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="button" value="Confirmar"
+                       onclick="confirmOrCancelInventoryMovement({{ product_transfer_reception.get_confirm_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+                <input type="button" value="Cancelar"
+                       onclick="confirmOrCancelInventoryMovement({{ product_transfer_reception.get_cancel_params_for_ajax_request }}, $(this).parent('div.row'));"/>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
