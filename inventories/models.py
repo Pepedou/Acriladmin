@@ -418,10 +418,14 @@ class ProductTransferShipment(models.Model):
     STATUS_CONFIRMED = 0
     STATUS_CANCELLED = 1
     STATUS_PENDING = 2
+    STATUS_RECEIVED = 3
+    STATUS_REJECTED = 4
     STATUS_TYPES = (
         (STATUS_CONFIRMED, "Confirmado"),
         (STATUS_CANCELLED, "Cancelado"),
         (STATUS_PENDING, "Pendiente"),
+        (STATUS_RECEIVED, "Recibido"),
+        (STATUS_REJECTED, "Rechazado"),
     )
 
     source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
@@ -474,6 +478,8 @@ class ProductTransferShipment(models.Model):
             self.date_confirmed = datetime.datetime.now()
             self.save()
 
+            self.ajax_message_for_confirmation = "Se confirmó el envío {0}.\n".format(str(self))
+
             for transferred_product in self.transferredproduct_set.all():
                 inventory_item = self.source_branch.productsinventory.productinventoryitem_set.filter(
                     product=transferred_product.product).first()
@@ -483,8 +489,15 @@ class ProductTransferShipment(models.Model):
                         transferred_product.product),
                         str(self.source_branch.productsinventory)))
 
+                old_quantity = transferred_product.quantity
+
                 inventory_item.quantity -= transferred_product.quantity
                 inventory_item.save()
+
+                new_quantity = inventory_item.quantity
+
+                self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(inventory_item.product),
+                                                                                    old_quantity, new_quantity)
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -507,6 +520,8 @@ class ProductTransferShipment(models.Model):
         self.status = ProductRemoval.STATUS_CANCELLED
         self.date_confirmed = datetime.datetime.now()
         self.save()
+
+        self.ajax_message_for_cancellation = "Se canceló el envío {0}.".format(str(self))
 
     def get_cancel_params_for_ajax_request(self):
         """
@@ -609,6 +624,7 @@ class ProductTransferReception(models.Model):
         with transaction.atomic():
             self.status = ProductTransferReception.STATUS_CONFIRMED
             self.date_confirmed = datetime.datetime.now()
+            self.product_transfer_shipment.status = ProductTransferShipment.STATUS_RECEIVED
             self.save()
 
             self.ajax_message_for_confirmation = "Se confirmó la recepción {0}.\n".format(str(self))
@@ -680,6 +696,7 @@ class ProductTransferReception(models.Model):
         """
         self.status = ProductTransferReception.STATUS_CANCELLED
         self.date_confirmed = datetime.datetime.now()
+        self.product_transfer_shipment.status = ProductTransferShipment.STATUS_REJECTED
         self.save()
 
         self.ajax_message_for_cancellation = "Se canceló la recepción {0}".format(self)
@@ -696,10 +713,6 @@ class ProductTransferReception(models.Model):
         action = 'cancel'
 
         return {'url': url, 'model': model, 'pk': pk, 'action': action}
-
-    class Meta:
-        verbose_name = 'recepción de transferencia de productos'
-        verbose_name_plural = 'recepciones de transferencias de productos'
 
 
 class ReceivedProduct(models.Model):
