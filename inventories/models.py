@@ -1,5 +1,6 @@
 import datetime
 import sys
+from functools import reduce
 
 import django
 from django.contrib.auth.models import User
@@ -428,6 +429,14 @@ class ProductTransferShipment(models.Model):
         (STATUS_REJECTED, "Rechazado"),
     )
 
+    @property
+    def total_products_transferred(self):
+        """
+        Returns the sum of quantities of all related transferred products.
+        :return: An integer with the sum.
+        """
+        return self.transferredproduct_set.aggregate(sum=Sum('quantity'))['sum']
+
     source_branch = models.ForeignKey(BranchOffice, on_delete=models.CASCADE,
                                       editable=False,
                                       related_name='product_transfers_as_source_branch',
@@ -537,6 +546,17 @@ class ProductTransferShipment(models.Model):
 
         return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
+    def get_total_products_received_by_target_branch(self):
+        """
+        Returns the total amount of transferred products accepted by the target branch through
+        one or several ProductTransferReceptions.
+        :return: An integer with the total amount.
+        """
+        return reduce(lambda a, b: a + b, [
+            reception.receivedproduct_set.aggregate(sum=Sum('accepted_quantity'))['sum']
+            for reception in
+            self.producttransferreception_set.filter(status=ProductTransferReception.STATUS_CONFIRMED)])
+
 
 class TransferredProduct(models.Model):
     """
@@ -626,8 +646,6 @@ class ProductTransferReception(models.Model):
         with transaction.atomic():
             self.status = ProductTransferReception.STATUS_CONFIRMED
             self.date_confirmed = datetime.datetime.now()
-            self.product_transfer_shipment.status = ProductTransferShipment.STATUS_RECEIVED
-            self.product_transfer_shipment.save()
             self.save()
 
             self.ajax_message_for_confirmation = "Se confirmó la recepción {0}.\n".format(str(self))
@@ -660,7 +678,8 @@ class ProductTransferReception(models.Model):
                         product_removal.cause = ProductRemoval.CAUSE_TRANSFER
                         product_removal.product_transfer_reception = self
                         product_removal.inventory = inventory
-                        product_removal.user = self.received_by_user
+                        product_removal.removed_by_user = self.received_by_user
+                        product_removal.confirmed_by_user = self.confirmed_by_user
                         product_removal.status = ProductRemoval.STATUS_CONFIRMED
                         product_removal.save()
 
@@ -678,6 +697,17 @@ class ProductTransferReception(models.Model):
                 for removed_product in product_removal.removedproduct_set.all():
                     self.ajax_message_for_confirmation += "{0}: {1}\n".format(str(removed_product),
                                                                               removed_product.quantity)
+
+            total_products_transferred = self.product_transfer_shipment.total_products_transferred
+            total_products_received = self.product_transfer_shipment.get_total_products_received_by_target_branch()
+
+            if total_products_received == total_products_transferred:
+                self.product_transfer_shipment.status = ProductTransferShipment.STATUS_RECEIVED
+                self.product_transfer_shipment.save()
+            elif total_products_received > total_products_transferred:
+                raise ValueError("El total de productos recibidos para esta transferencia de productos es {0}, cuando "
+                                 "la cantidad enviada es {1}.".format(total_products_received,
+                                                                      total_products_transferred))
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -855,12 +885,19 @@ class PurchaseOrder(models.Model):
     )
 
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, verbose_name='proveedor')
-    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
     invoice_folio = models.CharField(max_length=30, verbose_name='folio factura')
     branch_office = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, editable=False, verbose_name='sucursal')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
     are_products_received = models.BooleanField(default=False, editable=False,
                                                 verbose_name='se han recibido los productos')
+    purchased_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                          related_name='purchase_orders_purchased',
+                                          verbose_name='solicitado por')
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
+                                          related_name='purchase_orders_confirmed',
+                                          verbose_name='confirmado por')
+    date_purchased = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha de compra')
+    date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
 
     class Meta:
         verbose_name = 'orden de compra'
@@ -898,6 +935,7 @@ class PurchaseOrder(models.Model):
         CONFIRMED.
         """
         self.status = PurchaseOrder.STATUS_CONFIRMED
+        self.date_confirmed = datetime.datetime.now()
         self.save()
 
         self.ajax_message_for_confirmation = "Se confirmó la orden {0}.".format(str(self))
@@ -921,6 +959,7 @@ class PurchaseOrder(models.Model):
         CANCELLED.
         """
         self.status = PurchaseOrder.STATUS_CANCELLED
+        self.date_confirmed = datetime.datetime.now()
         self.save()
 
         self.ajax_message_for_cancellation = "Se canceló la orden {0}.".format(str(self))
@@ -982,8 +1021,15 @@ class ProductEntry(models.Model):
 
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, verbose_name='orden de compra')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
-    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
+    entered_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                        related_name='entered_product_entries',
+                                        verbose_name='Ingresado por')
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
+                                          related_name='confirmed_product_entries',
+                                          verbose_name='confirmado por')
+    date_entered = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha de envío')
+    date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
 
     class Meta:
         verbose_name = 'ingreso de producto'
@@ -1016,6 +1062,7 @@ class ProductEntry(models.Model):
 
         with transaction.atomic():
             self.status = ProductEntry.STATUS_CONFIRMED
+            self.date_confirmed = datetime.datetime.now()
             self.save()
 
             self.ajax_message_for_confirmation = "Se confirmó el ingreso para la orden {0}.\n".format(
@@ -1060,6 +1107,7 @@ class ProductEntry(models.Model):
         :return:
         """
         self.status = ProductEntry.STATUS_CANCELLED
+        self.date_confirmed = datetime.datetime.now()
         self.save()
 
         self.ajax_message_for_cancellation = "Ingreso para orden {0} cancelado.".format(str(self.purchase_order))
@@ -1133,7 +1181,7 @@ class ProductRemoval(models.Model):
         This object's ID formatted.
         :return: The string with the ID.
         """
-        return
+        return "M{0}".format(str(self.pk).zfill(9))
 
     cause = models.PositiveSmallIntegerField(choices=CAUSE_TYPES, default=CAUSE_INTERNAL, verbose_name='causa')
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, null=True, blank=True, verbose_name='proveedor')
@@ -1142,9 +1190,15 @@ class ProductRemoval(models.Model):
                                                    blank=True,
                                                    verbose_name='recepción de transferencia de producto')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
-    date = models.DateTimeField(auto_now_add=True, verbose_name='fecha')
-    user = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name='usuario')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
+    removed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
+                                        related_name='removed_product_removals',
+                                        verbose_name='Creada por')
+    confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
+                                          related_name='confirmed_product_removals',
+                                          verbose_name='confirmado por')
+    date_removed = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha')
+    date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
 
     class Meta:
         verbose_name = 'merma de producto'
@@ -1156,7 +1210,7 @@ class ProductRemoval(models.Model):
         super(ProductRemoval, self).__init__(*args, **kwargs)
 
     def __str__(self):
-        return "{0} - {1}".format(str(self.inventory), str(self.user))
+        return self.folio
 
     @staticmethod
     def get_pending_product_removals_for_user(user: Employee):
@@ -1183,6 +1237,7 @@ class ProductRemoval(models.Model):
         """
         with transaction.atomic():
             self.status = ProductRemoval.STATUS_CONFIRMED
+            self.date_confirmed = datetime.datetime.now()
             self.save()
 
             self.ajax_message_for_confirmation = "Se confirmó la merma {0}.\n".format(str(self))
@@ -1220,6 +1275,7 @@ class ProductRemoval(models.Model):
         Cancels this product removal. Sets its status to CANCELLED.
         """
         self.status = ProductRemoval.STATUS_CANCELLED
+        self.date_confirmed = datetime.datetime.now()
         self.save()
 
     def get_cancel_params_for_ajax_request(self):

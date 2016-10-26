@@ -393,20 +393,28 @@ class ProductTransferReceptionAdmin(ModelAdmin):
         if not change:
             with transaction.atomic():
                 super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
-
-                transfer = obj.product_transfer_shipment
-
-                for transferred_product in transfer.transferredproduct_set.all():
-                    received_product = models.ReceivedProduct()
-                    received_product.product = transferred_product.product
-                    received_product.accepted_quantity = transferred_product.quantity
-                    received_product.received_quantity = transferred_product.quantity
-                    received_product.product_transfer_reception = obj
-                    received_product.save()
-
-                    obj.receivedproduct_set.add(received_product)
+                self.prefill_received_products_with_shipments_products(obj)
         else:
             super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
+
+    @staticmethod
+    def prefill_received_products_with_shipments_products(product_transfer_shipment):
+        """
+        Fills the ProductTransferReception received items set with the related
+        product transfer shipment's transferred product set.
+        :param product_transfer_shipment: The ProductTransferShipment.
+        """
+        transfer = product_transfer_shipment.product_transfer_shipment
+
+        for transferred_product in transfer.transferredproduct_set.all():
+            received_product = models.ReceivedProduct()
+            received_product.product = transferred_product.product
+            received_product.accepted_quantity = transferred_product.quantity
+            received_product.received_quantity = transferred_product.quantity
+            received_product.product_transfer_reception = product_transfer_shipment
+            received_product.save()
+
+            product_transfer_shipment.receivedproduct_set.add(received_product)
 
     def get_form(self, request, obj=None, **kwargs):
         form_class = super(ProductTransferReceptionAdmin, self).get_form(request, obj, **kwargs)
@@ -540,12 +548,13 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     """
 
     inlines = [PurchasedProductInLine]
-    list_display = ('date', 'branch_office', 'provider', 'status',)
-    list_filter = ('branch_office', 'status', 'date',)
-    readonly_fields = ('branch_office', 'status', 'date',)
+    list_display = ('date_purchased', 'branch_office', 'provider', 'status',)
+    list_filter = ('branch_office', 'status', 'date_purchased',)
+    readonly_fields = ('branch_office', 'status', 'date_purchased',)
 
     def save_model(self, request, obj, form, change):
         obj.branch_office = request.user.branch_office
+        obj.purchased_by_user = request.user
         super(PurchaseOrderAdmin, self).save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
@@ -601,9 +610,9 @@ class ProductEntryAdmin(admin.ModelAdmin):
     """
 
     inlines = [EnteredProductInLine]
-    list_display = ('date', 'inventory', 'purchase_order', 'status',)
-    list_filter = ('inventory', 'status', 'date',)
-    readonly_fields = ('inventory', 'status', 'date',)
+    list_display = ('date_entered', 'inventory', 'purchase_order', 'status',)
+    list_filter = ('inventory', 'status', 'date_entered',)
+    readonly_fields = ('inventory', 'status', 'date_entered',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductEntry.STATUS_PENDING:
@@ -612,6 +621,7 @@ class ProductEntryAdmin(admin.ModelAdmin):
             return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
+        obj.entered_by_user = request.user
         obj.inventory = request.user.branch_office.productsinventory
         super(ProductEntryAdmin, self).save_model(request, obj, form, change)
 
@@ -674,9 +684,9 @@ class ProductRemovalAdmin(admin.ModelAdmin):
 
     form = AddOrChangeProductRemovalForm
     inlines = [RemovedProductInLine]
-    list_display = 'inventory', 'user', 'cause', 'status', 'date',
-    list_filter = 'inventory', 'cause', 'status', 'date',
-    readonly_fields = 'inventory', 'status', 'user', 'date',
+    list_display = 'inventory', 'removed_by_user', 'cause', 'status', 'date_removed',
+    list_filter = 'inventory', 'cause', 'status', 'date_removed',
+    readonly_fields = 'inventory', 'status', 'removed_by_user', 'date_removed',
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
@@ -685,7 +695,7 @@ class ProductRemovalAdmin(admin.ModelAdmin):
             return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
-        obj.user = request.user
+        obj.removed_by_user = request.user
         obj.inventory = request.user.branch_office.productsinventory
         super(ProductRemovalAdmin, self).save_model(request, obj, form, change)
 
