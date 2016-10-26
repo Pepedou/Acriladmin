@@ -2,7 +2,6 @@ import datetime
 import sys
 from functools import reduce
 
-import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -430,7 +429,7 @@ class ProductTransferShipment(models.Model):
     )
 
     @property
-    def total_products_transferred(self):
+    def total_transferred_products(self):
         """
         Returns the sum of quantities of all related transferred products.
         :return: An integer with the sum.
@@ -546,16 +545,26 @@ class ProductTransferShipment(models.Model):
 
         return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
-    def get_total_products_received_by_target_branch(self):
+    def get_total_confirmed_and_received_products_by_target_branch(self):
         """
         Returns the total amount of transferred products accepted by the target branch through
         one or several ProductTransferReceptions.
         :return: An integer with the total amount.
         """
+        return self.get_total_received_products_by_target_branch_with_filter(
+            {'status': ProductTransferShipment.STATUS_CONFIRMED})
+
+    def get_total_received_products_by_target_branch_with_filter(self, query_filter):
+        """
+        Returns the total amount of transferred products accepted by the target branch through
+        one or several ProductTransferReceptions.
+        :param query_filter: The filter for the ProductTransferReceptions queryset.
+        :return: An integer with the total amount.
+        """
         return reduce(lambda a, b: a + b, [
-            reception.receivedproduct_set.aggregate(sum=Sum('accepted_quantity'))['sum']
+            reception.total_accepted_received_products
             for reception in
-            self.producttransferreception_set.filter(status=ProductTransferReception.STATUS_CONFIRMED)])
+            self.producttransferreception_set.filter(query_filter)], 0)
 
 
 class TransferredProduct(models.Model):
@@ -596,6 +605,14 @@ class ProductTransferReception(models.Model):
         :return: The string.
         """
         return "R{0}".format(str(self.id).zfill(9))
+
+    @property
+    def total_accepted_received_products(self):
+        """
+        Returns the sum of all the received products' accepted quantities.
+        :return: An integer with the sum.
+        """
+        return self.receivedproduct_set.aggregate(sum=Sum('accepted_quantity'))['sum']
 
     product_transfer_shipment = models.ForeignKey(ProductTransferShipment, on_delete=models.CASCADE,
                                                   limit_choices_to={'status': ProductTransferShipment.STATUS_CONFIRMED},
@@ -698,8 +715,9 @@ class ProductTransferReception(models.Model):
                     self.ajax_message_for_confirmation += "{0}: {1}\n".format(str(removed_product),
                                                                               removed_product.quantity)
 
-            total_products_transferred = self.product_transfer_shipment.total_products_transferred
-            total_products_received = self.product_transfer_shipment.get_total_products_received_by_target_branch()
+            total_products_transferred = self.product_transfer_shipment.total_transferred_products
+            total_products_received = \
+                self.product_transfer_shipment.get_total_confirmed_and_received_products_by_target_branch()
 
             if total_products_received == total_products_transferred:
                 self.product_transfer_shipment.status = ProductTransferShipment.STATUS_RECEIVED
@@ -798,7 +816,7 @@ class ProductReimbursement(models.Model):
         """
         return "D{0}".format(str(self.id).zfill(9))
 
-    date = models.DateField(default=django.utils.timezone.now, verbose_name='fecha de devolución')
+    date = models.DateField(default=datetime.datetime.now(), verbose_name='fecha de devolución')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, editable=False,
                                   verbose_name='inventario')
     monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')

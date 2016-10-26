@@ -1,5 +1,6 @@
 from dal import autocomplete
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
@@ -96,5 +97,15 @@ class AddOrChangeProductTransferReceptionForm(ModelForm):
             self.add_error('product_transfer_shipment', 'Esta transferencia está dirigida a {0}, no a {1}.'.format(
                 str(product_transfer_shipment.target_branch), str(receiving_branch)
             ))
+
+        total_transferred_products = product_transfer_shipment.total_transferred_products
+        pending_and_confirmed_products = \
+            product_transfer_shipment.get_total_received_products_by_target_branch_with_filter(
+                Q(status=ProductTransferReception.STATUS_PENDING) | Q(status=ProductTransferReception.STATUS_CONFIRMED))
+
+        if total_transferred_products >= pending_and_confirmed_products:
+            raise ValidationError('No se puede agregar otra recepción a esta transferencia ya que, '
+                                  'entre las recepciones confirmadas y pendientes, ya se han recibido todos los '
+                                  'productos de la transferencia.')
 
         return product_transfer_shipment
