@@ -11,6 +11,7 @@ from inventories.forms.entered_product_forms import EnteredProductInlineForm
 from inventories.forms.inventory_item_forms import TabularInLineConsumableInventoryItemForm, \
     TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
+from inventories.forms.product_entry_forms import AddOrChangeProductEntryForm
 from inventories.forms.product_forms import AddOrChangeProductForm
 from inventories.forms.product_purchase_forms import PurchasedProductInlineForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
@@ -608,7 +609,7 @@ class ProductEntryAdmin(admin.ModelAdmin):
     Specifies the details for the admin app in regard
     to the ProductEntry entity.
     """
-
+    form = AddOrChangeProductEntryForm
     inlines = [EnteredProductInLine]
     list_display = ('date_entered', 'inventory', 'purchase_order', 'status',)
     list_filter = ('inventory', 'status', 'date_entered',)
