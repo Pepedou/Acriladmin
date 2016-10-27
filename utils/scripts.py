@@ -8,6 +8,7 @@ django.setup()
 
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission
+from back_office.models import BranchOffice, Employee
 
 
 def fill_up_product_inventories(product_quantity):
@@ -78,12 +79,30 @@ def load_group_permissions():
             group.save()
 
 
+def load_branch_offices_admins():
+    """
+    Assigns the correct admin to each branch office.
+    """
+    for branch_office in BranchOffice.objects.all():
+        if branch_office.name == 'Tacuba':
+            branch_office.administrator = Employee.objects.filter(username='ffragoso').first()
+        elif branch_office.name == 'Cuautepec':
+            branch_office.administrator = Employee.objects.filter(username='lfragoso').first()
+        elif branch_office.name == 'Nezahualcóyotl':
+            branch_office.administrator = Employee.objects.filter(username='ecisneros').first()
+        elif branch_office.name == 'San Lucas':
+            branch_office.administrator = Employee.objects.filter(username='cfragoso').first()
+
+        branch_office.save()
+
+
 if __name__ == "__main__":
     try:
         print("Executing scripts...")
         fill_up_product_inventories(100)
         set_default_passwords_and_make_staff()
         load_group_permissions()
+        load_branch_offices_admins()
         print("Scripts executed successfully!")
     except Exception as ex:
         print("Scripts execution failed!")
