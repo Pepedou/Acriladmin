@@ -16,7 +16,7 @@ class AddOrChangeProductRemovalForm(ModelForm):
         cleaned_data = super(AddOrChangeProductRemovalForm, self).clean()
         cause = cleaned_data.get('cause')
         provider = cleaned_data.get('provider')
-        product_transfer = cleaned_data.get('product_transfer')
+        product_transfer = cleaned_data.get('product_transfer_reception')
 
         if cause is not None:
             if cause == ProductRemoval.CAUSE_PROVIDER:
@@ -24,6 +24,7 @@ class AddOrChangeProductRemovalForm(ModelForm):
                     self.add_error('provider', "Se requiere especificar un proveedor.")
             elif cause == ProductRemoval.CAUSE_TRANSFER:
                 if not product_transfer:
-                    self.add_error('product_transfer', "Se requiere especificar una transferencia de producto.")
+                    self.add_error('product_transfer_reception',
+                                   "Se requiere especificar una transferencia de producto.")
 
         return cleaned_data

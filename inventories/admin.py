@@ -1,17 +1,24 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
 import inventories.models as models
 from back_office.admin import admin_site
+from inventories.forms.entered_product_forms import EnteredProductInlineForm
 from inventories.forms.inventory_item_forms import TabularInLineConsumableInventoryItemForm, \
     TabularInLineMaterialInventoryItemForm, \
     TabularInLineDurableGoodInventoryItemForm
 from inventories.forms.product_forms import AddOrChangeProductForm
+from inventories.forms.product_purchase_forms import PurchasedProductInlineForm
 from inventories.forms.product_tabularinlines_forms import AddOrChangeProductComponentInlineForm
-from inventories.forms.product_transfer_forms import AddOrChangeProductTransferForm
+from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineForm, \
+    AddOrChangeProductTransferReceptionForm
+from inventories.forms.product_transfer_reception_forms import ReceivedProductInlineFormset
+from inventories.forms.product_transfer_shipment_forms import AddOrChangeProductTransferShipmentForm, \
+    TransferredProductInlineForm, TransferredProductInlineFormset
 from inventories.forms.productreimbursement_tabularinlines_forms import AddOrChangeReturnedProductTabularInlineForm
 from inventories.forms.productremoval_forms import AddOrChangeProductRemovalForm
 from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
@@ -218,54 +225,208 @@ class DurableGoodsInventoryAdmin(VersionAdmin):
         obj.save()
 
 
-class ProductTransferAdmin(ModelAdmin):
+class TransferredProductInLine(admin.TabularInline):
     """
-    Specifies the details for the admin app in regard
-    to the ProductTransfer entity.
+    Describes the inline render of a transferred product
+    for the ProductTransferShipment's admin view.
     """
-    form = AddOrChangeProductTransferForm
-    list_display = (
-        'source_branch', 'target_branch', 'product', 'quantity', 'is_confirmed', 'date_created', 'date_reviewed',)
+    model = models.TransferredProduct
+    form = TransferredProductInlineForm
+    formset = TransferredProductInlineFormset
 
-    readonly_fields = ("product", "target_branch", "quantity",)
+    def get_formset(self, request, obj=None, **kwargs):
+        formset_class = super(TransferredProductInLine, self).get_formset(request, obj, **kwargs)
+
+        class FormsetWithRequest(formset_class):
+            """Subclass to add request"""
+
+            def __new__(cls, *args, **kwargs2):
+                kwargs2['request'] = request
+                return formset_class(*args, **kwargs2)
+
+        return FormsetWithRequest
 
     def get_readonly_fields(self, request, obj=None):
-        if obj is None:
-            return 'is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',
-        elif request.user != obj.target_branch.productsinventory.supervisor and not request.user.is_superuser \
-                or obj.is_confirmed:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',)
-        elif obj.rejection_reason is None:
-            return self.readonly_fields + ('source_branch',)
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return 'product', 'quantity',
         else:
-            return self.readonly_fields + ('is_confirmed', 'rejection_reason', 'confirmed_quantity', 'source_branch',)
+            return []
 
-    def get_actions(self, request):
-        actions = super(ProductTransferAdmin, self).get_actions(request)
-        del actions['delete_selected']
-        return actions
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return 0
+        else:
+            return super(TransferredProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return False
+        else:
+            return super(TransferredProductInLine, self).has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
-        if obj is not None and obj.transfer_has_been_made:
+        if obj and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return False
+        else:
+            return super(TransferredProductInLine, self).has_delete_permission(request, obj)
+
+
+class ProductTransferShipmentAdmin(ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductTransferShipment entity.
+    """
+    form = AddOrChangeProductTransferShipmentForm
+    inlines = [TransferredProductInLine]
+    readonly_fields = ('source_branch', 'shipped_by_user', 'confirmed_by_user', 'date_confirmed', 'status',)
+    list_display = ('source_branch', 'target_branch', 'date_shipped', 'date_confirmed', 'status',)
+    list_filter = ('source_branch', 'target_branch', 'date_shipped', 'status',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None and obj.status != models.ProductTransferShipment.STATUS_PENDING:
+            return self.readonly_fields + ('target_branch', 'date_shipped',)
+        else:
+            return self.readonly_fields
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.status != models.ProductTransferShipment.STATUS_PENDING:
             return False
         else:
             return True
 
     def get_form(self, request, obj=None, **kwargs):
-        admin_form_class = super(ProductTransferAdmin, self).get_form(request, obj, **kwargs)
+        form_class = super(ProductTransferShipmentAdmin, self).get_form(request, obj, **kwargs)
 
-        class AdminFormWithRequest(admin_form_class):
-            """Subclass to add request"""
+        class FormClassWithRequest(form_class):
+            """Subclass the form to pass the request."""
 
-            def __new__(cls, *args, **kwargs):
-                kwargs['request'] = request
-                return admin_form_class(*args, **kwargs)
+            def __new__(cls, *args, **kwargs2):
+                kwargs2['request'] = request
+                return form_class(*args, **kwargs2)
 
-        return AdminFormWithRequest
+        return FormClassWithRequest
 
     def save_model(self, request, obj, form, change):
+        obj.shipped_by_user = request.user
         obj.source_branch = request.user.branch_office
-        super(ProductTransferAdmin, self).save_model(request, obj, form, change)
+        super(ProductTransferShipmentAdmin, self).save_model(request, obj, form, change)
+
+
+class ReceivedProductInLine(admin.TabularInline):
+    """
+    Describes the inline render of a Received product
+    for the ProductTransferReception's admin view.
+    """
+    model = models.ReceivedProduct
+    form = ReceivedProductInlineForm
+    formset = ReceivedProductInlineFormset
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset_class = super(ReceivedProductInLine, self).get_formset(request, obj, **kwargs)
+
+        class FormsetWithRequest(formset_class):
+            """Subclass to add request"""
+
+            def __new__(cls, *args, **kwargs2):
+                kwargs2['request'] = request
+                return formset_class(*args, **kwargs2)
+
+        return FormsetWithRequest
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return 'product', 'accepted_quantity', 'received_quantity', 'rejection_reason',
+        else:
+            return []
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return 0
+        else:
+            return super(ReceivedProductInLine, self).get_extra(request, obj, **kwargs)
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return False
+        else:
+            return super(ReceivedProductInLine, self).has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return False
+        else:
+            return super(ReceivedProductInLine, self).has_delete_permission(request, obj)
+
+
+class ProductTransferReceptionAdmin(ModelAdmin):
+    """
+    Specifies the details for the admin app in regard
+    to the ProductTransferReception entity.
+    """
+    form = AddOrChangeProductTransferReceptionForm
+    inlines = [ReceivedProductInLine]
+    readonly_fields = ('confirmed_by_user', 'date_confirmed', 'status',)
+    list_display = ('folio', 'product_transfer_shipment', 'date_received', 'date_confirmed', 'status',)
+    list_filter = ('product_transfer_shipment', 'date_received', 'status',)
+
+    def get_formsets_with_inlines(self, request, obj=None):
+        if not obj:
+            return []
+        else:
+            return super(ProductTransferReceptionAdmin, self).get_formsets_with_inlines(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return self.readonly_fields + ('date_received', 'product_transfer_shipment',)
+        else:
+            return self.readonly_fields
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.status != models.ProductTransferReception.STATUS_PENDING:
+            return False
+        else:
+            return True
+
+    def save_model(self, request, obj, form, change):
+        obj.received_by_user = request.user
+
+        if not change:
+            with transaction.atomic():
+                super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
+                self.prefill_received_products_with_shipments_products(obj)
+        else:
+            super(ProductTransferReceptionAdmin, self).save_model(request, obj, form, change)
+
+    @staticmethod
+    def prefill_received_products_with_shipments_products(product_transfer_shipment):
+        """
+        Fills the ProductTransferReception received items set with the related
+        product transfer shipment's transferred product set.
+        :param product_transfer_shipment: The ProductTransferShipment.
+        """
+        transfer = product_transfer_shipment.product_transfer_shipment
+
+        for transferred_product in transfer.transferredproduct_set.all():
+            received_product = models.ReceivedProduct()
+            received_product.product = transferred_product.product
+            received_product.accepted_quantity = transferred_product.quantity
+            received_product.received_quantity = transferred_product.quantity
+            received_product.product_transfer_reception = product_transfer_shipment
+            received_product.save()
+
+            product_transfer_shipment.receivedproduct_set.add(received_product)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form_class = super(ProductTransferReceptionAdmin, self).get_form(request, obj, **kwargs)
+
+        class FormWithRequest(form_class):
+            """Subclass to add request"""
+
+            def __new__(cls, *args, **kwargs2):
+                kwargs2['request'] = request
+                return form_class(*args, **kwargs2)
+
+        return FormWithRequest
 
 
 class ReturnedProductInLine(admin.TabularInline):
@@ -352,6 +513,7 @@ class PurchasedProductInLine(admin.TabularInline):
     Describes the inline render of a purchased product for the
     PurchasedProduct's admin view.
     """
+    form = PurchasedProductInlineForm
     model = models.PurchasedProduct
 
     def get_readonly_fields(self, request, obj=None):
@@ -386,12 +548,13 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     """
 
     inlines = [PurchasedProductInLine]
-    list_display = ('date', 'branch_office', 'provider', 'status',)
-    list_filter = ('branch_office', 'status', 'date',)
-    readonly_fields = ('branch_office', 'status', 'date',)
+    list_display = ('date_purchased', 'branch_office', 'provider', 'status',)
+    list_filter = ('branch_office', 'status', 'date_purchased',)
+    readonly_fields = ('branch_office', 'status', 'date_purchased',)
 
     def save_model(self, request, obj, form, change):
         obj.branch_office = request.user.branch_office
+        obj.purchased_by_user = request.user
         super(PurchaseOrderAdmin, self).save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
@@ -413,6 +576,7 @@ class EnteredProductInLine(admin.TabularInline):
     ProductEntry's admin view.
     """
     model = models.EnteredProduct
+    form = EnteredProductInlineForm
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductEntry.STATUS_PENDING:
@@ -446,9 +610,9 @@ class ProductEntryAdmin(admin.ModelAdmin):
     """
 
     inlines = [EnteredProductInLine]
-    list_display = ('date', 'inventory', 'purchase_order', 'status',)
-    list_filter = ('inventory', 'status', 'date',)
-    readonly_fields = ('inventory', 'status', 'date',)
+    list_display = ('date_entered', 'inventory', 'purchase_order', 'status',)
+    list_filter = ('inventory', 'status', 'date_entered',)
+    readonly_fields = ('inventory', 'status', 'date_entered',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductEntry.STATUS_PENDING:
@@ -457,6 +621,7 @@ class ProductEntryAdmin(admin.ModelAdmin):
             return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
+        obj.entered_by_user = request.user
         obj.inventory = request.user.branch_office.productsinventory
         super(ProductEntryAdmin, self).save_model(request, obj, form, change)
 
@@ -519,18 +684,18 @@ class ProductRemovalAdmin(admin.ModelAdmin):
 
     form = AddOrChangeProductRemovalForm
     inlines = [RemovedProductInLine]
-    list_display = 'inventory', 'user', 'cause', 'status', 'date',
-    list_filter = 'inventory', 'cause', 'status', 'date',
-    readonly_fields = 'inventory', 'status', 'user', 'date',
+    list_display = 'inventory', 'removed_by_user', 'cause', 'status', 'date_removed',
+    list_filter = 'inventory', 'cause', 'status', 'date_removed',
+    readonly_fields = 'inventory', 'status', 'removed_by_user', 'date_removed',
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status != models.ProductRemoval.STATUS_PENDING:
-            return self.readonly_fields + ('cause', 'provider', 'product_transfer',)
+            return self.readonly_fields + ('cause', 'provider', 'product_transfer_reception',)
         else:
             return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
-        obj.user = request.user
+        obj.removed_by_user = request.user
         obj.inventory = request.user.branch_office.productsinventory
         super(ProductRemovalAdmin, self).save_model(request, obj, form, change)
 
@@ -544,7 +709,8 @@ class ProductRemovalAdmin(admin.ModelAdmin):
 admin_site.register(models.Product, ProductAdmin)
 admin_site.register(models.ProductInventoryItem, InventoryItemAdmin)
 admin_site.register(models.ProductsInventory, ProductsInventoryAdmin)
-admin_site.register(models.ProductTransfer, ProductTransferAdmin)
+admin_site.register(models.ProductTransferShipment, ProductTransferShipmentAdmin)
+admin_site.register(models.ProductTransferReception, ProductTransferReceptionAdmin)
 admin_site.register(models.ProductReimbursement, ProductReimbursementAdmin)
 admin_site.register(models.PurchaseOrder, PurchaseOrderAdmin)
 admin_site.register(models.ProductEntry, ProductEntryAdmin)

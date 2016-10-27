@@ -5,21 +5,18 @@ from dal import autocomplete
 from django.contrib.admin import AdminSite
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
-from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from django.views.generic import View
 from rest_framework import viewsets
 
-from back_office.admin import admin_site
-from back_office.models import EmployeeGroup
 from inventories.forms.solver_forms import SolverForm
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
-    Product, Material, Consumable, DurableGood, ProductInventoryItem, ProductRemoval, string_to_model_class
+    Product, Material, Consumable, DurableGood, ProductInventoryItem, string_to_model_class
 from inventories.serializers import ProductInventoryItemSerializer
 from inventories.solver import Surface, ProductCutOptimizer
 
@@ -438,6 +435,8 @@ class ProductMovementConfirmOrCancelView(View):
 
             if not model_class or not obj or not action:
                 raise Exception("El servidor no recibió los parámetros esperados.")
+
+            obj.confirmed_by_user = request.user
 
             if action == "confirm":
                 obj.confirm()
