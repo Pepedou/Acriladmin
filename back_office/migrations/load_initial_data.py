@@ -18,4 +18,5 @@ class Migration(migrations.Migration):
         migrations.RunPython(utils_migrations.load_employees),
         migrations.RunPython(utils_migrations.load_employee_groups_relationships),
         migrations.RunPython(utils_migrations.load_branch_employee_relationship),
+        migrations.RunPython(utils_migrations.load_group_permissions),
     ]

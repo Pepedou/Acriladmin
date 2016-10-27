@@ -449,7 +449,7 @@ class ProductTransferShipment(models.Model):
     confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='confirmed_product_transfers',
                                           verbose_name='confirmado por')
-    date_shipped = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha de envío')
+    date_shipped = models.DateTimeField(default=datetime.datetime.now, verbose_name='fecha de envío')
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING,
                                               verbose_name='estado')
@@ -623,7 +623,7 @@ class ProductTransferReception(models.Model):
     confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='confirmed_product_receptions',
                                           verbose_name='confirmado por')
-    date_received = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha de recepción')
+    date_received = models.DateTimeField(default=datetime.datetime.now, verbose_name='fecha de recepción')
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING,
                                               verbose_name='estado')
@@ -816,7 +816,7 @@ class ProductReimbursement(models.Model):
         """
         return "D{0}".format(str(self.id).zfill(9))
 
-    date = models.DateField(default=datetime.datetime.now(), verbose_name='fecha de devolución')
+    date = models.DateField(default=datetime.datetime.now, verbose_name='fecha de devolución')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, editable=False,
                                   verbose_name='inventario')
     monetary_difference = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='diferencia')
@@ -914,7 +914,7 @@ class PurchaseOrder(models.Model):
     confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='purchase_orders_confirmed',
                                           verbose_name='confirmado por')
-    date_purchased = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha de compra')
+    date_purchased = models.DateTimeField(default=datetime.datetime.now, verbose_name='fecha de compra')
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
 
     class Meta:
@@ -1046,7 +1046,7 @@ class ProductEntry(models.Model):
     confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='confirmed_product_entries',
                                           verbose_name='confirmado por')
-    date_entered = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha de envío')
+    date_entered = models.DateTimeField(default=datetime.datetime.now, verbose_name='fecha de envío')
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
 
     class Meta:
@@ -1215,7 +1215,7 @@ class ProductRemoval(models.Model):
     confirmed_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False, null=True,
                                           related_name='confirmed_product_removals',
                                           verbose_name='confirmado por')
-    date_removed = models.DateTimeField(default=datetime.datetime.now(), verbose_name='fecha')
+    date_removed = models.DateTimeField(default=datetime.datetime.now, verbose_name='fecha')
     date_confirmed = models.DateTimeField(null=True, blank=True, editable=False, verbose_name='fecha de confirmación')
 
     class Meta:
