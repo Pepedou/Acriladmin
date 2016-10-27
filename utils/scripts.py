@@ -1,3 +1,4 @@
+import csv
 import os
 
 import django
@@ -5,25 +6,8 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Acriladmin.settings")
 django.setup()
 
-
-def assign_product_price_to_all_products(price):
-    """
-    Assigns the given price to all the products catalogue.
-    :param price: The price to assign.
-    """
-    from inventories.models import Product
-    from finances.models import ProductPrice
-    from back_office.models import Employee
-
-    user_luis = Employee.objects.filter(first_name="Luis Daniel").first()
-    prices = []
-
-    for product in Product.objects.all():
-        product_price = ProductPrice(price=price, product=product,
-                                     authorized_by=user_luis)
-        prices.append(product_price)
-
-    ProductPrice.objects.bulk_create(prices)
+from django.conf import settings
+from django.contrib.auth.models import Group, Permission
 
 
 def fill_up_product_inventories(product_quantity):
@@ -70,7 +54,28 @@ def set_default_passwords_and_make_staff():
         emp.set_password("{0}{1}".format(
             emp.first_name.split()[0].strip().lower(),
             emp.last_name.split()[0].strip()[0].lower()))
+
+        if emp.username in ['lfragoso', 'cfragoso', 'jfragoso']:
+            emp.is_superuser = True
+
         emp.save()
+
+
+def load_group_permissions():
+    """
+    Loads the groups' permissions from the group_permissions.csv
+    file into the database.
+    """
+    with open(os.path.join(settings.BASE_DIR, "var/csv/group_permissions.csv")) as file:
+        content = csv.DictReader(file, delimiter='|')
+
+        for row in content:
+            group = Group.objects.filter(name=row['group']).first()
+            permissions_codenames = row['permissions'].split(',')
+            permissions = Permission.objects.filter(codename__in=permissions_codenames)
+
+            group.permissions = permissions
+            group.save()
 
 
 if __name__ == "__main__":
@@ -78,6 +83,7 @@ if __name__ == "__main__":
         print("Executing scripts...")
         fill_up_product_inventories(100)
         set_default_passwords_and_make_staff()
+        load_group_permissions()
         print("Scripts executed successfully!")
     except Exception as ex:
         print("Scripts execution failed!")

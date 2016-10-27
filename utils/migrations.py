@@ -89,6 +89,7 @@ def load_employees(apps, schema_editor):
                                       last_name=row['last_name'],
                                       email=row['email'],
                                       branch_office=default_branch_office)
+
             new_employees.append(employee)
 
     employee_class.objects.bulk_create(new_employees)
@@ -215,26 +216,3 @@ def load_employee_groups_relationships(apps, schema_editor):
             for employee in employees:
                 employee.groups.add(group)
                 employee.save()
-
-
-def load_group_permissions(apps, schema_editor):
-    """
-    Loads the groups' permissions from the group_permissions.csv
-    file into the database.
-    """
-    employee_group_class = apps.get_model("auth", "Group")
-    permissions_class = apps.get_model("auth", "Permission")
-
-    del schema_editor
-
-    with open(os.path.join(settings.BASE_DIR,
-                           "var/csv/group_permissions.csv")) as file:
-        content = csv.DictReader(file, delimiter='|')
-
-        for row in content:
-            group = employee_group_class.objects.filter(name=row['group']).first()
-            permissions_codenames = row['permissions'].split(',')
-            permissions = permissions_class.objects.filter(codename__in=permissions_codenames)
-
-            group.permissions = permissions
-            group.save()
