@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import ModelForm, BaseInlineFormSet
 
-from finances.models import Sale, SaleProductItem, ProductPrice, Invoice, Transaction
+from finances.models import Sale, SaleProductItem, ProductPrice, Transaction
 from inventories.models import Product, ProductInventoryItem
 from utils.product_helpers import ScrapsToProductsConverter
 
@@ -207,8 +207,7 @@ class SaleProductItemInlineForm(ModelForm):
 
         self.instance.sale.subtotal += item_charges
 
-        if self.instance.sale.invoice.state == Invoice.STATE_GEN_BY_SALE:
-            self.instance.sale.invoice.total += self.instance.sale.total
+        self.instance.sale.invoice.total += self.instance.sale.total
 
         if self.instance.sale.payment_method is not Sale.PAYMENT_ON_DELIVERY:
             self.instance.sale.transaction.amount += item_charges
