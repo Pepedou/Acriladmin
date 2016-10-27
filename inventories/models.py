@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
-from django.db.models import F
 from django.db.models import Q
 from django.db.models import Sum
 from django.utils import timezone
@@ -896,18 +895,34 @@ class PurchaseOrder(models.Model):
     STATUS_CONFIRMED = 0
     STATUS_CANCELLED = 1
     STATUS_PENDING = 2
+    STATUS_COMPLETE = 3
     STATUS_TYPES = (
         (STATUS_CONFIRMED, "Confirmado"),
         (STATUS_CANCELLED, "Cancelado"),
         (STATUS_PENDING, "Pendiente"),
+        (STATUS_COMPLETE, "Completa"),
     )
+
+    @property
+    def total_entered_products(self):
+        """
+        Returns the sum of quantities of all related product entries.
+        :return: An integer with the sum.
+        """
+        return self.get_total_entered_products_with_filter(Q(status=ProductEntry.STATUS_CONFIRMED))
+
+    @property
+    def total_purchased_products(self):
+        """
+        Returns the sum of quantities of all purchased products.
+        :return: An integer with the sum.
+        """
+        return self.purchasedproduct_set.aggregate(sum=Sum('quantity'))['sum']
 
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, verbose_name='proveedor')
     invoice_folio = models.CharField(max_length=30, verbose_name='folio factura')
     branch_office = models.ForeignKey(BranchOffice, on_delete=models.CASCADE, editable=False, verbose_name='sucursal')
     status = models.PositiveSmallIntegerField(choices=STATUS_TYPES, default=STATUS_PENDING, verbose_name='estado')
-    are_products_received = models.BooleanField(default=False, editable=False,
-                                                verbose_name='se han recibido los productos')
     purchased_by_user = models.ForeignKey(Employee, on_delete=models.PROTECT, editable=False,
                                           related_name='purchase_orders_purchased',
                                           verbose_name='solicitado por')
@@ -939,6 +954,18 @@ class PurchaseOrder(models.Model):
         return PurchaseOrder.objects.filter(Q(branch_office__administrator=user) |
                                             Q(branch_office__productsinventory__supervisor=user),
                                             status=PurchaseOrder.STATUS_PENDING)
+
+    def get_total_entered_products_with_filter(self, query_filter):
+        """
+        Returns the total amount of entered products received through
+        one or several ProductEntries.
+        :param query_filter: The filter for the ProductEntry queryset.
+        :return: An integer with the total amount.
+        """
+        return reduce(lambda a, b: a + b, [
+            entry.total_entered_products
+            for entry in
+            self.productentry_set.filter(query_filter)], 0)
 
     def get_absolute_url(self):
         """
@@ -995,15 +1022,6 @@ class PurchaseOrder(models.Model):
 
         return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
-    def save_base(self, raw=False, force_insert=False,
-                  force_update=False, using=None, update_fields=None):
-        related_product_entries_sum = self.productentry_set.aggregate(sum=Sum(F('quantity')))['sum']
-        purchased_products_sum = self.purchasedproduct_set.aggregate(sum=Sum(F('quantity')))['sum']
-
-        self.are_products_received = related_product_entries_sum >= purchased_products_sum
-
-        super(PurchaseOrder, self).save_base(raw, force_insert, force_update, using, update_fields)
-
 
 class PurchasedProduct(models.Model):
     """
@@ -1036,6 +1054,14 @@ class ProductEntry(models.Model):
         (STATUS_CANCELLED, "Cancelado"),
         (STATUS_PENDING, "Pendiente"),
     )
+
+    @property
+    def total_entered_products(self):
+        """
+        Returns the sum of quantities of all related entered products.
+        :return: An integer with the sum.
+        """
+        return self.enteredproduct_set.aggregate(sum=Sum('quantity'))['sum']
 
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, verbose_name='orden de compra')
     inventory = models.ForeignKey(ProductsInventory, on_delete=models.PROTECT, verbose_name='inventario')
@@ -1083,7 +1109,7 @@ class ProductEntry(models.Model):
             self.date_confirmed = timezone.now()
             self.save()
 
-            self.ajax_message_for_confirmation = "Se confirmó el ingreso para la orden {0}.\n".format(
+            self.ajax_message_for_confirmation = "Se confirmó un ingreso para la orden {0}.\n".format(
                 str(self.purchase_order))
 
             for entered_product in self.enteredproduct_set.all():
@@ -1105,6 +1131,10 @@ class ProductEntry(models.Model):
                                                                                     old_quantity, new_quantity)
 
                 inventory_item.save()
+
+            if self.purchase_order.total_entered_products >= self.purchase_order.total_purchased_products:
+                self.purchase_order.status = PurchaseOrder.STATUS_COMPLETE
+                self.purchase_order.save()
 
     def get_confirm_params_for_ajax_request(self):
         """
