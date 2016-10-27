@@ -1,9 +1,10 @@
 {% extends "admin/base.html" %}
+{% load staticfiles %}
 
 {% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block branding %}
-    <img src="http://www.acrilfrasa.com/images/LOGO%20ACRIL.png"
+    <img src="{% static 'back_office/images/logo_acrilfrasa.png' %}"
          style="height: 30px; width: 30px; float: left; margin-right: 20px; margin-top:5px;">
     <h1 id="site-name" style="float: right;">
         <a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>
