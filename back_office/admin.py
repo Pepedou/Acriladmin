@@ -1,3 +1,5 @@
+import logging
+
 from cities_light.admin import CountryAdmin, CityAdmin, RegionAdmin
 from django.contrib import admin
 from django.contrib.admin import AdminSite
@@ -10,6 +12,8 @@ import back_office.models as models
 from back_office.forms.employee_forms import AddOrChangeEmployeeForm
 from inventories.models import ProductEntry, ProductRemoval, PurchaseOrder, ProductTransferShipment, \
     ProductTransferReception
+
+db_logger = logging.getLogger('db')
 
 
 class CustomAdminSite(AdminSite):
@@ -128,12 +132,16 @@ class BranchOfficeAdmin(VersionAdmin):
         Overrides the save related method to add by default the administrator
         to the branch's employees if it's not already part of them.
         """
-        super(BranchOfficeAdmin, self).save_related(request, form, formsets, change)
+        try:
+            super(BranchOfficeAdmin, self).save_related(request, form, formsets, change)
 
-        branch_office = form.instance
+            branch_office = form.instance
 
-        if branch_office.administrator not in branch_office.employees.all():
-            branch_office.employees.add(branch_office.administrator)
+            if branch_office.administrator not in branch_office.employees.all():
+                branch_office.employees.add(branch_office.administrator)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class CustomCountryAdmin(CountryAdmin):

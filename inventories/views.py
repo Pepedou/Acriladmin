@@ -1,3 +1,4 @@
+import logging
 import operator
 from functools import reduce
 
@@ -20,10 +21,12 @@ from inventories.models import ProductsInventory, MaterialsInventory, Consumable
 from inventories.serializers import ProductInventoryItemSerializer
 from inventories.solver import Surface, ProductCutOptimizer
 
+db_logger = logging.getLogger('db')
+
 
 class ProductSolverView(View):
     """
-
+    The view for the solver.
     """
     form_class = SolverForm
     template_name = 'inventories/solver.html'
@@ -46,33 +49,37 @@ class ProductSolverResultView(View):
         return super(ProductSolverResultView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        form = self.form_class(request.GET)
+        try:
+            form = self.form_class(request.GET)
 
-        if form.is_valid():
-            inventory = request.user.branch_office.productsinventory
+            if form.is_valid():
+                inventory = request.user.branch_office.productsinventory
 
-            solver = ProductCutOptimizer(
-                inventory=inventory,
-                surface_area=Surface(width=form.cleaned_data['width'],
-                                     length=form.cleaned_data['length']),
-                product_lines=form.cleaned_data['product_lines'],
-                quantity=form.cleaned_data['quantity']
-            )
+                solver = ProductCutOptimizer(
+                    inventory=inventory,
+                    surface_area=Surface(width=form.cleaned_data['width'],
+                                         length=form.cleaned_data['length']),
+                    product_lines=form.cleaned_data['product_lines'],
+                    quantity=form.cleaned_data['quantity']
+                )
 
-            products, remaining = solver.get_candidate_products_for_surface()
+                products, remaining = solver.get_candidate_products_for_surface()
 
-            return render(request, self.template_name, {
-                'products': products,
-                'remaining': remaining,
-                'inventory': inventory,
-                'width': form.cleaned_data['width'],
-                'length': form.cleaned_data['length'],
-                'quantity': form.cleaned_data['quantity'],
-                'product_lines': ", ".join(
-                    [x[1] for x in Product.LINE_TYPES if str(x[0]) in form.cleaned_data['product_lines']]),
-            })
-        else:
-            return HttpResponseBadRequest()
+                return render(request, self.template_name, {
+                    'products': products,
+                    'remaining': remaining,
+                    'inventory': inventory,
+                    'width': form.cleaned_data['width'],
+                    'length': form.cleaned_data['length'],
+                    'quantity': form.cleaned_data['quantity'],
+                    'product_lines': ", ".join(
+                        [x[1] for x in Product.LINE_TYPES if str(x[0]) in form.cleaned_data['product_lines']]),
+                })
+            else:
+                return HttpResponseBadRequest()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class ProductInventoryView(ListView):
@@ -448,5 +455,6 @@ class ProductMovementConfirmOrCancelView(View):
                 message = obj.ajax_message_for_cancellation
 
             return JsonResponse({'success': success, 'message': message})
-        except Exception as ex:
-            return JsonResponse({'success': False, 'message': str(ex)})
+        except Exception as e:
+            db_logger.exception(e)
+            return JsonResponse({'success': False, 'message': str(e)})

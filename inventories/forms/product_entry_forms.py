@@ -1,8 +1,12 @@
+import logging
+
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import ModelForm
 
 from inventories.models import ProductEntry, PurchaseOrder
+
+db_logger = logging.getLogger('db')
 
 
 class AddOrChangeProductEntryForm(ModelForm):
@@ -20,20 +24,24 @@ class AddOrChangeProductEntryForm(ModelForm):
             self.fields['purchase_order'].queryset = PurchaseOrder.objects.filter(status=PurchaseOrder.STATUS_CONFIRMED)
 
     def clean_purchase_order(self):
-        purchase_order = self.cleaned_data.get('purchase_order')
+        try:
+            purchase_order = self.cleaned_data.get('purchase_order')
 
-        if purchase_order is None:
+            if purchase_order is None:
+                return purchase_order
+
+            total_purchased_products = purchase_order.total_purchased_products
+            pending_and_confirmed_products = \
+                purchase_order.get_total_entered_products_with_filter(
+                    Q(status=ProductEntry.STATUS_PENDING) | Q(
+                        status=ProductEntry.STATUS_CONFIRMED))
+
+            if total_purchased_products <= pending_and_confirmed_products:
+                raise ValidationError('No se puede agregar otro ingreso de producto a esta orden de compra ya que, '
+                                      'entre los ingresos confirmados y pendientes, ya se han recibido todos los '
+                                      'productos de la compra.')
+
             return purchase_order
-
-        total_purchased_products = purchase_order.total_purchased_products
-        pending_and_confirmed_products = \
-            purchase_order.get_total_entered_products_with_filter(
-                Q(status=ProductEntry.STATUS_PENDING) | Q(
-                    status=ProductEntry.STATUS_CONFIRMED))
-
-        if total_purchased_products <= pending_and_confirmed_products:
-            raise ValidationError('No se puede agregar otro ingreso de producto a esta orden de compra ya que, '
-                                  'entre los ingresos confirmados y pendientes, ya se han recibido todos los '
-                                  'productos de la compra.')
-
-        return purchase_order
+        except Exception as e:
+            db_logger.exception(e)
+            raise

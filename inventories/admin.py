@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.core.urlresolvers import reverse
@@ -24,6 +26,8 @@ from inventories.forms.productreimbursement_tabularinlines_forms import AddOrCha
 from inventories.forms.productremoval_forms import AddOrChangeProductRemovalForm
 from inventories.forms.productsinventory_forms import AddOrChangeProductsInventoryForm
 from inventories.forms.removedproduct_forms import RemovedProductForm, RemovedProductFormset
+
+db_logger = logging.getLogger('db')
 
 
 class ProductComponentInLine(admin.TabularInline):
@@ -54,7 +58,7 @@ class ProductAdmin(VersionAdmin):
         It checks if the is_composite field is not selected and, if so,
         deletes all previously inserted product components.
         """
-        obj.save()
+        super(ProductAdmin, self).save_model(request, obj, form, change)
 
         if not obj.is_composite:
             models.ProductComponent.objects.filter(product=obj).delete()
@@ -105,7 +109,7 @@ class ProductsInventoryAdmin(VersionAdmin):
         """
         obj.last_updater = request.user
 
-        obj.save()
+        super(ProductsInventoryAdmin, self).save_model(request, obj, form, change)
 
 
 class MaterialInventoryItemInLine(admin.TabularInline):
@@ -144,7 +148,7 @@ class MaterialsInventoryAdmin(VersionAdmin):
         After each MaterialsInventory is saved, the last_updater field is filled with the current user.
         """
         obj.last_updater = request.user
-        obj.save()
+        super(MaterialsInventoryAdmin, self).save_model(request, obj, form, change)
 
 
 class ConsumableInventoryItemInLine(admin.TabularInline):
@@ -183,7 +187,7 @@ class ConsumablesInventoryAdmin(VersionAdmin):
         After each ConsumablesInventory is saved, the last_updater field is filled with the current user.
         """
         obj.last_updater = request.user
-        obj.save()
+        super(ConsumablesInventoryAdmin, self).save_model(request, obj, form, change)
 
 
 class DurableGoodInventoryItemInLine(admin.TabularInline):
@@ -223,7 +227,7 @@ class DurableGoodsInventoryAdmin(VersionAdmin):
         the last_updater field is filled with the current user.
         """
         obj.last_updater = request.user
-        obj.save()
+        super(DurableGoodsInventoryAdmin, self).save_model(request, obj, form, change)
 
 
 class TransferredProductInLine(admin.TabularInline):
@@ -405,17 +409,21 @@ class ProductTransferReceptionAdmin(ModelAdmin):
         product transfer shipment's transferred product set.
         :param product_transfer_shipment: The ProductTransferShipment.
         """
-        transfer = product_transfer_shipment.product_transfer_shipment
+        try:
+            transfer = product_transfer_shipment.product_transfer_shipment
 
-        for transferred_product in transfer.transferredproduct_set.all():
-            received_product = models.ReceivedProduct()
-            received_product.product = transferred_product.product
-            received_product.accepted_quantity = transferred_product.quantity
-            received_product.received_quantity = transferred_product.quantity
-            received_product.product_transfer_reception = product_transfer_shipment
-            received_product.save()
+            for transferred_product in transfer.transferredproduct_set.all():
+                received_product = models.ReceivedProduct()
+                received_product.product = transferred_product.product
+                received_product.accepted_quantity = transferred_product.quantity
+                received_product.received_quantity = transferred_product.quantity
+                received_product.product_transfer_reception = product_transfer_shipment
+                received_product.save()
 
-            product_transfer_shipment.receivedproduct_set.add(received_product)
+                product_transfer_shipment.receivedproduct_set.add(received_product)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_form(self, request, obj=None, **kwargs):
         form_class = super(ProductTransferReceptionAdmin, self).get_form(request, obj, **kwargs)
@@ -482,31 +490,35 @@ class ProductReimbursementAdmin(ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.inventory = request.user.branch_office.productsinventory
-        obj.save()
+        super(ProductReimbursementAdmin, self).save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
         """
         Overrides super's save_related method in order to calculate the monetary difference
         between the returned products and the exchanged products.
         """
-        from finances.models import ProductPrice
-        from functools import reduce
+        try:
+            from finances.models import ProductPrice
+            from functools import reduce
 
-        super(ProductReimbursementAdmin, self).save_related(request, form, formsets, change)
+            super(ProductReimbursementAdmin, self).save_related(request, form, formsets, change)
 
-        reimbursement = form.instance
+            reimbursement = form.instance
 
-        returned_products = models.ReturnedProduct.objects.filter(reimbursement=reimbursement).all()
+            returned_products = models.ReturnedProduct.objects.filter(reimbursement=reimbursement).all()
 
-        if returned_products.count() > 0:
-            product_prices = ProductPrice.objects.filter(product__in=[item.product for item in returned_products])
+            if returned_products.count() > 0:
+                product_prices = ProductPrice.objects.filter(product__in=[item.product for item in returned_products])
 
-            reimbursement.monetary_difference = reduce(lambda x, y: x + y,
-                                                       [a.price * b.quantity for a in product_prices for b in
-                                                        returned_products if
-                                                        a.product == b.product])
+                reimbursement.monetary_difference = reduce(lambda x, y: x + y,
+                                                           [a.price * b.quantity for a in product_prices for b in
+                                                            returned_products if
+                                                            a.product == b.product])
 
-            reimbursement.save()
+                reimbursement.save()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class PurchasedProductInLine(admin.TabularInline):

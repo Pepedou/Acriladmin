@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.db.models import Sum, F
@@ -8,6 +10,8 @@ from back_office.admin import admin_site
 from back_office.models import EmployeeGroup
 from finances.forms.productprice_forms import AddOrChangeProductPriceForm
 from finances.forms.sale_forms import AddOrChangeSaleForm, SaleProductItemInlineForm, SaleProductItemInlineFormSet
+
+db_logger = logging.getLogger('db')
 
 
 class TransactionInline(admin.StackedInline):
@@ -90,19 +94,23 @@ class TransactionAdmin(admin.ModelAdmin):
         its associated invoice will be marked as closed if the amount covered by all related transactions
         is equal or higher than the invoice's total amount.
         """
-        obj.save()
+        try:
+            obj.save()
 
-        invoice = obj.invoice
+            invoice = obj.invoice
 
-        related_transactions_sum = models.Transaction.objects.filter(invoice=invoice).aggregate(
-            sum=Sum(F('amount')))['sum']
+            related_transactions_sum = models.Transaction.objects.filter(invoice=invoice).aggregate(
+                sum=Sum(F('amount')))['sum']
 
-        if related_transactions_sum >= invoice.total:
-            invoice.is_closed = True
-        else:
-            invoice.is_closed = False
+            if related_transactions_sum >= invoice.total:
+                invoice.is_closed = True
+            else:
+                invoice.is_closed = False
 
-        invoice.save()
+            invoice.save()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_readonly_fields(self, request, obj=None):
         if not obj or request.user.groups.filter(name=EmployeeGroup.ADMINISTRATOR).exists():

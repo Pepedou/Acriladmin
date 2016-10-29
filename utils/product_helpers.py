@@ -1,4 +1,8 @@
+import logging
+
 from inventories.models import Product
+
+db_logger = logging.getLogger('db')
 
 
 class ScrapsToProductsConverter:
@@ -19,24 +23,28 @@ class ScrapsToProductsConverter:
         generated from the given scraps.
         :return: A list of dictionaries.
         """
-        products = []
-        scraps_measurements = self._get_scraps_measurements()
+        try:
+            products = []
+            scraps_measurements = self._get_scraps_measurements()
 
-        for measurement in scraps_measurements:
-            products.append({
-                'sku': self.product.sku + "_{}*{}_PED".format(measurement['width'], measurement['length']),
-                'description': self._get_description_for_scraps_product(measurement),
-                'search_description': self._get_search_description_for_scraps_product(measurement),
-                'line': self.product.line,
-                'engraving': self.product.engraving,
-                'color': self.product.color,
-                'length': measurement['length'],
-                'width': measurement['width'],
-                'thickness': self.subproduct_thickness,
-                'is_composite': self.product.is_composite,
-            })
+            for measurement in scraps_measurements:
+                products.append({
+                    'sku': self.product.sku + "_{}*{}_PED".format(measurement['width'], measurement['length']),
+                    'description': self._get_description_for_scraps_product(measurement),
+                    'search_description': self._get_search_description_for_scraps_product(measurement),
+                    'line': self.product.line,
+                    'engraving': self.product.engraving,
+                    'color': self.product.color,
+                    'length': measurement['length'],
+                    'width': measurement['width'],
+                    'thickness': self.subproduct_thickness,
+                    'is_composite': self.product.is_composite,
+                })
 
-        return products
+            return products
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def _get_scraps_measurements(self):
         """

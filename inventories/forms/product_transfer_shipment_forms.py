@@ -1,9 +1,13 @@
+import logging
+
 from dal import autocomplete
 from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
 from back_office.models import BranchOffice
 from inventories.models import ProductTransferShipment, TransferredProduct
+
+db_logger = logging.getLogger('db')
 
 
 class TransferredProductInlineFormset(BaseInlineFormSet):
@@ -45,25 +49,30 @@ class TransferredProductInlineForm(ModelForm):
         super(TransferredProductInlineForm, self).__init__(*args, **kwargs)
 
     def clean(self):
-        cleaned_data = super(TransferredProductInlineForm, self).clean()
-        product = cleaned_data.get('product')
-        quantity = cleaned_data.get('quantity')
-        source_inventory = self.request.user.branch_office.productsinventory
-        are_fields_readonly = not product or not quantity
+        try:
+            cleaned_data = super(TransferredProductInlineForm, self).clean()
+            product = cleaned_data.get('product')
+            quantity = cleaned_data.get('quantity')
+            source_inventory = self.request.user.branch_office.productsinventory
+            are_fields_readonly = not product or not quantity
 
-        if any(self.errors) or are_fields_readonly:
+            if any(self.errors) or are_fields_readonly:
+                return cleaned_data
+
+            product_inventory_item = source_inventory.productinventoryitem_set.filter(product=product).first()
+
+            if not product_inventory_item:
+                self.add_error('product',
+                               'El inventario {0} no cuenta con este producto.'.format(str(source_inventory)))
+            elif product_inventory_item.quantity < quantity:
+                self.add_error('quantity', 'El inventario {0} sólo cuenta con {1} unidades de este producto.'.format(
+                    str(source_inventory), product_inventory_item.quantity
+                ))
+
             return cleaned_data
-
-        product_inventory_item = source_inventory.productinventoryitem_set.filter(product=product).first()
-
-        if not product_inventory_item:
-            self.add_error('product', 'El inventario {0} no cuenta con este producto.'.format(str(source_inventory)))
-        elif product_inventory_item.quantity < quantity:
-            self.add_error('quantity', 'El inventario {0} sólo cuenta con {1} unidades de este producto.'.format(
-                str(source_inventory), product_inventory_item.quantity
-            ))
-
-        return cleaned_data
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class AddOrChangeProductTransferShipmentForm(ModelForm):
