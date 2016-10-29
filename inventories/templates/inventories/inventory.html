@@ -14,9 +14,7 @@
 
 {% block extrastyle %}
     {{ block.super }}
-    <link rel="stylesheet" type="text/css" href="{% static "inventories/css/inventory.css" %}"/>
-    <link rel="stylesheet" type="text/css"
-          href="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="{% static  'inventories/css/datatables.min.css' %}"/>
 {% endblock %}
 
 {% block extrascripts %}
@@ -24,7 +22,7 @@
         var PRODUCT_INV_ITEM_API_URL = APP_DOMAIN + "{{ product_inv_item_api_url }}";
     </script>
     <script type="text/javascript"
-            src="https://cdn.datatables.net/t/dt/jqc-1.12.0,jszip-2.5.0,pdfmake-0.1.18,dt-1.10.11,b-1.1.2,b-html5-1.1.2,b-print-1.1.2,se-1.1.2/datatables.min.js"></script>
+            src="{% static 'inventories/scripts/datatables.min.js' %}"></script>
     <script type="text/javascript" src="{% static "inventories/scripts/inventory.js" %}"></script>
 {% endblock %}
 
@@ -46,7 +44,11 @@
                             </td>
                         {% elif item.type == "input" %}
                             <td>
-                                <input type="number" name="{{ item.name }}" value="{{ item.attribute }}"/>
+                                {% if is_input_editable %}
+                                    <input type="number" name="{{ item.name }}" value="{{ item.attribute }}"/>
+                                {% else %}
+                                    <label>{{ item.attribute }}</label>
+                                {% endif %}
                             </td>
                         {% elif item.type == "hidden" %}
                             <input type="hidden" name="{{ item.name }}" value="{{ item.attribute }}"/>
