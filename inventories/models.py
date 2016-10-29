@@ -1,3 +1,4 @@
+import logging
 import sys
 from functools import reduce
 
@@ -10,6 +11,8 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from back_office.models import Employee, Client, BranchOffice, EmployeeGroup, Provider
+
+db_logger = logging.getLogger('db')
 
 
 class SIPrefix:
@@ -481,8 +484,9 @@ class ProductTransferShipment(models.Model):
         Confirms this product shipment. It sets its status to CONFIRMED
         and removes the products from the inventory.
         """
-        with transaction.atomic():
-            self.status = ProductTransferShipment.STATUS_CONFIRMED
+        try:
+            with transaction.atomic():
+                self.status = ProductTransferShipment.STATUS_CONFIRMED
             self.date_confirmed = timezone.now()
             self.save()
 
@@ -506,6 +510,9 @@ class ProductTransferShipment(models.Model):
 
                 self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(inventory_item.product),
                                                                                     old_quantity, new_quantity)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -525,11 +532,15 @@ class ProductTransferShipment(models.Model):
         Cancels this product transfer shipment. Sets its status to CANCELLED
         and no products are removed from the inventory.
         """
-        self.status = ProductRemoval.STATUS_CANCELLED
-        self.date_confirmed = timezone.now()
-        self.save()
+        try:
+            self.status = ProductRemoval.STATUS_CANCELLED
+            self.date_confirmed = timezone.now()
+            self.save()
 
-        self.ajax_message_for_cancellation = "Se canceló el envío {0}.".format(str(self))
+            self.ajax_message_for_cancellation = "Se canceló el envío {0}.".format(str(self))
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_cancel_params_for_ajax_request(self):
         """
@@ -657,10 +668,11 @@ class ProductTransferReception(models.Model):
         and adds the confirmed products to the inventory. The unconfirmed
         products are added as ProductRemovals.
         """
-        product_removal = None
+        try:
+            product_removal = None
 
-        with transaction.atomic():
-            self.status = ProductTransferReception.STATUS_CONFIRMED
+            with transaction.atomic():
+                self.status = ProductTransferReception.STATUS_CONFIRMED
             self.date_confirmed = timezone.now()
             self.save()
 
@@ -725,6 +737,9 @@ class ProductTransferReception(models.Model):
                 raise ValueError("El total de productos recibidos para esta transferencia de productos es {0}, cuando "
                                  "la cantidad enviada es {1}.".format(total_products_received,
                                                                       total_products_transferred))
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -744,13 +759,17 @@ class ProductTransferReception(models.Model):
         Cancels this product transfer shipment. Sets its status to CANCELLED
         and no products are removed from the inventory.
         """
-        self.status = ProductTransferReception.STATUS_CANCELLED
-        self.date_confirmed = timezone.now()
-        self.product_transfer_shipment.status = ProductTransferShipment.STATUS_REJECTED
-        self.product_transfer_shipment.save()
-        self.save()
+        try:
+            self.status = ProductTransferReception.STATUS_CANCELLED
+            self.date_confirmed = timezone.now()
+            self.product_transfer_shipment.status = ProductTransferShipment.STATUS_REJECTED
+            self.product_transfer_shipment.save()
+            self.save()
 
-        self.ajax_message_for_cancellation = "Se canceló la recepción {0}".format(self)
+            self.ajax_message_for_cancellation = "Se canceló la recepción {0}".format(self)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_cancel_params_for_ajax_request(self):
         """
@@ -797,9 +816,13 @@ class ReceivedProduct(models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
-        if self.rejection_reason is None:
-            self.accepted_quantity = self.received_quantity
-        super(ReceivedProduct, self).save(force_insert, force_update, using, update_fields)
+        try:
+            if self.rejection_reason is None:
+                self.accepted_quantity = self.received_quantity
+            super(ReceivedProduct, self).save(force_insert, force_update, using, update_fields)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class ProductReimbursement(models.Model):
@@ -864,26 +887,30 @@ class ReturnedProduct(models.Model):
             })
 
     def save(self, **kwargs):
-        if self.pk is not None:
-            super(ReturnedProduct, self).save(**kwargs)
-            return
+        try:
+            if self.pk is not None:
+                super(ReturnedProduct, self).save(**kwargs)
+                return
 
-        inventory = self.reimbursement.inventory
+            inventory = self.reimbursement.inventory
 
-        inventory_product_items = inventory.productinventoryitem_set.filter(product=self.product)
+            inventory_product_items = inventory.productinventoryitem_set.filter(product=self.product)
 
-        if inventory_product_items.count() == 0:
-            inventory_item = ProductInventoryItem()
-            inventory_item.product = self.product
-            inventory_item.inventory = inventory
-        else:
-            inventory_item = inventory_product_items.first()
+            if inventory_product_items.count() == 0:
+                inventory_item = ProductInventoryItem()
+                inventory_item.product = self.product
+                inventory_item.inventory = inventory
+            else:
+                inventory_item = inventory_product_items.first()
 
-        inventory_item.quantity += self.quantity
+            inventory_item.quantity += self.quantity
 
-        with transaction.atomic():
-            inventory_item.save()
-            super(ReturnedProduct, self).save(**kwargs)
+            with transaction.atomic():
+                inventory_item.save()
+                super(ReturnedProduct, self).save(**kwargs)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class PurchaseOrder(models.Model):
@@ -979,11 +1006,15 @@ class PurchaseOrder(models.Model):
         Confirms a purchase order. Sets its status to
         CONFIRMED.
         """
-        self.status = PurchaseOrder.STATUS_CONFIRMED
-        self.date_confirmed = timezone.now()
-        self.save()
+        try:
+            self.status = PurchaseOrder.STATUS_CONFIRMED
+            self.date_confirmed = timezone.now()
+            self.save()
 
-        self.ajax_message_for_confirmation = "Se confirmó la orden {0}.".format(str(self))
+            self.ajax_message_for_confirmation = "Se confirmó la orden {0}.".format(str(self))
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -1003,11 +1034,15 @@ class PurchaseOrder(models.Model):
         Cancels a purchase order. Sets its status to
         CANCELLED.
         """
-        self.status = PurchaseOrder.STATUS_CANCELLED
-        self.date_confirmed = timezone.now()
-        self.save()
+        try:
+            self.status = PurchaseOrder.STATUS_CANCELLED
+            self.date_confirmed = timezone.now()
+            self.save()
 
-        self.ajax_message_for_cancellation = "Se canceló la orden {0}.".format(str(self))
+            self.ajax_message_for_cancellation = "Se canceló la orden {0}.".format(str(self))
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_cancel_params_for_ajax_request(self):
         """
@@ -1103,38 +1138,42 @@ class ProductEntry(models.Model):
         Confirms this product entry. Sets the status as CONFIRMED and
         removes and adds the products to the inventory.
         """
+        try:
+            with transaction.atomic():
+                self.status = ProductEntry.STATUS_CONFIRMED
+                self.date_confirmed = timezone.now()
+                self.save()
 
-        with transaction.atomic():
-            self.status = ProductEntry.STATUS_CONFIRMED
-            self.date_confirmed = timezone.now()
-            self.save()
+                self.ajax_message_for_confirmation = "Se confirmó un ingreso para la orden {0}.\n".format(
+                    str(self.purchase_order))
 
-            self.ajax_message_for_confirmation = "Se confirmó un ingreso para la orden {0}.\n".format(
-                str(self.purchase_order))
+                for entered_product in self.enteredproduct_set.all():
+                    inventory_item = self.inventory.productinventoryitem_set.filter(
+                        product=entered_product.product).first()
 
-            for entered_product in self.enteredproduct_set.all():
-                inventory_item = self.inventory.productinventoryitem_set.filter(product=entered_product.product).first()
+                    if inventory_item is None:
+                        inventory_item = ProductInventoryItem()
+                        inventory_item.product = entered_product.product
+                        inventory_item.quantity = entered_product.quantity
 
-                if inventory_item is None:
-                    inventory_item = ProductInventoryItem()
-                    inventory_item.product = entered_product.product
-                    inventory_item.quantity = entered_product.quantity
+                        old_quantity = 0
+                    else:
+                        old_quantity = inventory_item.quantity
+                        inventory_item.quantity += entered_product.quantity
 
-                    old_quantity = 0
-                else:
-                    old_quantity = inventory_item.quantity
-                    inventory_item.quantity += entered_product.quantity
+                    new_quantity = inventory_item.quantity
 
-                new_quantity = inventory_item.quantity
+                    self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(entered_product.product),
+                                                                                        old_quantity, new_quantity)
 
-                self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(entered_product.product),
-                                                                                    old_quantity, new_quantity)
+                    inventory_item.save()
 
-                inventory_item.save()
-
-            if self.purchase_order.total_entered_products >= self.purchase_order.total_purchased_products:
-                self.purchase_order.status = PurchaseOrder.STATUS_COMPLETE
-                self.purchase_order.save()
+                if self.purchase_order.total_entered_products >= self.purchase_order.total_purchased_products:
+                    self.purchase_order.status = PurchaseOrder.STATUS_COMPLETE
+                    self.purchase_order.save()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_confirm_params_for_ajax_request(self):
         """
@@ -1154,11 +1193,15 @@ class ProductEntry(models.Model):
         Cancels this product entry. Sets the status as CANCELLED.
         :return:
         """
-        self.status = ProductEntry.STATUS_CANCELLED
-        self.date_confirmed = timezone.now()
-        self.save()
+        try:
+            self.status = ProductEntry.STATUS_CANCELLED
+            self.date_confirmed = timezone.now()
+            self.save()
 
-        self.ajax_message_for_cancellation = "Ingreso para orden {0} cancelado.".format(str(self.purchase_order))
+            self.ajax_message_for_cancellation = "Ingreso para orden {0} cancelado.".format(str(self.purchase_order))
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def get_cancel_params_for_ajax_request(self):
         """
@@ -1283,8 +1326,9 @@ class ProductRemoval(models.Model):
         Confirms this product removal. It sets its status to CONFIRMED
         and removes the products from the inventory.
         """
-        with transaction.atomic():
-            self.status = ProductRemoval.STATUS_CONFIRMED
+        try:
+            with transaction.atomic():
+                self.status = ProductRemoval.STATUS_CONFIRMED
             self.date_confirmed = timezone.now()
             self.save()
 
@@ -1304,40 +1348,50 @@ class ProductRemoval(models.Model):
                     self.ajax_message_for_confirmation += "{0} [{1}] -> [{2}]\n".format(str(removed_product.product),
                                                                                         old_quantity,
                                                                                         new_quantity)
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
-    def get_confirm_params_for_ajax_request(self):
-        """
-        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
-        AJAX call.
-        :return: A dictionary with the parameters.
-        """
-        url = reverse('productmovconfirmorcancel')
-        model = self.__class__.__name__
-        pk = self.pk
-        action = 'confirm'
 
-        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+def get_confirm_params_for_ajax_request(self):
+    """
+    Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+    AJAX call.
+    :return: A dictionary with the parameters.
+    """
+    url = reverse('productmovconfirmorcancel')
+    model = self.__class__.__name__
+    pk = self.pk
+    action = 'confirm'
 
-    def cancel(self):
-        """
-        Cancels this product removal. Sets its status to CANCELLED.
-        """
+    return {'url': url, 'model': model, 'pk': pk, 'action': action}
+
+
+def cancel(self):
+    """
+    Cancels this product removal. Sets its status to CANCELLED.
+    """
+    try:
         self.status = ProductRemoval.STATUS_CANCELLED
         self.date_confirmed = timezone.now()
         self.save()
+    except Exception as e:
+        db_logger.exception(e)
+        raise
 
-    def get_cancel_params_for_ajax_request(self):
-        """
-        Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
-        AJAX call.
-        :return: A dictionary with the parameters.
-        """
-        url = reverse('productmovconfirmorcancel')
-        model = self.__class__.__name__
-        pk = self.pk
-        action = 'cancel'
 
-        return {'url': url, 'model': model, 'pk': pk, 'action': action}
+def get_cancel_params_for_ajax_request(self):
+    """
+    Returns a dictionary with the parameters necessary for the 'confirmOrCancelInventoryMovement'
+    AJAX call.
+    :return: A dictionary with the parameters.
+    """
+    url = reverse('productmovconfirmorcancel')
+    model = self.__class__.__name__
+    pk = self.pk
+    action = 'cancel'
+
+    return {'url': url, 'model': model, 'pk': pk, 'action': action}
 
 
 class RemovedProduct(models.Model):

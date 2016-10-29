@@ -1,3 +1,5 @@
+import logging
+
 from dal import autocomplete
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -5,6 +7,8 @@ from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
 from inventories.models import ReceivedProduct, ProductTransferReception, ProductTransferShipment
+
+db_logger = logging.getLogger('db')
 
 
 class ReceivedProductInlineFormset(BaseInlineFormSet):
@@ -46,28 +50,32 @@ class ReceivedProductInlineForm(ModelForm):
         super(ReceivedProductInlineForm, self).__init__(*args, **kwargs)
 
     def clean(self):
-        cleaned_data = super(ReceivedProductInlineForm, self).clean()
+        try:
+            cleaned_data = super(ReceivedProductInlineForm, self).clean()
 
-        if any(self.errors):
+            if any(self.errors):
+                return cleaned_data
+
+            received_quantity = cleaned_data.get('received_quantity')
+            accepted_quantity = cleaned_data.get('accepted_quantity')
+            rejection_reason = cleaned_data.get('rejection_reason')
+
+            if accepted_quantity > received_quantity:
+                self.add_error('accepted_quantity', 'No se puede aceptar una cantidad superior '
+                                                    'a la recibida.')
+
+            if rejection_reason is not None and received_quantity == accepted_quantity:
+                self.add_error('rejection_reason', 'Si la cantidad recibida es igual a la cantidad aceptada, '
+                                                   'no debe haber un motivo de rechazo.')
+
+            if accepted_quantity < received_quantity and rejection_reason is None:
+                self.add_error('rejection_reason', 'Debe especificar un motivo de rechazo si no va a '
+                                                   'aceptar toda la cantidad recibida.')
+
             return cleaned_data
-
-        received_quantity = cleaned_data.get('received_quantity')
-        accepted_quantity = cleaned_data.get('accepted_quantity')
-        rejection_reason = cleaned_data.get('rejection_reason')
-
-        if accepted_quantity > received_quantity:
-            self.add_error('accepted_quantity', 'No se puede aceptar una cantidad superior '
-                                                'a la recibida.')
-
-        if rejection_reason is not None and received_quantity == accepted_quantity:
-            self.add_error('rejection_reason', 'Si la cantidad recibida es igual a la cantidad aceptada, '
-                                               'no debe haber un motivo de rechazo.')
-
-        if accepted_quantity < received_quantity and rejection_reason is None:
-            self.add_error('rejection_reason', 'Debe especificar un motivo de rechazo si no va a '
-                                               'aceptar toda la cantidad recibida.')
-
-        return cleaned_data
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class AddOrChangeProductTransferReceptionForm(ModelForm):
@@ -87,25 +95,30 @@ class AddOrChangeProductTransferReceptionForm(ModelForm):
         fields = '__all__'
 
     def clean_product_transfer_shipment(self):
-        product_transfer_shipment = self.cleaned_data.get('product_transfer_shipment')
-        receiving_branch = self.request.user.branch_office
+        try:
+            product_transfer_shipment = self.cleaned_data.get('product_transfer_shipment')
+            receiving_branch = self.request.user.branch_office
 
-        if not product_transfer_shipment:
-            raise ValidationError('No se encuentra la transferencia de producto.')
+            if not product_transfer_shipment:
+                raise ValidationError('No se encuentra la transferencia de producto.')
 
-        if receiving_branch != product_transfer_shipment.target_branch:
-            self.add_error('product_transfer_shipment', 'Esta transferencia está dirigida a {0}, no a {1}.'.format(
-                str(product_transfer_shipment.target_branch), str(receiving_branch)
-            ))
+            if receiving_branch != product_transfer_shipment.target_branch:
+                self.add_error('product_transfer_shipment', 'Esta transferencia está dirigida a {0}, no a {1}.'.format(
+                    str(product_transfer_shipment.target_branch), str(receiving_branch)
+                ))
 
-        total_transferred_products = product_transfer_shipment.total_transferred_products
-        pending_and_confirmed_products = \
-            product_transfer_shipment.get_total_received_products_by_target_branch_with_filter(
-                Q(status=ProductTransferReception.STATUS_PENDING) | Q(status=ProductTransferReception.STATUS_CONFIRMED))
+            total_transferred_products = product_transfer_shipment.total_transferred_products
+            pending_and_confirmed_products = \
+                product_transfer_shipment.get_total_received_products_by_target_branch_with_filter(
+                    Q(status=ProductTransferReception.STATUS_PENDING) | Q(
+                        status=ProductTransferReception.STATUS_CONFIRMED))
 
-        if total_transferred_products >= pending_and_confirmed_products:
-            raise ValidationError('No se puede agregar otra recepción a esta transferencia ya que, '
-                                  'entre las recepciones confirmadas y pendientes, ya se han recibido todos los '
-                                  'productos de la transferencia.')
+            if total_transferred_products >= pending_and_confirmed_products:
+                raise ValidationError('No se puede agregar otra recepción a esta transferencia ya que, '
+                                      'entre las recepciones confirmadas y pendientes, ya se han recibido todos los '
+                                      'productos de la transferencia.')
 
-        return product_transfer_shipment
+            return product_transfer_shipment
+        except Exception as e:
+            db_logger.exception(e)
+            raise

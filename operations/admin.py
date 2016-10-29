@@ -91,7 +91,7 @@ class ProjectEstimationAdmin(VersionAdmin):
         the author field is filled with the current user.
         """
         obj.author = request.user
-        obj.save()
+        super(ProjectEstimationAdmin, self).save_model(request, obj, form, change)
 
 
 admin_site.register(models.Repair)

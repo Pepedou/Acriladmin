@@ -1,3 +1,5 @@
+import logging
+
 import django
 from django.contrib.auth.models import User
 from django.db import models, transaction
@@ -7,6 +9,8 @@ from django.utils import timezone
 from back_office.models import Client, Employee, Address, EmployeeGroup
 from inventories.models import Product, Material, Product, Material, ProductsInventory, ProductInventoryItem
 from operations.models import Repair, Project
+
+db_logger = logging.getLogger('db')
 
 
 class Invoice(models.Model):
@@ -43,21 +47,29 @@ class Invoice(models.Model):
         Specifies if the invoice has been paid by the sum of all of the related transactions.
         :return: bool True if it has been paid, False otherwise.
         """
-        aggregate = self.transaction_set.aggregate(sum=Sum(F('amount')))['sum']
-        amount_paid = aggregate if aggregate is not None else 0
+        try:
+            aggregate = self.transaction_set.aggregate(sum=Sum(F('amount')))['sum']
+            amount_paid = aggregate if aggregate is not None else 0
 
-        return amount_paid >= self.total
+            return amount_paid >= self.total
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def save(self, **kwargs):
-        related_transactions_sum = self.transaction_set.aggregate(sum=Sum(F('amount')))['sum']
+        try:
+            related_transactions_sum = self.transaction_set.aggregate(sum=Sum(F('amount')))['sum']
 
-        if related_transactions_sum is not None:
-            if related_transactions_sum >= self.total:
-                self.is_closed = True
-            else:
-                self.is_closed = False
+            if related_transactions_sum is not None:
+                if related_transactions_sum >= self.total:
+                    self.is_closed = True
+                else:
+                    self.is_closed = False
 
-        super(Invoice, self).save()
+            super(Invoice, self).save()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def cancel(self):
         """
@@ -220,29 +232,33 @@ class Sale(models.Model):
         to its corresponding inventory. If the Sale was the only Sale for its Invoice, the Invoice is
         also cancelled.
         """
-        if self.state == Sale.STATE_CANCELLED:
-            return
+        try:
+            if self.state == Sale.STATE_CANCELLED:
+                return
 
-        self.state = Sale.STATE_CANCELLED
+            self.state = Sale.STATE_CANCELLED
 
-        product_inventory_item_set = self.inventory.productinventoryitem_set.filter(
-            product__in=[x.product for x in self.saleproductitem_set.all()])
+            product_inventory_item_set = self.inventory.productinventoryitem_set.filter(
+                product__in=[x.product for x in self.saleproductitem_set.all()])
 
-        with transaction.atomic():
-            item_tuples = [(inv_item, sale_item,)
-                           for inv_item in product_inventory_item_set
-                           for sale_item in self.saleproductitem_set.all()
-                           if inv_item.product == sale_item.product]
+            with transaction.atomic():
+                item_tuples = [(inv_item, sale_item,)
+                               for inv_item in product_inventory_item_set
+                               for sale_item in self.saleproductitem_set.all()
+                               if inv_item.product == sale_item.product]
 
-            for inv_item, sale_item in item_tuples:
-                inv_item.quantity += sale_item.quantity
-                inv_item.save()
+                for inv_item, sale_item in item_tuples:
+                    inv_item.quantity += sale_item.quantity
+                    inv_item.save()
 
-            self.inventory.save()
-            self.save()
+                self.inventory.save()
+                self.save()
 
-            if self.invoice is not None and self.invoice.sale_set.count() == 1:
-                self.invoice.cancel()
+                if self.invoice is not None and self.invoice.sale_set.count() == 1:
+                    self.invoice.cancel()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class SaleProductItem(models.Model):

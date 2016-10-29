@@ -1,3 +1,4 @@
+import logging
 import operator
 from functools import reduce
 
@@ -7,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
+from django.http import HttpResponseForbidden
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
@@ -14,16 +16,19 @@ from django.views.generic import ListView
 from django.views.generic import View
 from rest_framework import viewsets
 
+from back_office.models import BranchOffice
 from inventories.forms.solver_forms import SolverForm
 from inventories.models import ProductsInventory, MaterialsInventory, ConsumablesInventory, DurableGoodsInventory, \
     Product, Material, Consumable, DurableGood, ProductInventoryItem, string_to_model_class
 from inventories.serializers import ProductInventoryItemSerializer
 from inventories.solver import Surface, ProductCutOptimizer
 
+db_logger = logging.getLogger('db')
+
 
 class ProductSolverView(View):
     """
-
+    The view for the solver.
     """
     form_class = SolverForm
     template_name = 'inventories/solver.html'
@@ -46,33 +51,37 @@ class ProductSolverResultView(View):
         return super(ProductSolverResultView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        form = self.form_class(request.GET)
+        try:
+            form = self.form_class(request.GET)
 
-        if form.is_valid():
-            inventory = request.user.branch_office.productsinventory
+            if form.is_valid():
+                inventory = request.user.branch_office.productsinventory
 
-            solver = ProductCutOptimizer(
-                inventory=inventory,
-                surface_area=Surface(width=form.cleaned_data['width'],
-                                     length=form.cleaned_data['length']),
-                product_lines=form.cleaned_data['product_lines'],
-                quantity=form.cleaned_data['quantity']
-            )
+                solver = ProductCutOptimizer(
+                    inventory=inventory,
+                    surface_area=Surface(width=form.cleaned_data['width'],
+                                         length=form.cleaned_data['length']),
+                    product_lines=form.cleaned_data['product_lines'],
+                    quantity=form.cleaned_data['quantity']
+                )
 
-            products, remaining = solver.get_candidate_products_for_surface()
+                products, remaining = solver.get_candidate_products_for_surface()
 
-            return render(request, self.template_name, {
-                'products': products,
-                'remaining': remaining,
-                'inventory': inventory,
-                'width': form.cleaned_data['width'],
-                'length': form.cleaned_data['length'],
-                'quantity': form.cleaned_data['quantity'],
-                'product_lines': ", ".join(
-                    [x[1] for x in Product.LINE_TYPES if str(x[0]) in form.cleaned_data['product_lines']]),
-            })
-        else:
-            return HttpResponseBadRequest()
+                return render(request, self.template_name, {
+                    'products': products,
+                    'remaining': remaining,
+                    'inventory': inventory,
+                    'width': form.cleaned_data['width'],
+                    'length': form.cleaned_data['length'],
+                    'quantity': form.cleaned_data['quantity'],
+                    'product_lines': ", ".join(
+                        [x[1] for x in Product.LINE_TYPES if str(x[0]) in form.cleaned_data['product_lines']]),
+                })
+            else:
+                return HttpResponseBadRequest()
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
 
 class ProductInventoryView(ListView):
@@ -87,16 +96,30 @@ class ProductInventoryView(ListView):
         super().__init__(**kwargs)
         self.primary_key = 0
         self.inventory_name = "Inventario de productos"
+        self.user = None
 
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         self.primary_key = kwargs['pk']
-        return super(ProductInventoryView, self).dispatch(request, *args, **kwargs)
+        self.user = request.user
+
+        branch_office = get_object_or_404(BranchOffice, pk=self.primary_key)
+
+        is_admin = request.user == branch_office.administrator
+        is_supervisor = request.user == branch_office.productsinventory.supervisor
+        is_superuser = request.user.is_superuser
+
+        can_visualize_data = is_admin or is_supervisor or is_superuser
+
+        if can_visualize_data:
+            return super(ProductInventoryView, self).dispatch(request, *args, **kwargs)
+        else:
+            return HttpResponseForbidden()
 
     def get_queryset(self):
         products_inventory = ProductsInventory.objects.filter(pk=self.primary_key).first()
 
-        if products_inventory is not None:
+        if products_inventory:
             self.inventory_name = products_inventory.name
             inventory_items = products_inventory.productinventoryitem_set.all()
             queryset = []
@@ -163,6 +186,7 @@ class ProductInventoryView(ListView):
         context['app_list'] = reverse('admin:app_list', args=('inventories',))
         context['inventory_list_url'] = reverse('admin:inventories_productsinventory_changelist')
         context['product_inv_item_api_url'] = reverse('productinventoryitem-list')
+        context['is_input_editable'] = self.user.is_superuser
 
         return context
 
@@ -448,5 +472,6 @@ class ProductMovementConfirmOrCancelView(View):
                 message = obj.ajax_message_for_cancellation
 
             return JsonResponse({'success': success, 'message': message})
-        except Exception as ex:
-            return JsonResponse({'success': False, 'message': str(ex)})
+        except Exception as e:
+            db_logger.exception(e)
+            return JsonResponse({'success': False, 'message': str(e)})

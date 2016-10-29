@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_select2',
     'session_security',
+    'django_db_logger',
 ]
 
 AUTH_USER_MODEL = 'back_office.Employee'
@@ -198,3 +199,28 @@ CITIES_LIGHT_INCLUDE_CITY_TYPES = ['PPL', 'PPLA', 'PPLA2', 'PPLA3', 'PPLA4', 'PP
 SESSION_EXPIRE_AT_BROWSER_CLOSE = not DEBUG
 SESSION_SECURITY_WARN_AFTER = 350
 SESSION_SECURITY_EXPIRE_AFTER = 470
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(asctime)s %(message)s'
+        },
+    },
+    'handlers': {
+        'db_log': {
+            'level': 'DEBUG',
+            'class': 'django_db_logger.db_log_handler.DatabaseLogHandler'
+        },
+    },
+    'loggers': {
+        'db': {
+            'handlers': ['db_log'],
+            'level': 'DEBUG'
+        }
+    }
+}

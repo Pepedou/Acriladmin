@@ -1,11 +1,16 @@
+import logging
+
 import pyexcel
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import ModelForm
 from django.forms.utils import ErrorList
+
 from inventories.models import ProductsInventory, ProductInventoryItem, Product
 from inventories.validators import validate_file_extension
+
+db_logger = logging.getLogger('db')
 
 
 class AddOrChangeProductsInventoryForm(ModelForm):
@@ -31,48 +36,51 @@ class AddOrChangeProductsInventoryForm(ModelForm):
         Validates that the uploaded file has a valid extension and is formatted
         properly.
         """
+        try:
+            file = self.cleaned_data.get('excel_file')
 
-        file = self.cleaned_data.get('excel_file')
+            if file is None:
+                return
 
-        if file is None:
-            return
+            excel_data = AddOrChangeProductsInventoryForm._excel_file_to_dict(file)
 
-        excel_data = AddOrChangeProductsInventoryForm._excel_file_to_dict(file)
-
-        if 'SKU' not in excel_data:
-            raise ValidationError(
-                'El archivo cargado no cuenta con una columna titulada "SKU". Por favor, agregue la columna.')
-
-        if 'Cantidad' not in excel_data:
-            raise ValidationError('El archivo cargado no cuenta con una columna titulada "Cantidad". '
-                                  'Por favor, agregue la columna.')
-
-        num_sku_items = len(excel_data['SKU'])
-        num_quantity_items = len(excel_data['Cantidad'])
-
-        if num_sku_items != num_quantity_items:
-            raise ValidationError('Debe existir una correspondencia 1:1 en los elementos del inventario. '
-                                  'Se identificaron {0} productos en la columna de SKU pero {1} en la columna de Cantidad. '
-                                  'Verifique que sean iguales.'.format(num_sku_items, num_quantity_items))
-
-        for i, item in enumerate(excel_data['SKU']):
-            if item.isspace():
-                raise ValidationError('El SKU del producto en la fila {0} está vacío.'.format(i))
-
-        for i, item in enumerate(excel_data['Cantidad']):
-            if not item:
-                raise ValidationError('Debe existir una correspondencia 1:1 en los elementos del inventario. '
-                                      'El producto "{0}" no cuenta con una cantidad especificada en la fila {1}.'
-                                      .format(excel_data['SKU'][i], i + 2))
-
-            try:
-                int(item)
-            except ValueError:
+            if 'SKU' not in excel_data:
                 raise ValidationError(
-                    'La columna de "Cantidad" sólo puede contener números enteros. {0} no es un valor válido'.format(
-                        item))
+                    'El archivo cargado no cuenta con una columna titulada "SKU". Por favor, agregue la columna.')
 
-        self.excel_data_dict = excel_data
+            if 'Cantidad' not in excel_data:
+                raise ValidationError('El archivo cargado no cuenta con una columna titulada "Cantidad". '
+                                      'Por favor, agregue la columna.')
+
+            num_sku_items = len(excel_data['SKU'])
+            num_quantity_items = len(excel_data['Cantidad'])
+
+            if num_sku_items != num_quantity_items:
+                raise ValidationError('Debe existir una correspondencia 1:1 en los elementos del inventario. '
+                                      'Se identificaron {0} productos en la columna de SKU pero {1} en la columna de Cantidad. '
+                                      'Verifique que sean iguales.'.format(num_sku_items, num_quantity_items))
+
+            for i, item in enumerate(excel_data['SKU']):
+                if item.isspace():
+                    raise ValidationError('El SKU del producto en la fila {0} está vacío.'.format(i))
+
+            for i, item in enumerate(excel_data['Cantidad']):
+                if not item:
+                    raise ValidationError('Debe existir una correspondencia 1:1 en los elementos del inventario. '
+                                          'El producto "{0}" no cuenta con una cantidad especificada en la fila {1}.'
+                                          .format(excel_data['SKU'][i], i + 2))
+
+                try:
+                    int(item)
+                except ValueError:
+                    raise ValidationError(
+                        'La columna de "Cantidad" sólo puede contener números enteros. {0} no es un valor válido'.format(
+                            item))
+
+            self.excel_data_dict = excel_data
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     @staticmethod
     def _excel_file_to_dict(file):
@@ -96,31 +104,34 @@ class AddOrChangeProductsInventoryForm(ModelForm):
         Overrides the save method in order to add the product inventory items listed in
         the uploaded Excel file, if one was uploaded.
         """
-        inventory = super(AddOrChangeProductsInventoryForm, self).save(commit)
+        try:
+            inventory = super(AddOrChangeProductsInventoryForm, self).save(commit)
 
-        if len(self.excel_data_dict) == 0:
+            if len(self.excel_data_dict) == 0:
+                return inventory
+
+            non_existing_products = []
+
+            for i, product_sku in enumerate(self.excel_data_dict['SKU']):
+                quantity = self.excel_data_dict['Cantidad'][i]
+                new_item = ProductInventoryItem.objects.filter(Q(product__sku=product_sku) &
+                                                               Q(inventory=inventory)).first()
+
+                if new_item is None:
+                    product = Product.objects.filter(sku=product_sku).first()
+
+                    if product is None:
+                        non_existing_products.append(product_sku)
+                        continue
+
+                    new_item = ProductInventoryItem()
+                    new_item.product = product
+                    new_item.inventory = inventory
+
+                new_item.quantity += quantity
+                new_item.save()
+
             return inventory
-
-        non_existing_products = []
-
-        for i, product_sku in enumerate(self.excel_data_dict['SKU']):
-            quantity = self.excel_data_dict['Cantidad'][i]
-            new_item = ProductInventoryItem.objects.filter(Q(product__sku=product_sku) &
-                                                           Q(inventory=inventory)).first()
-
-            if new_item is None:
-                product = Product.objects.filter(sku=product_sku).first()
-
-                if product is None:
-                    # TODO: Raise warning in view
-                    non_existing_products.append(product_sku)
-                    continue
-
-                new_item = ProductInventoryItem()
-                new_item.product = product
-                new_item.inventory = inventory
-
-            new_item.quantity += quantity
-            new_item.save()
-
-        return inventory
+        except Exception as e:
+            db_logger.exception(e)
+            raise

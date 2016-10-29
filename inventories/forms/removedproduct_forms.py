@@ -1,8 +1,12 @@
+import logging
+
 from dal import autocomplete
 from django.forms import BaseInlineFormSet
 from django.forms import ModelForm
 
 from inventories.models import RemovedProduct
+
+db_logger = logging.getLogger('db')
 
 
 class RemovedProductFormset(BaseInlineFormSet):
@@ -44,21 +48,25 @@ class RemovedProductForm(ModelForm):
         }
 
     def clean(self):
-        request = self.request
-        cleaned_data = super(RemovedProductForm, self).clean()
-        product = cleaned_data.get('product')
-        quantity = cleaned_data.get('quantity')
-        inventory = request.user.branch_office.productsinventory
+        try:
+            request = self.request
+            cleaned_data = super(RemovedProductForm, self).clean()
+            product = cleaned_data.get('product')
+            quantity = cleaned_data.get('quantity')
+            inventory = request.user.branch_office.productsinventory
 
-        product_inventory_item = inventory.productinventoryitem_set.filter(product=product).first()
+            product_inventory_item = inventory.productinventoryitem_set.filter(product=product).first()
 
-        if product_inventory_item is None:
-            self.add_error('product', "{0} no cuenta con el producto {1}. Hay que agregarlo al inventario.".format(
-                str(inventory), str(product)
-            ))
-        elif product_inventory_item.quantity < quantity:
-            self.add_error('quantity', "{0} sólo cuenta con {} unidades de este producto.".format(
-                str(inventory), str(quantity)
-            ))
+            if product_inventory_item is None:
+                self.add_error('product', "{0} no cuenta con el producto {1}. Hay que agregarlo al inventario.".format(
+                    str(inventory), str(product)
+                ))
+            elif product_inventory_item.quantity < quantity:
+                self.add_error('quantity', "{0} sólo cuenta con {} unidades de este producto.".format(
+                    str(inventory), str(quantity)
+                ))
 
-        return cleaned_data
+            return cleaned_data
+        except Exception as e:
+            db_logger.exception(e)
+            raise

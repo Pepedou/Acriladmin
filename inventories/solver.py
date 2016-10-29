@@ -1,8 +1,11 @@
+import logging
 from decimal import Decimal
 
 from django.template.loader_tags import register
 
 from inventories.models import ProductInventoryItem
+
+db_logger = logging.getLogger('db')
 
 
 @register.filter
@@ -81,42 +84,46 @@ class ProductCutOptimizer:
         scrap.
         :return: A list of dictionaries and the amount remaining.
         """
-        candidate_products = []
+        try:
+            candidate_products = []
 
-        self.available_inventory_items = ProductInventoryItem.objects.filter(
-            product__width__gte=self.surface.width,
-            product__length__gte=self.surface.length,
-            product__line__in=self.product_lines,
-            quantity__gte=1,
-            inventory=self.inventory
-        )
+            self.available_inventory_items = ProductInventoryItem.objects.filter(
+                product__width__gte=self.surface.width,
+                product__length__gte=self.surface.length,
+                product__line__in=self.product_lines,
+                quantity__gte=1,
+                inventory=self.inventory
+            )
 
-        if self.available_inventory_items.count() == 0:
-            return [], self.quantity
+            if self.available_inventory_items.count() == 0:
+                return [], self.quantity
 
-        results = self._get_results()
+            results = self._get_results()
 
-        remaining = self.quantity
+            remaining = self.quantity
 
-        while remaining > 0:
-            try:
-                result = results.pop(0)
-                min_product = result['product_item']
+            while remaining > 0:
+                try:
+                    result = results.pop(0)
+                    min_product = result['product_item']
 
-                if min_product.quantity >= remaining:
-                    result['product_remaining'] = min_product.quantity - remaining
-                    remaining = 0
-                else:
-                    result['product_remaining'] = 0
-                    remaining -= min_product.quantity
+                    if min_product.quantity >= remaining:
+                        result['product_remaining'] = min_product.quantity - remaining
+                        remaining = 0
+                    else:
+                        result['product_remaining'] = 0
+                        remaining -= min_product.quantity
 
-                candidate_products.append(result)
-            except IndexError:
-                break
+                    candidate_products.append(result)
+                except IndexError:
+                    break
 
-        candidate_products.sort(key=lambda x: -x['product_item'].product.is_scrap)
+            candidate_products.sort(key=lambda x: -x['product_item'].product.is_scrap)
 
-        return candidate_products, remaining
+            return candidate_products, remaining
+        except Exception as e:
+            db_logger.exception(e)
+            raise
 
     def _get_results(self):
         """
